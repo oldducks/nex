@@ -1,0 +1,100 @@
+version: '3.8'
+
+services:
+  # 1. Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: namecard_db
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: namecard_platform
+    volumes:
+      - ./pgdata:/var/lib/postgresql/data
+    networks:
+      - app_network
+
+  # 2. Redis (Queue & Cache)
+  redis:
+    image: redis:alpine
+    container_name: namecard_redis
+    restart: always
+    networks:
+      - app_network
+
+  api:
+    container_name: namecard_api
+    build:
+      context: ./backend
+      target: production
+    restart: always
+    environment:
+      POSTGRES_HOST: namecard_db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: secure_password
+      POSTGRES_DB: namecard_platform
+      DATABASE_URL: postgres://admin:secure_password@namecard_db:5432/namecard_platform
+      REDIS_HOST: namecard_redis
+      REDIS_PORT: 6379
+      JWT_SECRET: super_secret_jwt_key
+      ConfigModule_isGlobal: "true"
+      PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
+      FrontendUrl: https://namecard.dpattown.com
+      PORT: 4000
+      # SMTP Configuration for Password Reset Emails
+      SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-dpattown.ai@gmail.com}
+      SMTP_PASS: ${SMTP_PASS:-qmmfnljjtukzigrj}
+      SMTP_FROM: ${SMTP_FROM:-noreply@namecard.dpattown.com}
+      SMTP_SECURE: ${SMTP_SECURE:-false}
+      FRONTEND_URL: https://namecard.dpattown.com
+    depends_on:
+      - postgres # Changed from 'db' to 'postgres' to match existing service name
+      - redis
+    volumes:
+      - ./uploads:/app/uploads  # Persist uploaded files
+    networks:
+      - default
+      - n8n_default
+      - app_network # Added to allow communication with postgres and redis
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=n8n_default"
+      - "traefik.http.routers.namecard-api.rule=Host(`namecard.dpattown.com`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.namecard-api.entrypoints=websecure"
+      - "traefik.http.routers.namecard-api.tls.certresolver=mytlschallenge"
+      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
+      - "traefik.http.routers.namecard-api.middlewares=api-strip"
+      - "traefik.http.services.namecard-api.loadbalancer.server.port=4000"
+
+  web:
+    container_name: namecard_web
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: /api
+    restart: always
+    environment:
+      NEXT_PUBLIC_API_URL: /api
+    depends_on:
+      - api
+    networks:
+      - default
+      - n8n_default
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=n8n_default"
+      - "traefik.http.routers.namecard-web.rule=Host(`namecard.dpattown.com`)"
+      - "traefik.http.routers.namecard-web.entrypoints=websecure"
+      - "traefik.http.routers.namecard-web.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.namecard-web.loadbalancer.server.port=3000"
+
+networks:
+  default:
+  n8n_default:
+    external: true
+  app_network:
+    driver: bridge
