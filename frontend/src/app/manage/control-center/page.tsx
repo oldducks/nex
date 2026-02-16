@@ -3,13 +3,22 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { 
-  LogOut, Globe, BookOpen, CreditCard, ArrowRight, 
+import {
+  LogOut, Globe, BookOpen, CreditCard, ArrowRight,
   Users, BarChart3, ShieldCheck, Mail, Sparkles,
-  Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2
+  Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
+
+interface FeatureConfig {
+  catalog: boolean;
+  leads: boolean;
+  namecard: boolean;
+  'landing-pages': boolean;
+  analytics: boolean;
+  profile: boolean;
+}
 
 interface UserData {
   id: number;
@@ -19,7 +28,18 @@ interface UserData {
   max_cards: number;
   expiration_date: string;
   uid: string;
+  feature_config?: FeatureConfig;
 }
+
+// Map FEATURE_LIST IDs to feature_config keys
+const FEATURE_CONFIG_MAP: Record<string, keyof FeatureConfig> = {
+  'landing': 'profile',
+  'leads': 'leads',
+  'catalog': 'catalog',
+  'namecard': 'namecard',
+  'landing-pages': 'landing-pages',
+  'analytics': 'analytics',
+};
 
 const FEATURE_LIST = [
   {
@@ -75,6 +95,15 @@ const FEATURE_LIST = [
     href: '/manage/dashboard',
     gradient: 'from-amber-500 to-yellow-600',
     tags: ['ข้อมูลเชิงลึก', 'ยอดชม']
+  },
+  {
+    id: 'referrals',
+    title: 'ระบบแนะนำสมาชิก',
+    description: 'แชร์ลิงก์แนะนำเพื่อนและรับค่าคอมมิชชั่น 10% ต่อเนื่องสูงสุด 10 ชั้น',
+    icon: Gift,
+    href: '/manage/referrals',
+    gradient: 'from-pink-500 to-rose-600',
+    tags: ['คอมมิชชั่น', 'แนะนำเพื่อน']
   },
 ];
 
@@ -192,43 +221,94 @@ export default function ControlCenterPage() {
 
         {/* Feature Sections */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {FEATURE_LIST.map((feature) => (
-            <Link
-              key={feature.id}
-              href={feature.href}
-              className="group relative bg-card-bg border border-foreground/5 p-10 rounded-[40px] overflow-hidden
-                         hover:border-primary/30 transition-all duration-500 hover:-translate-y-3 shadow-2xl hover:shadow-primary/5 active:scale-[0.98] glass-card"
-            >
-              {/* Feature Icon */}
-              <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl 
-                                bg-gradient-to-br ${feature.gradient} mb-10 shadow-2xl group-hover:scale-110 transition-transform duration-500`}>
-                <feature.icon size={36} className="text-white" />
-              </div>
+          {FEATURE_LIST.map((feature) => {
+            // Check if feature is enabled (default to true for backward compatibility)
+            const configKey = FEATURE_CONFIG_MAP[feature.id];
+            const isEnabled = !user?.feature_config || user.feature_config[configKey] !== false;
 
-              {/* Tags */}
-              <div className="flex gap-2 mb-6">
-                {feature.tags.map(tag => (
-                  <span key={tag} className="px-3 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+            if (!isEnabled) {
+              // Locked feature card
+              return (
+                <div
+                  key={feature.id}
+                  className="group relative bg-card-bg border border-foreground/5 p-10 rounded-[40px] overflow-hidden
+                             opacity-50 cursor-not-allowed shadow-xl"
+                >
+                  {/* Lock Overlay */}
+                  <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="w-16 h-16 rounded-full bg-foreground/10 flex items-center justify-center mx-auto mb-4">
+                        <Lock size={32} className="text-foreground/40" />
+                      </div>
+                      <p className="text-foreground/40 text-sm font-bold">ฟีเจอร์นี้ถูกล็อค</p>
+                      <p className="text-foreground/30 text-xs mt-1">กรุณาติดต่อผู้ดูแลระบบ</p>
+                    </div>
+                  </div>
 
-              <h2 className="text-3xl font-black mb-4 group-hover:text-primary transition-colors tracking-tight">
-                {feature.title}
-              </h2>
-              <p className="text-foreground/50 text-base leading-relaxed mb-10 group-hover:text-foreground/70 transition-colors">
-                {feature.description}
-              </p>
+                  {/* Feature Icon */}
+                  <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl
+                                    bg-gradient-to-br ${feature.gradient} mb-10 shadow-2xl grayscale`}>
+                    <feature.icon size={36} className="text-white" />
+                  </div>
 
-              <div className="flex items-center gap-3 text-foreground text-sm font-black opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-x-4 group-hover:translate-x-0 uppercase tracking-widest">
-                เริ่มเข้าใช้งาน <ArrowRight size={20} className="text-primary" />
-              </div>
+                  {/* Tags */}
+                  <div className="flex gap-2 mb-6">
+                    {feature.tags.map(tag => (
+                      <span key={tag} className="px-3 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
 
-              {/* Decorative accent */}
-              <div className={`absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 blur-[80px] transition-opacity duration-700`} />
-            </Link>
-          ))}
+                  <h2 className="text-3xl font-black mb-4 tracking-tight text-foreground/50">
+                    {feature.title}
+                  </h2>
+                  <p className="text-foreground/30 text-base leading-relaxed mb-10">
+                    {feature.description}
+                  </p>
+                </div>
+              );
+            }
+
+            // Enabled feature card
+            return (
+              <Link
+                key={feature.id}
+                href={feature.href}
+                className="group relative bg-card-bg border border-foreground/5 p-10 rounded-[40px] overflow-hidden
+                           hover:border-primary/30 transition-all duration-500 hover:-translate-y-3 shadow-2xl hover:shadow-primary/5 active:scale-[0.98] glass-card"
+              >
+                {/* Feature Icon */}
+                <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl
+                                  bg-gradient-to-br ${feature.gradient} mb-10 shadow-2xl group-hover:scale-110 transition-transform duration-500`}>
+                  <feature.icon size={36} className="text-white" />
+                </div>
+
+                {/* Tags */}
+                <div className="flex gap-2 mb-6">
+                  {feature.tags.map(tag => (
+                    <span key={tag} className="px-3 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                      {tag}
+                    </span>
+                  ))}
+                </div>
+
+                <h2 className="text-3xl font-black mb-4 group-hover:text-primary transition-colors tracking-tight">
+                  {feature.title}
+                </h2>
+                <p className="text-foreground/50 text-base leading-relaxed mb-10 group-hover:text-foreground/70 transition-colors">
+                  {feature.description}
+                </p>
+
+                <div className="flex items-center gap-3 text-foreground text-sm font-black opacity-0 group-hover:opacity-100 transition-all duration-500 -translate-x-4 group-hover:translate-x-0 uppercase tracking-widest">
+                  เริ่มเข้าใช้งาน <ArrowRight size={20} className="text-primary" />
+                </div>
+
+                {/* Decorative accent */}
+                <div className={`absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 blur-[80px] transition-opacity duration-700`} />
+              </Link>
+            );
+          })}
 
           {/* Upgrade Card */}
           <div className="group relative bg-foreground text-background border border-foreground/10 p-10 rounded-[40px] overflow-hidden flex flex-col justify-center text-center shadow-2xl shadow-foreground/5">
@@ -288,17 +368,6 @@ export default function ControlCenterPage() {
         </div>
 
       </main>
-
-      <style jsx global>{`
-        @keyframes gradient-x {
-          0%, 100% { background-position: 0% 50%; }
-          50% { background-position: 100% 50%; }
-        }
-        .animate-gradient-x {
-          background-size: 200% 200%;
-          animation: gradient-x 15s ease infinite;
-        }
-      `}</style>
     </div>
   );
 }

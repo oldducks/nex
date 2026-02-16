@@ -18,3 +18,11 @@ export async function getProfile(uid: string) {
     }
     return res.json();
 }
+
+export async function getCatalogsByUserId(userId: number) {
+    const res = await fetch(`${getBaseUrl()}/catalogs/user-public/${userId}`, { cache: 'no-store' });
+    if (!res.ok) {
+        return [];
+    }
+    return res.json();
+}

@@ -1,7 +1,8 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
+import { UpdateFeatureConfigDto } from './dto/update-feature-config.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AnalyticsService } from '../analytics/analytics.service';
 
@@ -104,6 +105,49 @@ export class UsersController {
       throw new ForbiddenException('Only super admin can run this check');
     }
     return this.usersService.disableExpiredUsers();
+  }
+
+  // Feature Config Management
+  @Get(':id/feature-config')
+  @UseGuards(JwtAuthGuard)
+  async getFeatureConfig(@Request() req, @Param('id') id: string) {
+    // Users can view their own config, super_admin can view any
+    if (req.user.role !== 'super_admin' && req.user.sub !== +id) {
+      throw new ForbiddenException('You can only view your own feature config');
+    }
+    const config = await this.usersService.getFeatureConfig(+id);
+    return { feature_config: config };
+  }
+
+  @Patch(':id/feature-config')
+  @UseGuards(JwtAuthGuard)
+  async updateFeatureConfig(
+    @Request() req,
+    @Param('id') id: string,
+    @Body() updateFeatureConfigDto: UpdateFeatureConfigDto,
+  ) {
+    // Only super_admin can update feature configs
+    if (req.user.role !== 'super_admin') {
+      throw new ForbiddenException('Only super admin can update feature config');
+    }
+    const user = await this.usersService.updateFeatureConfig(+id, updateFeatureConfigDto);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    return user;
+  }
+
+  @Post('bulk/feature-config')
+  @UseGuards(JwtAuthGuard)
+  async bulkUpdateFeatureConfig(
+    @Request() req,
+    @Body() body: { feature_config: UpdateFeatureConfigDto },
+  ) {
+    // Only super_admin can bulk update
+    if (req.user.role !== 'super_admin') {
+      throw new ForbiddenException('Only super admin can bulk update feature config');
+    }
+    return this.usersService.setAllUsersFeatureConfig(body.feature_config as any);
   }
 
   @Delete(':id')

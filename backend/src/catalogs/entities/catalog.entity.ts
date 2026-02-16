@@ -33,6 +33,16 @@ export class Catalog {
     @Column({ nullable: true })
     category: string;
 
+    // Video configuration with autoplay, link, enabled settings
+    @Column({ type: 'jsonb', nullable: true })
+    video_config: {
+        url: string;
+        autoplay: boolean;
+        link_url?: string;
+        link_enabled: boolean;
+        enabled: boolean;
+    };
+
     @OneToMany(() => Product, (product) => product.catalog, { cascade: true })
     products: Product[];
 

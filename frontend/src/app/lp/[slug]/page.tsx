@@ -7,6 +7,7 @@ import {
   ChevronRight, MessageSquare, Package, Layout
 } from 'lucide-react';
 import Link from 'next/link';
+import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Block {
     id: string;
@@ -74,11 +75,16 @@ export default function PublicLandingPage() {
     const isLight = bg === '#ffffff';
 
     return (
-        <div className="min-h-screen selection:bg-primary/30" style={{ backgroundColor: bg, color: isLight ? '#000' : '#fff', fontFamily: theme.font_family || 'inherit' }}>
+        <div className="min-h-screen selection:bg-primary/30 bg-background text-foreground transition-colors duration-500" style={{ fontFamily: theme.font_family || 'inherit' }}>
+            <nav className="fixed top-0 left-0 w-full h-16 border-b border-foreground/5 bg-background/50 backdrop-blur-md flex items-center justify-between px-6 z-50">
+                <Link href="/" className="font-bold text-xl tracking-tight">NAMECARD<span className="text-primary">.AI</span></Link>
+                <ThemeToggle />
+            </nav>
+
             <main className="max-w-5xl mx-auto px-6 py-20 md:py-32 space-y-24 md:space-y-40">
                 {page.content_blocks.map(block => (
                     <div key={block.id} className="animate-in fade-in slide-in-from-bottom-10 duration-1000">
-                        <PublicBlock block={block} theme={theme} isLight={isLight} />
+                        <PublicBlock block={block} theme={theme} isLight={theme.bg_color === '#ffffff'} />
                     </div>
                 ))}
 

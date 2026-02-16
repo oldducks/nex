@@ -19,6 +19,11 @@ export class CatalogsController {
     return this.catalogsService.findOnePublic(+id);
   }
 
+  @Get('user-public/:userId')
+  async findByUserId(@Param('userId') userId: string) {
+    return this.catalogsService.findByUserId(+userId);
+  }
+
   // Protected endpoints
   @UseGuards(JwtAuthGuard)
   @Post()

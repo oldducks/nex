@@ -53,3 +53,12 @@ export interface ThemeConfig {
     textColor: string;
     accentColor: string;
 }
+
+// Video configuration
+export interface VideoConfig {
+    url: string;
+    autoplay: boolean;
+    link_url?: string;
+    link_enabled: boolean;
+    enabled: boolean;
+}

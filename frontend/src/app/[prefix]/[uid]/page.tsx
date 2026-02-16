@@ -1,6 +1,6 @@
-import { getProfile } from '../../../lib/api';
+import { getProfile, getCatalogsByUserId } from '../../../lib/api';
 import { notFound } from 'next/navigation';
-import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2, Facebook, Instagram, Linkedin, Youtube, MessageCircle, Github, Twitter } from 'lucide-react';
+import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2 } from 'lucide-react';
 import { VcfDownloadButton } from '../../../components/VcfDownload';
 import { QrCodeImage } from '../../../components/QrCode';
 import { AnalyticsTracker } from '../../../components/AnalyticsTracker';
@@ -9,20 +9,9 @@ import { ProfilePageClient } from '../../../components/ProfilePageClient';
 import { VideoEmbed } from '../../../components/VideoEmbed';
 import { Gallery } from '../../../components/Gallery';
 import { LeadForm } from '../../../components/LeadForm';
-
-// Social icons mapping
-const SOCIAL_ICONS: Record<string, any> = {
-    facebook: Facebook, instagram: Instagram, twitter: Twitter,
-    linkedin: Linkedin, youtube: Youtube, website: Globe,
-    email: Mail, phone: Phone, line: MessageCircle, github: Github,
-};
-
-const SOCIAL_COLORS: Record<string, string> = {
-    facebook: '#1877F2', instagram: '#E4405F', twitter: '#1DA1F2',
-    linkedin: '#0A66C2', youtube: '#FF0000', line: '#00C300',
-    github: '#333333', website: '#6366F1', email: '#EA4335', phone: '#22C55E',
-    tiktok: '#000000',
-};
+import { ThemeToggle } from '@/components/ThemeToggle';
+import { SocialLinksDisplay } from '../../../components/SocialLinksDisplay';
+import { CatalogsDisplay } from '../../../components/CatalogsDisplay';
 
 export default async function ProfilePage({ params }: { params: Promise<{ prefix: string; uid: string }> }) {
     const { prefix, uid } = await params;
@@ -31,6 +20,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     if (!data) {
         notFound();
     }
+
+    // Fetch user's catalogs
+    const catalogs = await getCatalogsByUserId(data.user_id);
 
     // Validate URL Prefix for security
     // Only enforced if user has a prefix set (legacy support or strict?)
@@ -105,16 +97,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
     // Theme Configuration
     const theme = layout_config || {};
-    const lightMode = theme.display_theme === 'light';
+    // const lightMode = theme.display_theme === 'light'; // Removed to allow global theme
     const primary = theme.primary_color || '#6366F1';
     const font = theme.font_family || 'Inter';
 
     const themeStyles = {
         '--primary': primary,
-        '--background': lightMode ? '#f4f4f5' : '#050505',
-        '--foreground': lightMode ? '#18181b' : '#ffffff',
-        '--glass': lightMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 15, 15, 0.7)',
-        '--glass-border': lightMode ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+        // '--background': lightMode ? '#f4f4f5' : '#050505', // Use global theme
+        // '--foreground': lightMode ? '#18181b' : '#ffffff', // Use global theme
+        // '--glass': lightMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 15, 15, 0.7)', // Use global theme
+        // '--glass-border': lightMode ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)', // Use global theme
         fontFamily: `"${font}", sans-serif`,
     } as React.CSSProperties;
 
@@ -123,10 +115,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     return (
         <ProfilePageClient profileData={data}>
             <link href={`https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;700;900&display=swap`} rel="stylesheet" />
+            
+            {/* Global Theme Toggle for Profile */}
+            <div className="fixed top-6 right-6 z-[100]">
+                <ThemeToggle />
+            </div>
+
             <main
                 id="profile-capture"
-                className={`relative min-h-screen transition-colors duration-500 overflow-hidden ${isExpired ? 'grayscale pointer-events-none select-none' : ''}`}
-                style={{ ...themeStyles, backgroundColor: 'var(--background)', color: 'var(--foreground)' }}
+                className={`relative min-h-screen transition-colors duration-500 overflow-hidden bg-background text-foreground ${isExpired ? 'grayscale pointer-events-none select-none' : ''}`}
+                style={{ ...themeStyles, fontFamily: `"${font}", sans-serif` }}
             >
                 {/* Expiry Overlay */}
                 {isExpired && (
@@ -161,7 +159,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     <section className={`relative mb-16 flex flex-col ${profilePosition === 'left' ? 'md:flex-row' : profilePosition === 'right' ? 'md:flex-row-reverse' : 'items-center'} gap-8 ${bannerUrl && profilePosition === 'overlay' ? '-mt-32' : ''}`}>
                         {/* Profile Image */}
                         <div className={`relative flex-shrink-0 ${profilePosition === 'overlay' ? 'z-10' : ''}`}>
-                            <div className="w-48 h-48 md:w-56 md:h-56 relative overflow-hidden rounded-[32px] border-4 border-white/10 shadow-2xl bg-zinc-800">
+                            <div className="w-72 h-72 md:w-80 md:h-80 relative overflow-hidden rounded-[32px] border-4 border-white/10 shadow-2xl bg-zinc-800">
                                 {profileImageUrl ? (
                                     <img
                                         src={profileImageUrl}
@@ -180,7 +178,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 )}
                             </div>
                             {logoUrl && (
-                                <div className="absolute -bottom-4 -right-4 w-16 h-16 bg-white rounded-xl shadow-lg p-2 border border-gray-200">
+                                <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white rounded-xl shadow-lg p-2 border border-gray-200">
                                     <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
                                 </div>
                             )}
@@ -299,23 +297,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     )}
 
                     {/* Social Links */}
-                    {social_links_json?.length > 0 && (
-                        <section className="mb-12">
-                            <div className="flex flex-wrap gap-3 justify-center">
-                                {social_links_json.map((link: any, i: number) => {
-                                    const IconComponent = SOCIAL_ICONS[link.platform] || Globe;
-                                    const color = SOCIAL_COLORS[link.platform] || '#6366F1';
-                                    return (
-                                        <a key={i} href={link.url} target="_blank" rel="noopener noreferrer"
-                                            className="w-14 h-14 rounded-xl flex items-center justify-center transition-transform hover:scale-110"
-                                            style={{ backgroundColor: color }}>
-                                            <IconComponent size={24} className="text-white" />
-                                        </a>
-                                    );
-                                })}
-                            </div>
-                        </section>
-                    )}
+                    <SocialLinksDisplay links={social_links_json} />
 
                     {/* QR Code */}
                     {qr_enabled !== false && (
@@ -362,6 +344,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             template="gradient"
                         />
                     </section>
+
+                    {/* Catalogs */}
+                    <CatalogsDisplay catalogs={catalogs} />
 
                     {/* Footer */}
                     <footer className="mt-16 pb-8 text-center border-t border-white/5 pt-8">

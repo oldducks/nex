@@ -12,17 +12,30 @@ interface ThemeContextType {
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    // กำหนดค่าเริ่มต้นเป็น 'light' ทันที
-    const [theme, setThemeState] = useState<Theme>('light');
+    const [theme, setThemeState] = useState<Theme>('dark');
+    // Use mounted state to prevent hydration mismatch
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
+        // Run once on mount
         const savedTheme = localStorage.getItem('theme') as Theme;
-        const initialTheme = savedTheme || 'light';
+        const initialTheme = savedTheme || 'dark';
         
         setThemeState(initialTheme);
         document.documentElement.setAttribute('data-theme', initialTheme);
         setMounted(true);
+
+        // Listen for storage events (cross-tab sync)
+        const handleStorage = (e: StorageEvent) => {
+            if (e.key === 'theme' && e.newValue) {
+                const newTheme = e.newValue as Theme;
+                setThemeState(newTheme);
+                document.documentElement.setAttribute('data-theme', newTheme);
+            }
+        };
+
+        window.addEventListener('storage', handleStorage);
+        return () => window.removeEventListener('storage', handleStorage);
     }, []);
 
     const setTheme = (newTheme: Theme) => {
@@ -33,9 +46,11 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <ThemeContext.Provider value={{ theme, setTheme }}>
-            <div className="transition-colors duration-500 min-h-screen bg-background text-foreground">
-                {children}
-            </div>
+            {!mounted ? (
+                <div style={{ visibility: 'hidden' }}>{children}</div>
+            ) : (
+                children
+            )}
         </ThemeContext.Provider>
     );
 }

@@ -23,6 +23,8 @@ import { AnalyticsLog } from './analytics/entities/analytics-log.entity';
 import { MailModule } from './mail/mail.module';
 import { LandingPagesModule } from './landing-pages/landing-pages.module';
 import { LandingPage } from './landing-pages/entities/landing-page.entity';
+import { ReferralsModule } from './referrals/referrals.module';
+import { Referral } from './referrals/entities/referral.entity';
 
 @Module({
   imports: [
@@ -37,7 +39,7 @@ import { LandingPage } from './landing-pages/entities/landing-page.entity';
       useFactory: () => ({
         type: 'postgres',
         url: process.env.DATABASE_URL,
-        entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage],
+        entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage, Referral],
         synchronize: true, // Dev only
       }),
     }),
@@ -60,6 +62,7 @@ import { LandingPage } from './landing-pages/entities/landing-page.entity';
     AnalyticsModule,
     MailModule,
     LandingPagesModule,
+    ReferralsModule,
   ],
   controllers: [],
   providers: [],

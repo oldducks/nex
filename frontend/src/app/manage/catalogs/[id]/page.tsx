@@ -3,15 +3,26 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { 
-  Plus, ArrowLeft, Trash2, GripVertical, Image as ImageIcon, 
-  Package, Settings, Globe, ShoppingCart, Facebook, 
+import {
+  Plus, ArrowLeft, Trash2, GripVertical, Image as ImageIcon,
+  Package, Settings, Globe, ShoppingCart, Facebook,
   Palette, Type, RefreshCw, Eye, Save, QrCode as QrIcon,
-  ExternalLink, Download, FileJson, Layers, Sparkles, Loader2, X
+  ExternalLink, Download, FileJson, Layers, Sparkles, Loader2, X, Pencil
 } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { VideoUpload } from '@/components/VideoUpload';
+import ProductImageUpload from '@/components/ProductImageUpload';
+import { Video } from 'lucide-react';
+
+interface VideoConfig {
+    url: string;
+    autoplay: boolean;
+    link_url?: string;
+    link_enabled: boolean;
+    enabled: boolean;
+}
 
 interface Product {
     id: number;
@@ -31,6 +42,7 @@ interface Catalog {
     layout_config?: any;
     interactive_links?: any;
     pdf_url?: string;
+    video_config?: VideoConfig;
 }
 
 export default function CatalogDetail() {
@@ -45,16 +57,23 @@ export default function CatalogDetail() {
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [saving, setSaving] = useState(false);
     
-    const [newProduct, setNewProduct] = useState({ 
-        name: '', description: '', price: '', image_url: '',
-        website: '', order_form: '', facebook: '' 
+    const [newProduct, setNewProduct] = useState({
+        name: '', description: '', price: '', images: [] as string[],
+        website: '', order_form: '', facebook: ''
+    });
+
+    const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+    const [editProduct, setEditProduct] = useState({
+        name: '', description: '', price: '', images: [] as string[],
+        website: '', order_form: '', facebook: ''
     });
     
     const [settings, setSettings] = useState({
         title: '', description: '', custom_slug: '',
         primary_color: '#6366F1', font_family: 'Inter',
         catalog_ws: '', catalog_fb: '', catalog_order: '',
-        template_id: 'standard', stickers: [] as string[]
+        template_id: 'standard', stickers: [] as string[],
+        video_config: null as VideoConfig | null
     });
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -90,7 +109,8 @@ export default function CatalogDetail() {
                     stickers: cat.layout_config?.stickers || [],
                     catalog_ws: cat.interactive_links?.website || '',
                     catalog_fb: cat.interactive_links?.facebook || '',
-                    catalog_order: cat.interactive_links?.order_form || ''
+                    catalog_order: cat.interactive_links?.order_form || '',
+                    video_config: cat.video_config || null
                 });
             }
             if (prodRes.ok) {
@@ -126,7 +146,8 @@ export default function CatalogDetail() {
                         website: settings.catalog_ws,
                         facebook: settings.catalog_fb,
                         order_form: settings.catalog_order
-                    }
+                    },
+                    video_config: settings.video_config
                 })
             });
             if (res.ok) {
@@ -148,7 +169,7 @@ export default function CatalogDetail() {
                 name: newProduct.name,
                 description: newProduct.description,
                 price: parseFloat(newProduct.price) || 0,
-                images_json: newProduct.image_url ? [newProduct.image_url] : [],
+                images_json: newProduct.images,
                 interactive_links: {
                     website: newProduct.website,
                     order_form: newProduct.order_form,
@@ -167,10 +188,66 @@ export default function CatalogDetail() {
 
             if (res.ok) {
                 setShowProductModal(false);
-                setNewProduct({ 
-                    name: '', description: '', price: '', image_url: '',
-                    website: '', order_form: '', facebook: '' 
+                setNewProduct({
+                    name: '', description: '', price: '', images: [],
+                    website: '', order_form: '', facebook: ''
                 });
+                fetchData();
+            }
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const openEditModal = (product: Product) => {
+        setEditingProduct(product);
+        setEditProduct({
+            name: product.name,
+            description: product.description || '',
+            price: product.price?.toString() || '',
+            images: product.images_json || [],
+            website: product.interactive_links?.website || '',
+            order_form: product.interactive_links?.order_form || '',
+            facebook: product.interactive_links?.facebook || ''
+        });
+    };
+
+    const closeEditModal = () => {
+        setEditingProduct(null);
+        setEditProduct({
+            name: '', description: '', price: '', images: [],
+            website: '', order_form: '', facebook: ''
+        });
+    };
+
+    const updateProduct = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingProduct) return;
+
+        try {
+            const payload = {
+                name: editProduct.name,
+                description: editProduct.description,
+                price: parseFloat(editProduct.price) || 0,
+                images_json: editProduct.images,
+                interactive_links: {
+                    website: editProduct.website,
+                    order_form: editProduct.order_form,
+                    facebook: editProduct.facebook
+                }
+            };
+
+            const res = await fetch(`${API_URL}/products/${editingProduct.id}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                closeEditModal();
                 fetchData();
             }
         } catch (error) {
@@ -349,12 +426,22 @@ export default function CatalogDetail() {
                                     </div>
                                 </div>
                                 
-                                <button
-                                    onClick={() => deleteProduct(product.id)}
-                                    className="w-14 h-14 flex items-center justify-center text-foreground/10 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all opacity-0 group-hover:opacity-100 bg-foreground/[0.02]"
-                                >
-                                    <Trash2 size={24} />
-                                </button>
+                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                    <button
+                                        onClick={() => openEditModal(product)}
+                                        className="w-12 h-12 flex items-center justify-center text-foreground/20 hover:text-primary hover:bg-primary/10 rounded-2xl transition-all bg-foreground/[0.02]"
+                                        title="แก้ไขสินค้า"
+                                    >
+                                        <Pencil size={20} />
+                                    </button>
+                                    <button
+                                        onClick={() => deleteProduct(product.id)}
+                                        className="w-12 h-12 flex items-center justify-center text-foreground/20 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all bg-foreground/[0.02]"
+                                        title="ลบสินค้า"
+                                    >
+                                        <Trash2 size={20} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
@@ -434,16 +521,12 @@ export default function CatalogDetail() {
                                 </div>
 
                                 <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">URL รูปภาพสินค้า</label>
-                                        <input
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-xs font-mono tracking-tighter"
-                                            placeholder="https://images.unsplash.com/..."
-                                            value={newProduct.image_url}
-                                            onChange={e => setNewProduct({ ...newProduct, image_url: e.target.value })}
-                                        />
-                                    </div>
-                                    
+                                    <ProductImageUpload
+                                        images={newProduct.images}
+                                        onChange={(images) => setNewProduct({ ...newProduct, images })}
+                                        maxImages={5}
+                                    />
+
                                     <div className="pt-6 border-t border-foreground/5 space-y-6">
                                         <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2rem] ml-1">Interactive Command Buttons</label>
                                         <div className="space-y-4">
@@ -482,6 +565,110 @@ export default function CatalogDetail() {
                             <div className="flex gap-6 pt-6">
                                 <button type="button" onClick={() => setShowProductModal(false)} className="flex-1 py-5 text-foreground/30 font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">Cancel</button>
                                 <button className="flex-[2] bg-primary hover:opacity-90 text-white font-black py-5 rounded-[24px] shadow-3xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs">Deploy Product To Catalog</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* EDIT PRODUCT MODAL */}
+            {editingProduct && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-xl animate-in fade-in transition-all" onClick={closeEditModal} />
+                    <div className="bg-card-bg border border-glass-border rounded-[48px] p-12 w-full max-w-3xl relative z-10 shadow-3xl animate-in zoom-in-95 duration-300 glass-card">
+                        <button onClick={closeEditModal} className="absolute top-8 right-8 w-12 h-12 rounded-full hover:bg-foreground/5 flex items-center justify-center transition-all bg-foreground/[0.02] text-foreground/20 hover:text-foreground">
+                            <X size={24} />
+                        </button>
+
+                        <div className="flex items-center justify-between mb-12">
+                            <div>
+                                <h2 className="text-4xl font-black tracking-tighter">แก้ไขสินค้า</h2>
+                                <p className="text-foreground/40 text-lg mt-2 font-medium">อัพเดทข้อมูลสินค้าและตั้งค่าระบบ</p>
+                            </div>
+                            <div className="w-20 h-20 bg-amber-500/5 rounded-[32px] flex items-center justify-center text-amber-500 border border-amber-500/10">
+                                <Pencil size={40} />
+                            </div>
+                        </div>
+
+                        <form onSubmit={updateProduct} className="space-y-10">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div className="space-y-6">
+                                    <div className="space-y-3">
+                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">ชื่อสินค้าและรุ่น</label>
+                                        <input
+                                            required
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
+                                            placeholder="Ex. Rolex Submariner..."
+                                            value={editProduct.name}
+                                            onChange={e => setEditProduct({ ...editProduct, name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">ราคาสินค้า (บาท)</label>
+                                        <input
+                                            type="number"
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-primary font-black text-2xl tracking-tight"
+                                            placeholder="0.00"
+                                            value={editProduct.price}
+                                            onChange={e => setEditProduct({ ...editProduct, price: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">แคปชั่น / รายละเอียด</label>
+                                        <textarea
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 resize-none font-medium leading-relaxed"
+                                            placeholder="อธิบายสรรพสินค้าของคุณ..."
+                                            value={editProduct.description}
+                                            onChange={e => setEditProduct({ ...editProduct, description: e.target.value })}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-6">
+                                    <ProductImageUpload
+                                        images={editProduct.images}
+                                        onChange={(images) => setEditProduct({ ...editProduct, images })}
+                                        maxImages={5}
+                                    />
+
+                                    <div className="pt-6 border-t border-foreground/5 space-y-6">
+                                        <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2rem] ml-1">Interactive Command Buttons</label>
+                                        <div className="space-y-4">
+                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
+                                                <ShoppingCart size={18} className="text-foreground/20 mr-4" />
+                                                <input
+                                                    className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold"
+                                                    placeholder="ลิงก์สั่งซื้อตรง / Add to cart"
+                                                    value={editProduct.order_form}
+                                                    onChange={e => setEditProduct({...editProduct, order_form: e.target.value})}
+                                                />
+                                            </div>
+                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
+                                                <Globe size={18} className="text-foreground/20 mr-4" />
+                                                <input
+                                                    className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold"
+                                                    placeholder="ลิงก์เว็บไซต์ดูรายละเอียด"
+                                                    value={editProduct.website}
+                                                    onChange={e => setEditProduct({...editProduct, website: e.target.value})}
+                                                />
+                                            </div>
+                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
+                                                <Facebook size={18} className="text-blue-500/50 mr-4" />
+                                                <input
+                                                    className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold"
+                                                    placeholder="ลิงก์ Social Media"
+                                                    value={editProduct.facebook}
+                                                    onChange={e => setEditProduct({...editProduct, facebook: e.target.value})}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="flex gap-6 pt-6">
+                                <button type="button" onClick={closeEditModal} className="flex-1 py-5 text-foreground/30 font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">Cancel</button>
+                                <button className="flex-[2] bg-amber-500 hover:opacity-90 text-white font-black py-5 rounded-[24px] shadow-3xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs">Update Product</button>
                             </div>
                         </form>
                     </div>
@@ -588,6 +775,17 @@ export default function CatalogDetail() {
                                         />
                                     </div>
                                 </div>
+                            </div>
+
+                            <div className="space-y-6 pt-6 border-t border-foreground/5">
+                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1 flex items-center gap-2">
+                                    <Video size={16} className="text-primary" /> VIDEO SHOWCASE
+                                </label>
+                                <p className="text-xs text-foreground/40 -mt-2">อัพโหลดวิดีโอแนะนำแคตตาล็อก สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
+                                <VideoUpload
+                                    value={settings.video_config}
+                                    onChange={(config) => setSettings({ ...settings, video_config: config })}
+                                />
                             </div>
 
                             <div className="space-y-6 pt-6 border-t border-foreground/5">

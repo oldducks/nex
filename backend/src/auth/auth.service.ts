@@ -1,7 +1,8 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, ConflictException, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
-import { UsersService } from '../users/users.service';
+import { UsersService, OAuthUserData } from '../users/users.service';
 import { MailService } from '../mail/mail.service';
+import { ReferralsService } from '../referrals/referrals.service';
 import * as bcrypt from 'bcrypt';
 import * as crypto from 'crypto';
 
@@ -11,7 +12,68 @@ export class AuthService {
         private usersService: UsersService,
         private jwtService: JwtService,
         private mailService: MailService,
+        @Inject(forwardRef(() => ReferralsService))
+        private referralsService: ReferralsService,
     ) { }
+
+    // OAuth login/registration
+    async validateOAuthUser(data: OAuthUserData) {
+        // Check if user exists with this provider ID
+        let user = await this.usersService.findByProviderId(data.provider, data.providerId);
+
+        if (user) {
+            // Existing OAuth user - just log them in
+            return user;
+        }
+
+        // Check if email exists (to link accounts)
+        if (data.email) {
+            const existingUser = await this.usersService.findOneByEmail(data.email);
+            if (existingUser) {
+                // Link this OAuth provider to existing account
+                user = await this.usersService.linkOAuthProvider(existingUser.id, data.provider, data.providerId);
+                return user;
+            }
+        }
+
+        // Create new user
+        user = await this.usersService.createOAuthUser(data);
+        return user;
+    }
+
+    async oauthLogin(user: any) {
+        const payload = { email: user.email, sub: user.id, role: user.role, uid: user.uid, group_id: user.group_id };
+        return {
+            access_token: this.jwtService.sign(payload),
+            uid: user.uid,
+            is_new_user: !user.profile, // Check if profile exists
+        };
+    }
+
+    // Self-registration
+    async register(email: string, password: string, referralCode?: string) {
+        // Check if email already exists
+        const existing = await this.usersService.findOneByEmail(email);
+        if (existing) {
+            throw new ConflictException('อีเมลนี้ถูกใช้งานแล้ว');
+        }
+
+        // Create user
+        const user = await this.usersService.createSelfRegisteredUser(email, password, referralCode);
+
+        // Process referral if code provided
+        if (referralCode) {
+            try {
+                await this.referralsService.processReferral(user.id, referralCode, 0); // 0 = no registration fee yet
+            } catch (error) {
+                console.error('Failed to process referral:', error);
+                // Don't fail registration if referral processing fails
+            }
+        }
+
+        // Log them in
+        return this.login(user);
+    }
 
     async validateUser(email: string, pass: string): Promise<any> {
         const user = await this.usersService.findOneByEmail(email);

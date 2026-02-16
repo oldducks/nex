@@ -51,6 +51,14 @@ services:
       SMTP_FROM: ${SMTP_FROM:-noreply@namecard.dpattown.com}
       SMTP_SECURE: ${SMTP_SECURE:-false}
       FRONTEND_URL: https://namecard.dpattown.com
+      API_URL: https://namecard.dpattown.com/api
+      # OAuth Configuration
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      FACEBOOK_APP_ID: ${FACEBOOK_APP_ID:-}
+      FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
+      LINE_CHANNEL_ID: ${LINE_CHANNEL_ID:-}
+      LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
     depends_on:
       - postgres # Changed from 'db' to 'postgres' to match existing service name
       - redis

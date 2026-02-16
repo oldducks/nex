@@ -7,7 +7,8 @@ import type {
     ProfilePicConfig,
     WebsiteLink,
     LayoutConfig,
-    ThemeConfig
+    ThemeConfig,
+    VideoConfig
 } from '../types/profile.types';
 
 @Entity('profiles')
@@ -115,6 +116,10 @@ export class Profile {
 
     @Column({ type: 'text', nullable: true })
     video_url: string;
+
+    // Video configuration with autoplay, link, enabled settings
+    @Column({ type: 'jsonb', nullable: true })
+    video_config: VideoConfig;
 
     @Column({ type: 'jsonb', default: [] })
     gallery: string[];

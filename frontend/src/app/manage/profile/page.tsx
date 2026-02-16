@@ -15,6 +15,8 @@ import {
 import { QrCodeImage } from '../../../components/QrCode';
 import { ImageCropper } from '../../../components/ImageCropper';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { VideoUpload } from '@/components/VideoUpload';
+import { Video } from 'lucide-react';
 
 // Social icons mapping
 const SOCIAL_ICONS: Record<string, any> = {
@@ -48,6 +50,7 @@ interface I18nField { lang: string; value: string; }
 interface ContactField { label: string; value: string; }
 interface ImageWithPosition { url: string; position: { x: number; y: number }; scale?: number; }
 interface WebsiteLink { label: string; url: string; position?: string; }
+interface VideoConfig { url: string; autoplay: boolean; link_url?: string; link_enabled: boolean; enabled: boolean; }
 
 interface Profile {
     // Multi-language
@@ -70,6 +73,8 @@ interface Profile {
     // About
     about_me: string;
     interests: string[];
+    // Video
+    video_config: VideoConfig | null;
     // Layout
     layout_config: {
         sections: string[];
@@ -98,6 +103,7 @@ const defaultProfile: Profile = {
     social_links_json: [],
     about_me: '',
     interests: [],
+    video_config: null,
     layout_config: {
         sections: ['banner', 'profile', 'info', 'about', 'social', 'contact'],
         profile_position: 'center',
@@ -252,6 +258,7 @@ export default function ProfileEditorV2() {
                     social_links_json: data.social_links_json || [],
                     about_me: data.about_me || '',
                     interests: data.interests || [],
+                    video_config: data.video_config || null,
                     layout_config: data.layout_config || defaultProfile.layout_config,
                 });
             }
@@ -594,6 +601,17 @@ export default function ProfileEditorV2() {
                                 <span className="text-[10px] font-black uppercase tracking-widest">เพิ่มแบนเนอร์ใหม่</span>
                             </button>
                         )}
+                    </div>
+                </Section>
+
+                {/* Video */}
+                <Section title="วิดีโอแนะนำ" icon={<Video size={22} className="text-primary" />}>
+                    <div className="space-y-4">
+                        <p className="text-sm text-foreground/60 mb-6">อัพโหลดวิดีโอแนะนำตัวเองหรือผลงาน สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
+                        <VideoUpload
+                            value={profile.video_config}
+                            onChange={(config) => setProfile(p => ({ ...p, video_config: config }))}
+                        />
                     </div>
                 </Section>
 

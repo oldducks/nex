@@ -7,7 +7,7 @@ import { dictionary, Language } from '@/lib/i18n';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 export default function LandingPage() {
-  const [lang, setLang] = useState<Language>('en');
+  const [lang, setLang] = useState<Language>('th');
   const t = dictionary[lang];
 
   return (

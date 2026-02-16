@@ -1,4 +1,4 @@
-import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, MinLength, IsOptional } from 'class-validator';
 import { IsStrongPassword } from '../../common/validators/password.validator';
 
 export class LoginDto {
@@ -7,6 +7,18 @@ export class LoginDto {
 
     @IsNotEmpty()
     password: string;
+}
+
+export class RegisterDto {
+    @IsEmail()
+    email: string;
+
+    @IsStrongPassword()
+    password: string;
+
+    @IsOptional()
+    @IsString()
+    referralCode?: string;
 }
 
 export class ForgotPasswordDto {

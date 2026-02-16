@@ -33,26 +33,271 @@
 - **Premium Dashboard**: หน้า Command Center สรุปสถิติและสถานะสมาชิก
 - **Activity Snap**: ติดตามยอดผู้ชมโปรไฟล์และรายการ Leads ล่าสุด
 
----
-
-## 📂 Key Files & Directories
-
-### Backend (`/backend`)
-- `src/landing-pages`: ระบบจัดการ Landing Page ทั้งหมด (Entity, Service, Controller)
-- `src/catalogs`: ระบบแคตตาล็อกดิจิทัล
-- `src/leads`: ระบบจัดการรายชื่อลูกค้า
-
-### Frontend (`/frontend`)
-- `src/app/lp/[slug]`: หน้าเรียกดูเซลล์เพจสาธารณะ (Public Campaign Viewer)
-- `src/app/manage/landing-pages`: ระบบจัดการหน้าเซลล์เพจ (Campaign Management)
-- `src/app/manage/landing-pages/[id]`: ตัวแก้ไขเนื้อหา (Landing Page Editor)
+### 5. Demo Accounts & Global Theme (NEW) 🎨
+- **Demo Users**: `demo3@example.com` (Consultant) and `demo4@example.com` (Artist) with pre-populated bilingual data (TH/EN).
+- **Global Theme System**: ระบบเปลี่ยนธีมสี (Light/Dark/Pastel/Midnight) ที่มีผลทั้งเว็บไซต์ รวมถึงหน้า Profile ของผู้ใช้
+- **Bilingual Support**: รองรับการแสดงผลภาษาไทยและอังกฤษในหน้า Profile และ Catalog
 
 ---
 
-## ⚙️ URL Structures
-- **Profile**: `/{prefix}/{uid}`
-- **Catalog**: `/catalog/{slug_or_id}`
-- **Landing Page**: `/lp/{slug}`
+## 🔧 Recent Updates
+
+### 2026-02-07: Theme Persistence Fix
+**ปัญหา**: Theme ที่เลือกไว้ที่หน้าแรกไม่ follow ไปหน้าอื่น (เกิด flash ของ default theme)
+
+**สาเหตุ**: `data-theme` attribute บน `<html>` ไม่ถูกตั้งจนกว่า React จะ hydrate
+
+**การแก้ไข**:
+1. **`frontend/src/app/layout.tsx`**: เพิ่ม inline script ที่ทำงานทันทีก่อน React hydrate
+   ```tsx
+   const themeScript = `
+   (function() {
+     try {
+       const theme = localStorage.getItem('theme') || 'dark';
+       document.documentElement.setAttribute('data-theme', theme);
+     } catch (e) {}
+   })();
+   `;
+   ```
+   และเพิ่ม `suppressHydrationWarning` บน `<html>` tag
+
+2. **`frontend/src/components/ThemeProvider.tsx`**: แก้ไขให้ `ThemeContext.Provider` wrap children เสมอ แม้ยังไม่ mounted เพื่อให้ `useTheme()` hook ทำงานได้ถูกต้องตอน prerender
+
+**ผลลัพธ์**: Theme จะ persist ข้ามหน้าและไม่มี flash ของ default theme อีกต่อไป
+
+### 2026-02-07: Default Language Change
+**การแก้ไข**: เปลี่ยน default language ของหน้าแรกจาก English เป็น Thai
+
+**ไฟล์ที่แก้ไข**: `frontend/src/app/page.tsx`
+```tsx
+// Before
+const [lang, setLang] = useState<Language>('en');
+
+// After
+const [lang, setLang] = useState<Language>('th');
+```
+
+### 2026-02-07: Video Upload Feature (NEW)
+**Feature ใหม่**: เพิ่มความสามารถอัพโหลดวิดีโอพร้อมตั้งค่า Autoplay และ Link ใน 3 เมนู
+
+**ความสามารถ**:
+- อัพโหลดวิดีโอได้ (MP4, WebM, OGG สูงสุด 100MB)
+- ตั้งค่าเล่นอัตโนมัติ (Autoplay) เมื่อเปิดหน้า
+- แนบลิงก์ URL เมื่อกดที่วิดีโอ
+- เปิด/ปิด การแสดงวิดีโอได้
+
+**ไฟล์ที่แก้ไข**:
+
+**Backend:**
+- `backend/src/uploads/uploads.controller.ts`: เพิ่ม `POST /uploads/video` endpoint
+- `backend/src/profiles/entities/profile.entity.ts`: เพิ่ม `video_config` field
+- `backend/src/profiles/types/profile.types.ts`: เพิ่ม `VideoConfig` interface
+- `backend/src/catalogs/entities/catalog.entity.ts`: เพิ่ม `video_config` field
+
+**Frontend:**
+- `frontend/src/components/VideoUpload.tsx`: Component ใหม่สำหรับอัพโหลดและตั้งค่าวิดีโอ
+- `frontend/src/app/manage/profile/page.tsx`: เพิ่ม Video section
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`: เพิ่ม Video section ใน Settings modal
+- `frontend/src/app/manage/landing-pages/[id]/page.tsx`: อัพเกรด Video block ให้รองรับ Upload + Settings
+
+**VideoConfig Interface:**
+```typescript
+interface VideoConfig {
+    url: string;           // URL ของวิดีโอ
+    autoplay: boolean;     // เล่นอัตโนมัติ
+    link_url?: string;     // URL ปลายทางเมื่อกด
+    link_enabled: boolean; // เปิดใช้งานลิงก์
+    enabled: boolean;      // เปิดแสดงวิดีโอ
+}
+```
+
+### 2026-02-08: Product Image Upload Feature (NEW)
+**Feature ใหม่**: เพิ่มความสามารถอัพโหลดรูปสินค้าในหน้าเพิ่มสินค้า
+
+**ความสามารถ**:
+- อัพโหลดรูปได้หลายรูปพร้อมกัน (สูงสุด 5 รูปต่อสินค้า)
+- Drag & Drop หรือคลิกเลือกไฟล์
+- แสดง Preview รูปที่อัพโหลดแล้ว
+- ลบรูปแต่ละรูปได้
+- รองรับ JPG, PNG, GIF, WebP (สูงสุด 5MB ต่อไฟล์)
+- รูปแรกจะแสดงเป็น "หลัก" ในหน้า Catalog
+
+**ไฟล์ที่เพิ่ม/แก้ไข**:
+- `frontend/src/components/ProductImageUpload.tsx`: Component ใหม่สำหรับอัพโหลดรูปสินค้า
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`: อัพเดท Product Modal ให้ใช้ ProductImageUpload แทน URL input
+
+**ProductImageUpload Props:**
+```typescript
+interface ProductImageUploadProps {
+    images: string[];                    // Array ของ URL รูปภาพ
+    onChange: (images: string[]) => void; // Callback เมื่อมีการเปลี่ยนแปลง
+    maxImages?: number;                   // จำนวนรูปสูงสุด (default: 5)
+}
+```
+
+### 2026-02-08: Demo Products Data
+**เพิ่ม Demo สินค้า**: สร้างสินค้าตัวอย่าง 30 รายการใน 3 Catalogs
+
+**Catalog 1: Summer Collection 2026 (เครื่องประดับ)**
+- 10 รายการ: แหวนเพชร, สร้อยคอไข่มุก, กำไลทอง, ต่างหูเพชร ฯลฯ
+- ราคา: 12,500 - 75,000 บาท
+
+**Catalog 2: Winter Collection 2026 (เครื่องสำอาง)**
+- 10 รายการ: ลิปสติก, แป้งฝุ่น, เซรั่ม, ครีมกันแดด ฯลฯ
+- ราคา: 590 - 2,490 บาท
+
+**Catalog 3: Spring Collection 2026 (แฟชั่น)**
+- 10 รายการ: เสื้อเชิ้ต, กางเกง, กระเป๋า, รองเท้า ฯลฯ
+- ราคา: 690 - 2,490 บาท
+
+### 2026-02-08: Flipbook / Book View Feature (NEW)
+**Feature ใหม่**: เพิ่มโหมดดู Catalog แบบหนังสือ (Flipbook) พร้อม Animation พลิกหน้า
+
+**ความสามารถ**:
+- แสดง Catalog แบบหนังสือเปิดอ่าน 2 หน้าคู่
+- Animation พลิกหน้าจากขวาไปซ้าย (เหมือนอ่านหนังสือ)
+- หน้าปก (Cover) แสดงชื่อ Catalog และจำนวนสินค้า
+- สินค้าแต่ละชิ้นเป็น 1 หน้า พร้อมรูปและปุ่ม Order
+- Navigation: คลิกที่หน้าซ้าย/ขวา หรือใช้ปุ่ม
+- Page Indicator แสดงตำแหน่งหน้าปัจจุบัน
+- ปุ่มสลับกลับไป Grid View
+
+**ไฟล์ที่เพิ่ม/แก้ไข**:
+- `frontend/src/components/Flipbook.tsx`: Component ใหม่สำหรับ Flipbook view
+- `frontend/src/app/catalog/[slug]/page.tsx`: เพิ่มปุ่ม "Book View" และ integration กับ Flipbook
+
+**วิธีใช้งาน**:
+1. เข้าหน้า Catalog สาธารณะ เช่น `/catalog/2`
+2. กดปุ่ม "Book View" ที่ header
+3. พลิกหน้าด้วยการคลิกหรือใช้ปุ่ม ← →
+4. กดปุ่ม "Grid View" เพื่อกลับมาดูแบบ Grid
+
+### 2026-02-08: Flipbook Enhanced - Clickable Images & Better Animation
+**ปรับปรุง Flipbook**:
+
+**1. Clickable Product Images**:
+- คลิกที่รูปสินค้าเพื่อไปยังหน้าสั่งซื้อ (order_form หรือ website)
+- Hover effect แสดงปุ่ม "สั่งซื้อเลย" พร้อม icon
+- มี indicator มุมขวาบนแสดงว่าคลิกได้
+- ปุ่ม "สั่งซื้อสินค้า" ด้านล่างรูป
+
+**2. Realistic Page Flip Animation**:
+- ใช้ requestAnimationFrame แทน CSS animation เพื่อความ smooth
+- easeInOutCubic easing function สำหรับการเคลื่อนไหวธรรมชาติ
+- เงาแบบ dynamic ที่เปลี่ยนตามมุมพลิก
+- Paper texture pattern บนหน้ากระดาษ
+- Page edge effect ขอบหน้ากระดาษ
+- สันหนังสือ (spine) ที่สมจริง
+- เงาใต้หนังสือ
+
+### 2026-02-08: Flipbook Social Share Feature (NEW)
+**Feature ใหม่**: เพิ่มปุ่มแชร์ Social Media ที่ด้านล่าง Flipbook
+
+**Social Media ที่รองรับ**:
+- **Facebook** - เปิด Share Dialog โดยตรง
+- **Messenger** - เปิด Messenger Share
+- **Instagram** - คัดลอกลิงก์แล้วแจ้งให้วางใน Story/DM
+- **Line** - เปิด Line Share Dialog
+- **TikTok** - คัดลอกลิงก์แล้วแจ้งให้วางใน TikTok
+- **WhatsApp** - เปิด WhatsApp พร้อมข้อความ
+- **Copy Link** - คัดลอกลิงก์ไปยัง Clipboard (มี feedback สีเขียว)
+
+**ไฟล์ที่แก้ไข**:
+- `frontend/src/components/Flipbook.tsx`: เพิ่ม Social Icons และ Share functions
+- `frontend/src/app/catalog/[slug]/page.tsx`: ส่ง shareUrl และ shareTitle ไปยัง Flipbook
+
+**UI Design**:
+- ปุ่มแชร์อยู่ใต้ปุ่ม Navigation
+- แต่ละปุ่มมีสีของ Brand (hover เปลี่ยนเป็นสีเต็ม)
+- ปุ่ม Copy Link มี feedback เปลี่ยนเป็นสีเขียวเมื่อคัดลอกสำเร็จ
+
+### 2026-02-08: Edit Product Feature (NEW)
+**Feature ใหม่**: เพิ่มความสามารถแก้ไขสินค้าแต่ละรายการในหน้าจัดการ Catalog
+
+**ความสามารถ**:
+- ปุ่มแก้ไข (Pencil icon) ข้างปุ่มลบในแต่ละสินค้า
+- Modal แก้ไขข้อมูลสินค้า: ชื่อ, คำอธิบาย, ราคา, รูปภาพ
+- แก้ไข Interactive Links: Website, Order Form, Facebook
+- รูปภาพใช้ ProductImageUpload component (อัพโหลดได้หลายรูป)
+
+**ไฟล์ที่แก้ไข**:
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`: เพิ่ม state, functions, และ modal สำหรับแก้ไขสินค้า
+
+**Functions ที่เพิ่ม**:
+```typescript
+const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+const [editProduct, setEditProduct] = useState({...});
+const openEditModal = (product: Product) => {...};
+const closeEditModal = () => {...};
+const updateProduct = async (e: React.FormEvent) => {...};
+```
+
+### 2026-02-08: Edit Catalog Feature (NEW)
+**Feature ใหม่**: เพิ่มความสามารถแก้ไขชื่อและคำอธิบาย Catalog จากหน้า /manage
+
+**ความสามารถ**:
+- ปุ่มแก้ไข (Pencil icon) ในแต่ละ Catalog card
+- Modal แก้ไขข้อมูล Catalog: หัวข้อ และ คำอธิบาย
+- อัพเดทข้อมูลผ่าน PATCH API
+
+**ไฟล์ที่แก้ไข**:
+- `frontend/src/app/manage/page.tsx`: เพิ่ม state, functions, และ modal สำหรับแก้ไข Catalog
+
+**Functions ที่เพิ่ม**:
+```typescript
+const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
+const [editCatalog, setEditCatalog] = useState({ title: '', description: '' });
+const openEditModal = (catalog: Catalog) => {...};
+const closeEditModal = () => {...};
+const updateCatalog = async (e: React.FormEvent) => {...};
+```
 
 ---
-*Updated by Antigravity on 2026-02-05*
+
+### 2026-02-11: Privacy Policy Page (NEW)
+**Feature ใหม่**: เพิ่มหน้าแสดงนโยบายความเป็นส่วนตัว (Privacy Policy)
+**URL**: `/privacy`
+**รายละเอียด**:
+- สร้างหน้า Privacy Policy ตามมาตรฐาน
+- แสดงข้อมูลการเก็บรวบรวม, การใช้งาน, และการเปิดเผยข้อมูล
+- รองรับ Responsive Design (Mobile/Desktop)
+- Theme: Dark Mode (Neutral styles)
+
+**ไฟล์ที่เพิ่ม**:
+- `frontend/src/app/privacy/page.tsx`
+
+### 2026-02-11: Terms of Service Page (NEW)
+**Feature ใหม่**: เพิ่มหน้าข้อกำหนดการใช้บริการ (Terms of Service)
+**URL**: `/terms`
+**รายละเอียด**:
+- สร้างหน้า Terms of Service ตามมาตรฐาน
+- แสดงข้อกำหนดการใช้งาน, บัญชีผู้ใช้, ลิขสิทธิ์, และข้อจำกัดความรับผิดชอบ
+- รองรับ Responsive Design (Mobile/Desktop)
+- Theme: Dark Mode (Neutral styles)
+
+**ไฟล์ที่เพิ่ม**:
+- `frontend/src/app/terms/page.tsx`
+
+### 2026-02-11: App Icon Update
+**Update**: เปลี่ยน App Icon ใหม่
+**รายละเอียด**:
+- เปลี่ยนรูป Icon หลักของแอพเป็นดีไซน์ใหม่ "White Triangle in Black Circle"
+- สไตล์ Minimalist, Clean, High Contrast
+
+---
+
+### 2026-02-11: Data Deletion Page (NEW)
+**Feature ใหม่**: เพิ่มหน้าคำแนะนำการลบข้อมูลผู้ใช้ (Data Deletion Instructions)
+**URL**: `/data-deletion`
+**รายละเอียด**:
+- สร้างหน้า Data Deletion ตามมาตรฐาน
+- แสดงข้อมูลขั้นตอนการลบข้อมูล (ผ่านเว็บไซต์/Manual Request)
+- รองรับ Responsive Design (Mobile/Desktop)
+- Theme: Dark Mode (Neutral styles)
+
+**ไฟล์ที่เพิ่ม**:
+- `frontend/src/app/data-deletion/page.tsx`
+
+---
+
+*Updated by Antigravity on 2026-02-11*

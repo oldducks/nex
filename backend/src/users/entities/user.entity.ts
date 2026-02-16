@@ -7,6 +7,36 @@ export enum UserRole {
     USER = 'user',
 }
 
+// Feature configuration interface
+export interface FeatureConfig {
+    catalog: boolean;
+    leads: boolean;
+    namecard: boolean;
+    'landing-pages': boolean;
+    analytics: boolean;
+    profile: boolean;
+}
+
+// Default feature config - all features enabled for existing users
+export const DEFAULT_FEATURE_CONFIG_ALL_ENABLED: FeatureConfig = {
+    catalog: true,
+    leads: true,
+    namecard: true,
+    'landing-pages': true,
+    analytics: true,
+    profile: true,
+};
+
+// Default feature config for NEW self-registered users - all features LOCKED
+export const DEFAULT_FEATURE_CONFIG_LOCKED: FeatureConfig = {
+    catalog: false,
+    leads: false,
+    namecard: false,
+    'landing-pages': false,
+    analytics: false,
+    profile: false,
+};
+
 @Entity('users')
 export class User {
     @PrimaryGeneratedColumn()
@@ -67,6 +97,13 @@ export class User {
 
     @Column({ nullable: true })
     line_id: string;
+
+    // Referral System
+    @Column({ unique: true, nullable: true })
+    referral_code: string; // 8-character unique code
+
+    @Column({ nullable: true })
+    referred_by: number; // User ID of the referrer
 
     @CreateDateColumn()
     created_at: Date;

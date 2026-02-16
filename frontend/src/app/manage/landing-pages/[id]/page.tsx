@@ -13,6 +13,15 @@ import {
 import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { VideoUpload } from '@/components/VideoUpload';
+
+interface VideoConfig {
+    url: string;
+    autoplay: boolean;
+    link_url?: string;
+    link_enabled: boolean;
+    enabled: boolean;
+}
 
 interface Block {
     id: string;
@@ -113,7 +122,7 @@ export default function LandingPageEditor() {
             type,
             content: type === 'text' ? { title: 'หัวข้อใหม่', body: 'เริ่มเขียนข้อความสื่อสารกับลูกค้าของคุณที่นี่...' } :
                      type === 'image' ? { url: '' } :
-                     type === 'video' ? { url: '' } :
+                     type === 'video' ? { url: '', video_config: null, source_type: 'embed' } :
                      type === 'button' ? { label: 'คลิกเพื่อดูรายละเอียด', url: '' } :
                      { url: '' } // form
         };
@@ -474,32 +483,90 @@ function RenderBlock({ block, theme, isEditing, onUpdate }: { block: Block, them
                 </div>
             );
         case 'video':
+            const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+            const sourceType = block.content.source_type || 'embed';
+            const videoConfig = block.content.video_config as VideoConfig | null;
+
             return (
                 <div className="max-w-4xl mx-auto">
                     {isEditing ? (
-                        <div className="p-12 bg-foreground/5 border-2 border-dashed border-foreground/10 rounded-[40px] text-center space-y-6">
-                            <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mx-auto text-foreground/20">
-                                <Video size={40} />
+                        <div className="p-8 bg-foreground/5 border-2 border-dashed border-foreground/10 rounded-[40px] space-y-6">
+                            {/* Source Type Toggle */}
+                            <div className="flex justify-center gap-2 p-1 bg-foreground/5 rounded-xl w-fit mx-auto">
+                                <button
+                                    onClick={() => onUpdate({ ...block.content, source_type: 'embed' })}
+                                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${sourceType === 'embed' ? 'bg-primary text-white' : 'text-foreground/40 hover:text-foreground'}`}
+                                >
+                                    YouTube/Vimeo
+                                </button>
+                                <button
+                                    onClick={() => onUpdate({ ...block.content, source_type: 'upload' })}
+                                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${sourceType === 'upload' ? 'bg-primary text-white' : 'text-foreground/40 hover:text-foreground'}`}
+                                >
+                                    อัพโหลดวิดีโอ
+                                </button>
                             </div>
-                            <div className="space-y-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Paste Video Link (YouTube/Vimeo)</p>
-                                <input 
-                                    className="w-full bg-background border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono tracking-tighter transition-all"
-                                    placeholder="https://www.youtube.com/watch?v=..."
-                                    value={block.content.url}
-                                    onChange={e => onUpdate({ url: e.target.value })}
-                                />
-                            </div>
+
+                            {sourceType === 'embed' ? (
+                                <div className="space-y-4 text-center">
+                                    <div className="w-16 h-16 bg-foreground/5 rounded-full flex items-center justify-center mx-auto text-foreground/20">
+                                        <Video size={32} />
+                                    </div>
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Paste Video Link (YouTube/Vimeo)</p>
+                                    <input
+                                        className="w-full bg-background border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono tracking-tighter transition-all"
+                                        placeholder="https://www.youtube.com/watch?v=..."
+                                        value={block.content.url || ''}
+                                        onChange={e => onUpdate({ ...block.content, url: e.target.value })}
+                                    />
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 text-center">อัพโหลดวิดีโอพร้อมตั้งค่า Autoplay และ Link</p>
+                                    <VideoUpload
+                                        value={videoConfig}
+                                        onChange={(config) => onUpdate({ ...block.content, video_config: config })}
+                                    />
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div className="aspect-video rounded-[48px] overflow-hidden bg-black/40 border border-foreground/10 shadow-3xl">
-                             <iframe 
-                                className="w-full h-full"
-                                src={block.content.url?.replace('watch?v=', 'embed/')} 
-                                title="Video content"
-                                frameBorder="0" 
-                                allowFullScreen
-                             ></iframe>
+                            {sourceType === 'upload' && videoConfig?.url ? (
+                                videoConfig.link_enabled && videoConfig.link_url ? (
+                                    <a href={videoConfig.link_url} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative group">
+                                        <video
+                                            src={videoConfig.url.startsWith('http') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
+                                            autoPlay={videoConfig.autoplay}
+                                            muted={videoConfig.autoplay}
+                                            loop
+                                            playsInline
+                                            className="w-full h-full object-cover"
+                                        />
+                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
+                                            <span className="opacity-0 group-hover:opacity-100 bg-white/90 text-black px-4 py-2 rounded-full text-sm font-bold transition-opacity">คลิกเพื่อเปิดลิงก์</span>
+                                        </div>
+                                    </a>
+                                ) : (
+                                    <video
+                                        src={videoConfig.url.startsWith('http') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
+                                        autoPlay={videoConfig.autoplay}
+                                        muted={videoConfig.autoplay}
+                                        loop
+                                        playsInline
+                                        controls
+                                        className="w-full h-full object-cover"
+                                    />
+                                )
+                            ) : (
+                                <iframe
+                                    className="w-full h-full"
+                                    src={block.content.url?.replace('watch?v=', 'embed/')}
+                                    title="Video content"
+                                    frameBorder="0"
+                                    allowFullScreen
+                                />
+                            )}
                         </div>
                     )}
                 </div>

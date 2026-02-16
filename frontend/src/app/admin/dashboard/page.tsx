@@ -7,7 +7,8 @@ import Link from 'next/link';
 import {
     Users, UserPlus, Eye, Download, Trash2, ToggleLeft, ToggleRight,
     Loader2, ShieldAlert, LogIn, AlertTriangle, CheckCircle, XCircle,
-    Calendar, Clock, TrendingUp, Activity, Edit3, RefreshCw
+    Calendar, Clock, TrendingUp, Activity, Edit3, RefreshCw, Settings2,
+    BookOpen, BarChart3, Smartphone, Layout, UserCircle, ListChecks
 } from 'lucide-react';
 
 interface UserStats {
@@ -17,6 +18,33 @@ interface UserStats {
     downloadPdf: number;
     lastActivity: string | null;
 }
+
+interface FeatureConfig {
+    catalog: boolean;
+    leads: boolean;
+    namecard: boolean;
+    'landing-pages': boolean;
+    analytics: boolean;
+    profile: boolean;
+}
+
+const FEATURE_LABELS: Record<keyof FeatureConfig, { label: string; icon: React.ReactNode }> = {
+    catalog: { label: 'แคตตาล็อก', icon: <BookOpen size={14} /> },
+    leads: { label: 'ลูกค้า', icon: <Users size={14} /> },
+    namecard: { label: 'นามบัตร', icon: <Smartphone size={14} /> },
+    'landing-pages': { label: 'เพจ', icon: <Layout size={14} /> },
+    analytics: { label: 'สถิติ', icon: <BarChart3 size={14} /> },
+    profile: { label: 'โปรไฟล์', icon: <UserCircle size={14} /> },
+};
+
+const DEFAULT_FEATURE_CONFIG: FeatureConfig = {
+    catalog: true,
+    leads: true,
+    namecard: true,
+    'landing-pages': true,
+    analytics: true,
+    profile: true,
+};
 
 interface DashboardUser {
     id: number;
@@ -28,6 +56,7 @@ interface DashboardUser {
     expiration_date: string | null;
     created_at: string;
     stats: UserStats;
+    feature_config?: FeatureConfig;
 }
 
 interface DashboardData {
@@ -44,6 +73,7 @@ export default function SuperAdminDashboard() {
     const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
     const [actionLoading, setActionLoading] = useState<number | null>(null);
     const [editExpiration, setEditExpiration] = useState<{ userId: number; date: string } | null>(null);
+    const [editFeatures, setEditFeatures] = useState<{ userId: number; config: FeatureConfig } | null>(null);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -171,6 +201,51 @@ export default function SuperAdminDashboard() {
         } catch (error) {
             console.error('Check expired failed:', error);
         }
+    };
+
+    const updateFeatureConfig = async (userId: number, config: FeatureConfig) => {
+        setActionLoading(userId);
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/users/${userId}/feature-config`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(config)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setDashboardData(prev => prev ? {
+                    ...prev,
+                    users: prev.users.map(u => u.id === userId ? { ...u, feature_config: updated.feature_config } : u)
+                } : null);
+            }
+        } catch (error) {
+            console.error('Update feature config failed:', error);
+        }
+        setEditFeatures(null);
+        setActionLoading(null);
+    };
+
+    const getResolvedFeatureConfig = (config?: FeatureConfig): FeatureConfig => {
+        if (!config || Object.keys(config).length === 0) {
+            return DEFAULT_FEATURE_CONFIG;
+        }
+        return {
+            catalog: config.catalog ?? true,
+            leads: config.leads ?? true,
+            namecard: config.namecard ?? true,
+            'landing-pages': config['landing-pages'] ?? true,
+            analytics: config.analytics ?? true,
+            profile: config.profile ?? true,
+        };
+    };
+
+    const countEnabledFeatures = (config?: FeatureConfig): number => {
+        const resolved = getResolvedFeatureConfig(config);
+        return Object.values(resolved).filter(Boolean).length;
     };
 
     const formatDate = (dateStr: string | null) => {
@@ -338,6 +413,7 @@ export default function SuperAdminDashboard() {
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">ผู้ใช้</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">บทบาท</th>
                                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">สถานะ</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">ฟีเจอร์</th>
                                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">การเข้าชม</th>
                                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">ดาวน์โหลด</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">กิจกรรมล่าสุด</th>
@@ -365,6 +441,19 @@ export default function SuperAdminDashboard() {
                                                     <XCircle size={14} /> ปิด
                                                 </span>
                                             )}
+                                        </td>
+                                        <td className="px-4 py-4 text-center">
+                                            <button
+                                                onClick={() => setEditFeatures({
+                                                    userId: user.id,
+                                                    config: getResolvedFeatureConfig(user.feature_config)
+                                                })}
+                                                className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 transition-colors text-xs font-medium"
+                                                title="จัดการฟีเจอร์"
+                                            >
+                                                <Settings2 size={12} />
+                                                {countEnabledFeatures(user.feature_config)}/6
+                                            </button>
                                         </td>
                                         <td className="px-4 py-4 text-center">
                                             <span className="text-purple-400 font-medium">{user.stats.viewCount}</span>
@@ -497,6 +586,85 @@ export default function SuperAdminDashboard() {
                                     className="flex-1 bg-blue-500 hover:bg-blue-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
                                     {actionLoading === editExpiration.userId ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle size={20} />}
+                                    บันทึก
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* Edit Features Modal */}
+                {editFeatures && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                        <div className="bg-zinc-900 border border-white/10 rounded-2xl p-6 max-w-md w-full">
+                            <div className="text-center mb-6">
+                                <ListChecks size={48} className="text-indigo-400 mx-auto mb-4" />
+                                <h3 className="text-xl font-bold mb-2">จัดการฟีเจอร์</h3>
+                                <p className="text-gray-400">เลือกฟีเจอร์ที่ต้องการเปิด/ปิดสำหรับผู้ใช้นี้</p>
+                            </div>
+                            <div className="space-y-3 mb-6">
+                                {(Object.keys(FEATURE_LABELS) as Array<keyof FeatureConfig>).map((key) => (
+                                    <label
+                                        key={key}
+                                        className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
+                                            editFeatures.config[key]
+                                                ? 'bg-indigo-500/20 border-indigo-500/50'
+                                                : 'bg-white/5 border-white/10 hover:bg-white/10'
+                                        }`}
+                                    >
+                                        <div className="flex items-center gap-3">
+                                            <span className={editFeatures.config[key] ? 'text-indigo-400' : 'text-gray-500'}>
+                                                {FEATURE_LABELS[key].icon}
+                                            </span>
+                                            <span className={`font-medium ${editFeatures.config[key] ? 'text-white' : 'text-gray-400'}`}>
+                                                {FEATURE_LABELS[key].label}
+                                            </span>
+                                        </div>
+                                        <input
+                                            type="checkbox"
+                                            checked={editFeatures.config[key]}
+                                            onChange={(e) => setEditFeatures({
+                                                ...editFeatures,
+                                                config: { ...editFeatures.config, [key]: e.target.checked }
+                                            })}
+                                            className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0"
+                                        />
+                                    </label>
+                                ))}
+                            </div>
+                            <div className="flex gap-3 mb-4">
+                                <button
+                                    onClick={() => setEditFeatures({
+                                        ...editFeatures,
+                                        config: { catalog: true, leads: true, namecard: true, 'landing-pages': true, analytics: true, profile: true }
+                                    })}
+                                    className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-2 rounded-xl text-sm font-medium"
+                                >
+                                    เปิดทั้งหมด
+                                </button>
+                                <button
+                                    onClick={() => setEditFeatures({
+                                        ...editFeatures,
+                                        config: { catalog: false, leads: false, namecard: false, 'landing-pages': false, analytics: false, profile: false }
+                                    })}
+                                    className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 rounded-xl text-sm font-medium"
+                                >
+                                    ปิดทั้งหมด
+                                </button>
+                            </div>
+                            <div className="flex gap-3">
+                                <button
+                                    onClick={() => setEditFeatures(null)}
+                                    className="flex-1 bg-white/10 hover:bg-white/20 py-3 rounded-xl font-medium"
+                                >
+                                    ยกเลิก
+                                </button>
+                                <button
+                                    onClick={() => updateFeatureConfig(editFeatures.userId, editFeatures.config)}
+                                    disabled={actionLoading === editFeatures.userId}
+                                    className="flex-1 bg-indigo-500 hover:bg-indigo-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2"
+                                >
+                                    {actionLoading === editFeatures.userId ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle size={20} />}
                                     บันทึก
                                 </button>
                             </div>

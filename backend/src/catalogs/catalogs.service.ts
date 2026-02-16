@@ -58,6 +58,14 @@ export class CatalogsService {
     return catalog;
   }
 
+  async findByUserId(user_id: number) {
+    return this.catalogsRepository.find({
+      where: { user_id, is_active: true },
+      relations: ['products'],
+      order: { created_at: 'DESC' },
+    });
+  }
+
   async update(id: number, user_id: number, updateCatalogDto: UpdateCatalogDto) {
     const catalog = await this.findOne(id, user_id);
     this.catalogsRepository.merge(catalog, updateCatalogDto);

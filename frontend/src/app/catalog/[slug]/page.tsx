@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { 
-  Globe, ShoppingCart, Facebook, MessageCircle, 
+import {
+  Globe, ShoppingCart, Facebook, MessageCircle,
   Download, ArrowLeft, ExternalLink, QrCode as QrIcon,
-  ChevronRight, Info, Package
+  ChevronRight, Info, Package, BookOpen, Grid3X3
 } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
+import { ThemeToggle } from '@/components/ThemeToggle';
+import Flipbook, { FlipbookProductPage } from '@/components/Flipbook';
 
 interface Product {
   id: number;
@@ -38,6 +40,7 @@ export default function PublicCatalog() {
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [viewMode, setViewMode] = useState<'grid' | 'flipbook'>('grid');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -64,19 +67,19 @@ export default function PublicCatalog() {
   };
 
   if (loading) return (
-    <div className="min-h-screen bg-black text-white flex items-center justify-center">
+    <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
     </div>
   );
 
   if (!catalog) return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-center p-6 text-center">
-      <div className="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mb-6">
-        <Package size={40} className="text-gray-600" />
+    <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center p-6 text-center">
+      <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mb-6">
+        <Package size={40} className="text-foreground/40" />
       </div>
       <h1 className="text-3xl font-bold mb-2">Catalog Not Found</h1>
-      <p className="text-gray-400 mb-8">ขออภัย ไม่พบหน้าที่คุณต้องการ หรือแคตตาล็อกนี้ถูกระงับการใช้งาน</p>
-      <button onClick={() => window.history.back()} className="px-6 py-3 bg-white/10 hover:bg-white/20 rounded-xl transition-colors">
+      <p className="text-foreground/40 mb-8">ขออภัย ไม่พบหน้าที่คุณต้องการ หรือแคตตาล็อกนี้ถูกระงับการใช้งาน</p>
+      <button onClick={() => window.history.back()} className="px-6 py-3 bg-foreground/10 hover:bg-foreground/20 rounded-xl transition-colors">
         กลับหน้าก่อนหน้า
       </button>
     </div>
@@ -84,30 +87,68 @@ export default function PublicCatalog() {
 
   const theme = catalog.layout_config || {};
   const primary = theme.primary_color || '#6366F1';
-  const lightMode = theme.display_theme === 'light';
-  
+
   const styles = {
     '--primary': primary,
-    '--background': lightMode ? '#f4f4f5' : '#050505',
-    '--foreground': lightMode ? '#18181b' : '#ffffff',
-    '--card': lightMode ? 'rgba(255, 255, 255, 0.8)' : 'rgba(15, 15, 15, 0.8)',
     fontFamily: theme.font_family ? `"${theme.font_family}", sans-serif` : 'inherit',
   } as React.CSSProperties;
 
+  // Flipbook View
+  if (viewMode === 'flipbook') {
+    const flipbookPages = catalog.products.map(product => ({
+      id: product.id,
+      content: <FlipbookProductPage product={product} />
+    }));
+
+    const coverPage = (
+      <div className="w-full h-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center p-8" style={{ '--primary': primary } as any}>
+        <div className="text-center text-white">
+          <div className="text-4xl md:text-6xl font-black tracking-tighter mb-4">{catalog.title}</div>
+          <div className="text-lg opacity-80">{catalog.description || 'Digital Collection'}</div>
+          <div className="mt-8 text-sm opacity-60">{catalog.products.length} Products</div>
+        </div>
+      </div>
+    );
+
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com';
+    const shareUrl = `${SITE_URL}/catalog/${slug}`;
+
+    return (
+      <div style={styles}>
+        <Flipbook
+          pages={flipbookPages}
+          coverPage={coverPage}
+          onExit={() => setViewMode('grid')}
+          shareUrl={shareUrl}
+          shareTitle={`${catalog.title} - Digital Catalog`}
+        />
+      </div>
+    );
+  }
+
   return (
-    <div className="min-h-screen transition-colors duration-500" style={styles}>
-      <div className="bg-[var(--background)] text-[var(--foreground)] min-h-screen">
+    <div className="min-h-screen transition-colors duration-500 bg-background text-foreground" style={styles}>
+      <div className="min-h-screen">
         
         {/* Header */}
-        <header className="sticky top-0 z-40 bg-[var(--background)]/80 backdrop-blur-xl border-b border-white/10">
+        <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-foreground/10">
           <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
             <h1 className="text-xl font-black tracking-tight uppercase">{catalog.title}</h1>
             <div className="flex items-center gap-3">
+              <button
+                onClick={() => setViewMode('flipbook')}
+                className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl transition-all text-sm font-bold"
+              >
+                <BookOpen size={18} />
+                <span className="hidden sm:inline">Book View</span>
+              </button>
+              <ThemeToggle />
+              <div className="h-6 w-px bg-foreground/10 mx-2" />
               {catalog.pdf_url && (
                 <a 
                   href={catalog.pdf_url} 
                   target="_blank"
-                  className="p-3 bg-white/5 hover:bg-white/10 rounded-xl transition-colors"
+                  className="p-3 bg-foreground/5 hover:bg-foreground/10 rounded-xl transition-colors"
                 >
                   <Download size={20} />
                 </a>
@@ -133,33 +174,34 @@ export default function PublicCatalog() {
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
             {catalog.products.map((product) => (
-              <div 
+              <div
                 key={product.id}
                 onClick={() => setSelectedProduct(product)}
                 className="group relative bg-[var(--card)] border border-white/5 rounded-[32px] overflow-hidden hover:border-primary/30 transition-all duration-500 cursor-pointer hover:shadow-2xl hover:shadow-primary/5"
               >
                 {/* Image */}
                 <div className="aspect-[4/5] relative overflow-hidden">
-                  <img 
-                    src={product.images_json?.[0] || 'https://via.placeholder.com/400x500'} 
-                    alt={product.name} 
+                  <img
+                    src={product.images_json?.[0] || 'https://via.placeholder.com/400x500'}
+                    alt={product.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
-                  
-                  {/* Badge */}
-                  <div className="absolute bottom-6 right-6 px-4 py-2 bg-primary text-white font-black rounded-full shadow-lg">
-                    ฿{product.price.toLocaleString()}
-                  </div>
                 </div>
 
                 {/* Content Overlay/Bar */}
-                <div className="p-8">
+                <div className="p-6 sm:p-8">
                   <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{product.name}</h3>
+
+                  {/* Price Badge - Below title */}
+                  <div className="inline-block px-4 py-2 bg-primary text-white font-black rounded-full shadow-lg mb-4">
+                    ฿{product.price.toLocaleString()}
+                  </div>
+
                   <p className="text-gray-500 text-sm line-clamp-2 md:line-clamp-3 mb-6">
                     {product.description}
                   </p>
-                  
+
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold uppercase tracking-widest text-primary">View Details</span>
                     <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
