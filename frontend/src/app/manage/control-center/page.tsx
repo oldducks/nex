@@ -6,7 +6,8 @@ import Cookies from 'js-cookie';
 import {
   LogOut, Globe, BookOpen, CreditCard, ArrowRight,
   Users, BarChart3, ShieldCheck, Mail, Sparkles,
-  Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift
+  Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift,
+  CheckCircle, XCircle, Crown, Zap, Star
 } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -18,6 +19,7 @@ interface FeatureConfig {
   'landing-pages': boolean;
   analytics: boolean;
   profile: boolean;
+  referrals: boolean;
 }
 
 interface UserData {
@@ -39,6 +41,7 @@ const FEATURE_CONFIG_MAP: Record<string, keyof FeatureConfig> = {
   'namecard': 'namecard',
   'landing-pages': 'landing-pages',
   'analytics': 'analytics',
+  'referrals': 'referrals',
 };
 
 const FEATURE_LIST = [
@@ -111,7 +114,31 @@ export default function ControlCenterPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [upgradeLoading, setUpgradeLoading] = useState(false);
   const token = Cookies.get('token');
+
+  // Count enabled/locked features
+  const getFeatureCounts = () => {
+    if (!user?.feature_config) return { enabled: 7, locked: 0 };
+    const config = user.feature_config;
+    let enabled = 0;
+    let locked = 0;
+    Object.values(FEATURE_CONFIG_MAP).forEach(key => {
+      if (config[key] !== false) enabled++;
+      else locked++;
+    });
+    return { enabled, locked };
+  };
+
+  const handleUpgradeRequest = async () => {
+    setUpgradeLoading(true);
+    // Simulate API call - in real system this would initiate payment
+    await new Promise(resolve => setTimeout(resolve, 1500));
+    alert('ระบบจะติดต่อกลับเพื่อดำเนินการอัพเกรดครับ กรุณารอสักครู่');
+    setUpgradeLoading(false);
+    setShowUpgradeModal(false);
+  };
 
   useEffect(() => {
     if (!token) {
@@ -231,23 +258,29 @@ export default function ControlCenterPage() {
               return (
                 <div
                   key={feature.id}
-                  className="group relative bg-card-bg border border-foreground/5 p-10 rounded-[40px] overflow-hidden
-                             opacity-50 cursor-not-allowed shadow-xl"
+                  className="group relative bg-card-bg border border-foreground/5 p-10 rounded-[40px] overflow-hidden shadow-xl"
                 >
                   {/* Lock Overlay */}
-                  <div className="absolute inset-0 bg-background/50 backdrop-blur-sm z-10 flex items-center justify-center">
-                    <div className="text-center">
-                      <div className="w-16 h-16 rounded-full bg-foreground/10 flex items-center justify-center mx-auto mb-4">
-                        <Lock size={32} className="text-foreground/40" />
+                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
+                    <div className="text-center px-6">
+                      <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
+                        <Lock size={28} className="text-amber-500" />
                       </div>
-                      <p className="text-foreground/40 text-sm font-bold">ฟีเจอร์นี้ถูกล็อค</p>
-                      <p className="text-foreground/30 text-xs mt-1">กรุณาติดต่อผู้ดูแลระบบ</p>
+                      <p className="text-foreground/60 text-sm font-bold mb-1">ฟีเจอร์นี้ถูกล็อค</p>
+                      <p className="text-foreground/40 text-xs mb-4">อัพเกรดเป็น Premium หรือติดต่อผู้ดูแลระบบ</p>
+                      <button
+                        onClick={() => setShowUpgradeModal(true)}
+                        className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-amber-500/20"
+                      >
+                        <Crown size={14} className="inline mr-2 -mt-0.5" />
+                        ปลดล็อคเลย
+                      </button>
                     </div>
                   </div>
 
                   {/* Feature Icon */}
                   <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl
-                                    bg-gradient-to-br ${feature.gradient} mb-10 shadow-2xl grayscale`}>
+                                    bg-gradient-to-br ${feature.gradient} mb-10 shadow-2xl grayscale opacity-50`}>
                     <feature.icon size={36} className="text-white" />
                   </div>
 
@@ -260,10 +293,10 @@ export default function ControlCenterPage() {
                     ))}
                   </div>
 
-                  <h2 className="text-3xl font-black mb-4 tracking-tight text-foreground/50">
+                  <h2 className="text-3xl font-black mb-4 tracking-tight text-foreground/30">
                     {feature.title}
                   </h2>
-                  <p className="text-foreground/30 text-base leading-relaxed mb-10">
+                  <p className="text-foreground/20 text-base leading-relaxed mb-10">
                     {feature.description}
                   </p>
                 </div>
@@ -311,17 +344,57 @@ export default function ControlCenterPage() {
           })}
 
           {/* Upgrade Card */}
-          <div className="group relative bg-foreground text-background border border-foreground/10 p-10 rounded-[40px] overflow-hidden flex flex-col justify-center text-center shadow-2xl shadow-foreground/5">
-             <div className="mb-8 flex justify-center">
-               <div className="w-20 h-20 rounded-full bg-background/10 flex items-center justify-center border border-background/20 group-hover:rotate-12 transition-transform">
-                 <Sparkles size={40} className="text-primary" />
+          <div className="group relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 text-white p-10 rounded-[40px] overflow-hidden flex flex-col justify-center text-center shadow-2xl">
+             {/* Decorative elements */}
+             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
+             <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+
+             <div className="relative z-10">
+               <div className="mb-6 flex justify-center">
+                 <div className="w-20 h-20 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30 group-hover:scale-110 transition-transform">
+                   <Crown size={40} className="text-white" />
+                 </div>
                </div>
+
+               {/* Feature Count */}
+               <div className="flex justify-center gap-6 mb-6">
+                 <div className="text-center">
+                   <div className="text-3xl font-black">{getFeatureCounts().enabled}</div>
+                   <div className="text-[10px] uppercase tracking-widest text-white/70">ใช้งานได้</div>
+                 </div>
+                 <div className="w-px bg-white/20" />
+                 <div className="text-center">
+                   <div className="text-3xl font-black">{getFeatureCounts().locked}</div>
+                   <div className="text-[10px] uppercase tracking-widest text-white/70">ถูกล็อค</div>
+                 </div>
+               </div>
+
+               <h3 className="text-2xl font-black mb-3 uppercase tracking-tighter">
+                 {user?.subscription_tier === 'premium' ? 'Premium Member' : 'อัพเกรดเป็น Premium'}
+               </h3>
+               <p className="text-white/80 text-sm mb-8 px-4 leading-relaxed">
+                 {user?.subscription_tier === 'premium'
+                   ? 'คุณเป็นสมาชิก Premium แล้ว! เข้าถึงทุกฟีเจอร์ได้เต็มที่'
+                   : 'ปลดล็อคทุกฟีเจอร์ ใช้งานแคตตาล็อกไม่จำกัด ไม่มีลายน้ำ'}
+               </p>
+
+               {user?.subscription_tier !== 'premium' && (
+                 <button
+                   onClick={() => setShowUpgradeModal(true)}
+                   className="w-full py-5 bg-white text-amber-600 rounded-[20px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg flex items-center justify-center gap-2"
+                 >
+                   <Zap size={20} />
+                   Upgrade Now
+                 </button>
+               )}
+
+               {user?.subscription_tier === 'premium' && (
+                 <div className="flex items-center justify-center gap-2 text-white/90">
+                   <CheckCircle size={20} />
+                   <span className="font-bold">Active Premium</span>
+                 </div>
+               )}
              </div>
-             <h3 className="text-2xl font-black mb-3 uppercase tracking-tighter">Premium Upgrade</h3>
-             <p className="text-background/60 text-sm mb-10 px-4 leading-relaxed">ปลดล็อกการสร้างแคตตาล็อกไม่จำกัด และลบลายน้ำบนโปรไฟล์ของคุณ</p>
-             <button className="w-full py-5 bg-primary text-white rounded-[20px] font-black uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary/20">
-               Upgrade Now
-             </button>
           </div>
         </div>
 
@@ -367,7 +440,131 @@ export default function ControlCenterPage() {
            </div>
         </div>
 
+        {/* Feature Status Section */}
+        <div className="mt-16 p-10 rounded-[40px] bg-foreground/5 border border-foreground/10">
+          <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-tight">
+            <Star size={24} className="text-amber-500" /> สถานะฟีเจอร์ของคุณ
+          </h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+            {FEATURE_LIST.map((feature) => {
+              const configKey = FEATURE_CONFIG_MAP[feature.id];
+              const isEnabled = !user?.feature_config || user.feature_config[configKey] !== false;
+              return (
+                <div
+                  key={feature.id}
+                  className={`p-4 rounded-2xl border text-center transition-all ${
+                    isEnabled
+                      ? 'bg-green-500/10 border-green-500/20'
+                      : 'bg-foreground/5 border-foreground/10'
+                  }`}
+                >
+                  <div className={`w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center ${
+                    isEnabled ? 'bg-green-500/20' : 'bg-foreground/10'
+                  }`}>
+                    {isEnabled ? (
+                      <CheckCircle size={20} className="text-green-500" />
+                    ) : (
+                      <Lock size={18} className="text-foreground/40" />
+                    )}
+                  </div>
+                  <p className={`text-xs font-bold truncate ${isEnabled ? 'text-foreground' : 'text-foreground/40'}`}>
+                    {feature.title.split(' ')[0]}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+          {getFeatureCounts().locked > 0 && (
+            <div className="mt-8 text-center">
+              <p className="text-foreground/50 text-sm mb-4">
+                คุณมี {getFeatureCounts().locked} ฟีเจอร์ที่ยังถูกล็อค
+              </p>
+              <button
+                onClick={() => setShowUpgradeModal(true)}
+                className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold uppercase tracking-wider hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-amber-500/20"
+              >
+                <Crown size={16} className="inline mr-2 -mt-0.5" />
+                ปลดล็อคทั้งหมด
+              </button>
+            </div>
+          )}
+        </div>
+
       </main>
+
+      {/* Upgrade Modal */}
+      {showUpgradeModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-background border border-foreground/10 rounded-[32px] p-8 max-w-lg w-full shadow-2xl">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-500/30">
+                <Crown size={40} className="text-white" />
+              </div>
+              <h3 className="text-2xl font-black mb-2">อัพเกรดเป็น Premium</h3>
+              <p className="text-foreground/50">ปลดล็อคทุกฟีเจอร์และใช้งานได้เต็มที่</p>
+            </div>
+
+            {/* Features List */}
+            <div className="space-y-3 mb-8">
+              {[
+                'ปลดล็อคทุกฟีเจอร์ทันที',
+                'สร้างแคตตาล็อกได้ไม่จำกัด',
+                'ไม่มีลายน้ำบนหน้าโปรไฟล์',
+                'สถิติและการวิเคราะห์เชิงลึก',
+                'ระบบ Landing Pages แบบลากวาง',
+                'ระบบแนะนำสมาชิกและคอมมิชชั่น',
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/5">
+                  <CheckCircle size={18} className="text-green-500 shrink-0" />
+                  <span className="text-sm font-medium">{item}</span>
+                </div>
+              ))}
+            </div>
+
+            {/* Pricing */}
+            <div className="text-center mb-8 p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
+              <div className="text-[10px] uppercase tracking-widest text-foreground/50 mb-2">ราคาพิเศษ</div>
+              <div className="text-4xl font-black text-amber-500">฿299<span className="text-lg text-foreground/40">/เดือน</span></div>
+              <div className="text-xs text-foreground/50 mt-2">หรือ ฿2,499/ปี (ประหยัด 30%)</div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex gap-4">
+              <button
+                onClick={() => setShowUpgradeModal(false)}
+                className="flex-1 py-4 bg-foreground/10 rounded-2xl font-bold hover:bg-foreground/20 transition-colors"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleUpgradeRequest}
+                disabled={upgradeLoading}
+                className="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {upgradeLoading ? (
+                  <Loader2 size={20} className="animate-spin" />
+                ) : (
+                  <>
+                    <Zap size={20} />
+                    อัพเกรดเลย
+                  </>
+                )}
+              </button>
+            </div>
+
+            {/* Contact Admin Option */}
+            <div className="mt-6 text-center">
+              <p className="text-foreground/40 text-xs">
+                หรือติดต่อผู้ดูแลระบบเพื่อขอปลดล็อคฟีเจอร์เฉพาะ
+              </p>
+              <a href="mailto:support@dpattown.com" className="text-primary text-sm font-medium hover:underline">
+                support@dpattown.com
+              </a>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,6 @@
 import { getProfile, getCatalogsByUserId } from '../../../lib/api';
 import { notFound } from 'next/navigation';
-import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2 } from 'lucide-react';
+import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2, ExternalLink } from 'lucide-react';
 import { VcfDownloadButton } from '../../../components/VcfDownload';
 import { QrCodeImage } from '../../../components/QrCode';
 import { AnalyticsTracker } from '../../../components/AnalyticsTracker';
@@ -58,6 +58,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
         layout_config,
         social_links_json = [],
         video_url,
+        backgrounds = [],
         gallery = [],
         full_name,
         position,
@@ -72,11 +73,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     const isExpired = !is_active || (expDate && expDate < now);
 
     // Get display values
-    const displayName = names_i18n?.[0]?.value || full_name || 'Unknown User';
+    // Get display values
+    const displayName = names_i18n?.find((n: any) => n.value?.trim())?.value || full_name || 'Unknown User';
     const displayPosition = positions_i18n?.length > 0
         ? positions_i18n.map((p: any) => p.value).filter(Boolean).join(' / ')
         : position || '';
-    const displayCompany = companies_i18n?.[0]?.value || company_name || '';
+    const displayCompanies = companies_i18n?.filter((c: any) => c.value?.trim()) || [];
+    if (displayCompanies.length === 0 && company_name) {
+        displayCompanies.push({ value: company_name });
+    }
+    const displayCompany = displayCompanies[0]?.value || '';
     const profilePosition = layout_config?.profile_position || 'center';
 
     // Get profile image URL
@@ -112,6 +118,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
     const fontName = font.replace(/\s/g, '+');
 
+    // Extract video config
+    const videoConfig = data.video_config || (video_url ? { url: video_url, enabled: true, autoplay: false, link_enabled: false } : null);
+
+    // Background Image Logic
+    const bgImage = backgrounds?.[0]?.url ? getImageUrl(backgrounds[0].url) : null;
+
     return (
         <ProfilePageClient profileData={data}>
             <link href={`https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;700;900&display=swap`} rel="stylesheet" />
@@ -126,6 +138,18 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                 className={`relative min-h-screen transition-colors duration-500 overflow-hidden bg-background text-foreground ${isExpired ? 'grayscale pointer-events-none select-none' : ''}`}
                 style={{ ...themeStyles, fontFamily: `"${font}", sans-serif` }}
             >
+                {/* Background Image Layer */}
+                {bgImage && (
+                    <div className="fixed inset-0 z-0">
+                        <img 
+                            src={bgImage} 
+                            alt="Background" 
+                            className="w-full h-full object-cover opacity-20 blur-sm"
+                        />
+                        <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]"></div>
+                    </div>
+                )}
+
                 {/* Expiry Overlay */}
                 {isExpired && (
                     <div className="fixed inset-0 z-50 flex items-center justify-center pointer-events-auto">
@@ -143,17 +167,21 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                 {/* Banner */}
                 {bannerUrl && (
-                    <div className="relative w-full h-48 md:h-64">
+                    <div className="relative w-full h-48 md:h-64 z-10">
                         <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
                         <div className="absolute inset-0 bg-gradient-to-b from-transparent to-zinc-950"></div>
                     </div>
                 )}
 
                 {/* Main Content */}
-                <div className="relative max-w-4xl mx-auto px-6 py-12">
-                    {/* Background Elements */}
-                    <div className="absolute top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] opacity-30" />
-                    <div className="absolute bottom-0 left-0 -z-10 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[120px] opacity-30" />
+                <div className="relative max-w-4xl mx-auto px-6 py-12 z-10">
+                    {/* Background Elements (if no bg image) */}
+                    {!bgImage && (
+                        <>
+                            <div className="absolute top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] opacity-30" />
+                            <div className="absolute bottom-0 left-0 -z-10 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[120px] opacity-30" />
+                        </>
+                    )}
 
                     {/* Profile Section */}
                     <section className={`relative mb-16 flex flex-col ${profilePosition === 'left' ? 'md:flex-row' : profilePosition === 'right' ? 'md:flex-row-reverse' : 'items-center'} gap-8 ${bannerUrl && profilePosition === 'overlay' ? '-mt-32' : ''}`}>
@@ -204,10 +232,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 </div>
                             )}
 
-                            {displayCompany && (
-                                <p className="text-xl text-gray-400 mb-4 flex items-center gap-2 justify-center md:justify-start">
-                                    <Building2 size={18} /> {displayCompany}
-                                </p>
+                            {displayCompanies.length > 0 && (
+                                <div className="mb-4 flex flex-col gap-2 items-center md:items-start text-gray-400">
+                                    {displayCompanies.map((comp: any, i: number) => (
+                                        <p key={i} className="text-xl flex items-center gap-2">
+                                            <Building2 size={18} /> {comp.value}
+                                        </p>
+                                    ))}
+                                </div>
                             )}
                         </div>
                     </section>
@@ -236,9 +268,22 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     )}
 
                     {/* Multimedia: Video */}
-                    {(layout_config?.video_url || video_url) && (
+                    {(videoConfig?.enabled && videoConfig.url) && (
                         <section className="mb-12">
-                            <VideoEmbed url={layout_config?.video_url || video_url} />
+                             <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-lg group">
+                                <VideoEmbed url={videoConfig.url} autoplay={videoConfig.autoplay} />
+                                {videoConfig.link_enabled && videoConfig.link_url && (
+                                    <a 
+                                        href={videoConfig.link_url} 
+                                        target="_blank" 
+                                        rel="noopener noreferrer"
+                                        className="absolute bottom-4 right-4 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl shadow-lg transform transition-all hover:scale-105 flex items-center gap-2 z-20 font-bold text-sm"
+                                    >
+                                        <ExternalLink size={16} />
+                                        ดูรายละเอียดเพิ่มเติม
+                                    </a>
+                                )}
+                            </div>
                         </section>
                     )}
 

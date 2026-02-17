@@ -98,6 +98,15 @@ export class UsersController {
     return this.usersService.setExpiration(+id, body.expiration_date ? new Date(body.expiration_date) : null);
   }
 
+  @Patch(':id/tier')
+  @UseGuards(JwtAuthGuard)
+  async updateTier(@Request() req, @Param('id') id: string, @Body() body: { tier: string }) {
+    if (req.user.role !== 'super_admin') {
+      throw new ForbiddenException('Only super admin can update user tier');
+    }
+    return this.usersService.updateTier(+id, body.tier);
+  }
+
   @Post('check-expired')
   @UseGuards(JwtAuthGuard)
   async checkExpiredUsers(@Request() req) {

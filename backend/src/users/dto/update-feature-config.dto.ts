@@ -24,4 +24,8 @@ export class UpdateFeatureConfigDto {
     @IsBoolean()
     @IsOptional()
     profile?: boolean;
+
+    @IsBoolean()
+    @IsOptional()
+    referrals?: boolean;
 }

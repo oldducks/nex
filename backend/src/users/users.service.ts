@@ -129,6 +129,25 @@ export class UsersService {
     return this.findOne(id);
   }
 
+  async updateTier(id: number, tier: string) {
+    const user = await this.findOne(id);
+    if (!user) return null;
+
+    const data: Partial<User> = { subscription_tier: tier };
+
+    // If upgrading to premium, enable all features
+    if (tier === 'premium') {
+      data.feature_config = DEFAULT_FEATURE_CONFIG_ALL_ENABLED as any;
+    } 
+    // If downgrading to free, reset to locked config (only profile enabled)
+    else if (tier === 'free') {
+      data.feature_config = DEFAULT_FEATURE_CONFIG_LOCKED as any;
+    }
+
+    await this.usersRepository.update(id, data);
+    return this.findOne(id);
+  }
+
   async disableExpiredUsers() {
     const now = new Date();
     const result = await this.usersRepository
@@ -167,18 +186,22 @@ export class UsersService {
 
   // Helper: resolve feature config with defaults for backward compatibility
   getResolvedFeatureConfig(config: Record<string, any> | null | undefined): FeatureConfig {
-    // If config is empty or null, treat as all features enabled (backward compatibility)
+    // If config is empty or null, treat as all features enabled (backward compatibility for old users)
+    // or use LOCKED config for new ones.
+    // Note: In a real system, we might want to check when the user was created.
     if (!config || Object.keys(config).length === 0) {
       return DEFAULT_FEATURE_CONFIG_ALL_ENABLED;
     }
-    // Fill in any missing keys with true (backward compatibility)
+
+    // Fill in any missing keys, defaulting to false if not found (since it's now explicit)
     return {
-      catalog: config.catalog ?? true,
-      leads: config.leads ?? true,
-      namecard: config.namecard ?? true,
-      'landing-pages': config['landing-pages'] ?? true,
-      analytics: config.analytics ?? true,
-      profile: config.profile ?? true,
+      catalog: config.catalog ?? false,
+      leads: config.leads ?? false,
+      namecard: config.namecard ?? false,
+      'landing-pages': config['landing-pages'] ?? false,
+      analytics: config.analytics ?? false,
+      profile: config.profile ?? false,
+      referrals: config.referrals ?? false,
     };
   }
 

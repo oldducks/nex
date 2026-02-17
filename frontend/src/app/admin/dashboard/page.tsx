@@ -26,15 +26,17 @@ interface FeatureConfig {
     'landing-pages': boolean;
     analytics: boolean;
     profile: boolean;
+    referrals: boolean;
 }
 
-const FEATURE_LABELS: Record<keyof FeatureConfig, { label: string; icon: React.ReactNode }> = {
-    catalog: { label: 'แคตตาล็อก', icon: <BookOpen size={14} /> },
-    leads: { label: 'ลูกค้า', icon: <Users size={14} /> },
-    namecard: { label: 'นามบัตร', icon: <Smartphone size={14} /> },
-    'landing-pages': { label: 'เพจ', icon: <Layout size={14} /> },
-    analytics: { label: 'สถิติ', icon: <BarChart3 size={14} /> },
-    profile: { label: 'โปรไฟล์', icon: <UserCircle size={14} /> },
+const FEATURE_LABELS: Record<keyof FeatureConfig, { label: string; icon: React.ReactNode; description: string }> = {
+    catalog: { label: 'Interactive Catalog', icon: <BookOpen size={14} />, description: 'สร้างและจัดการแคตตาล็อกสินค้าออนไลน์' },
+    leads: { label: 'Capture Leads', icon: <Users size={14} />, description: 'ระบบรวบรวมรายชื่อผู้ติดต่อจากหน้าโปรไฟล์' },
+    namecard: { label: 'Digital Namecard', icon: <Smartphone size={14} />, description: 'ระบบออกแบบนามบัตรและ QR Code สำหรับพิมพ์' },
+    'landing-pages': { label: 'Landing Pages', icon: <Layout size={14} />, description: 'สร้างหน้าเซลล์เพจและแคมเปญการตลาด' },
+    analytics: { label: 'Advanced Analytics', icon: <BarChart3 size={14} />, description: 'ระบบวิเคราะห์สถิติผู้เข้าชมเชิงลึก' },
+    profile: { label: 'Digital Profile', icon: <UserCircle size={14} />, description: 'ระบบแก้ไขข้อมูลโปรไฟล์หลัก (นามบัตรดิจิทัล)' },
+    referrals: { label: 'Referral System', icon: <Users size={14} />, description: 'ระบบแนะนำสมาชิกและรับค่าคอมมิชชั่น' },
 };
 
 const DEFAULT_FEATURE_CONFIG: FeatureConfig = {
@@ -44,6 +46,7 @@ const DEFAULT_FEATURE_CONFIG: FeatureConfig = {
     'landing-pages': true,
     analytics: true,
     profile: true,
+    referrals: true,
 };
 
 interface DashboardUser {
@@ -56,6 +59,7 @@ interface DashboardUser {
     expiration_date: string | null;
     created_at: string;
     stats: UserStats;
+    subscription_tier: 'free' | 'premium';
     feature_config?: FeatureConfig;
 }
 
@@ -229,6 +233,35 @@ export default function SuperAdminDashboard() {
         setActionLoading(null);
     };
 
+    const updateUserTier = async (userId: number, tier: string) => {
+        setActionLoading(userId);
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/users/${userId}/tier`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ tier })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setDashboardData(prev => prev ? {
+                    ...prev,
+                    users: prev.users.map(u => u.id === userId ? { 
+                        ...u, 
+                        subscription_tier: updated.subscription_tier,
+                        feature_config: updated.feature_config || u.feature_config
+                    } : u)
+                } : null);
+            }
+        } catch (error) {
+            console.error('Update tier failed:', error);
+        }
+        setActionLoading(null);
+    };
+
     const getResolvedFeatureConfig = (config?: FeatureConfig): FeatureConfig => {
         if (!config || Object.keys(config).length === 0) {
             return DEFAULT_FEATURE_CONFIG;
@@ -240,6 +273,7 @@ export default function SuperAdminDashboard() {
             'landing-pages': config['landing-pages'] ?? true,
             analytics: config.analytics ?? true,
             profile: config.profile ?? true,
+            referrals: config.referrals ?? true,
         };
     };
 
@@ -412,6 +446,7 @@ export default function SuperAdminDashboard() {
                                 <tr>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">ผู้ใช้</th>
                                     <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">บทบาท</th>
+                                    <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">แพ็กเกจ</th>
                                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">สถานะ</th>
                                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">ฟีเจอร์</th>
                                     <th className="px-4 py-3 text-center text-xs font-medium text-gray-400 uppercase">การเข้าชม</th>
@@ -431,6 +466,19 @@ export default function SuperAdminDashboard() {
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">{getRoleBadge(user.role)}</td>
+                                        <td className="px-4 py-4 text-center">
+                                            <button
+                                              onClick={() => updateUserTier(user.id, user.subscription_tier === 'premium' ? 'free' : 'premium')}
+                                              disabled={actionLoading === user.id}
+                                              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest transition-all ${
+                                                user.subscription_tier === 'premium'
+                                                  ? 'bg-amber-500/20 text-amber-400 border border-amber-500/50 hover:bg-amber-500/30'
+                                                  : 'bg-zinc-800 text-zinc-400 border border-zinc-700 hover:bg-zinc-700'
+                                              }`}
+                                            >
+                                              {user.subscription_tier === 'premium' ? '★ Premium' : 'Free Plan'}
+                                            </button>
+                                        </td>
                                         <td className="px-4 py-4 text-center">
                                             {user.is_active ? (
                                                 <span className="inline-flex items-center gap-1 text-green-400 text-xs">
@@ -452,7 +500,7 @@ export default function SuperAdminDashboard() {
                                                 title="จัดการฟีเจอร์"
                                             >
                                                 <Settings2 size={12} />
-                                                {countEnabledFeatures(user.feature_config)}/6
+                                                {countEnabledFeatures(user.feature_config)}/7
                                             </button>
                                         </td>
                                         <td className="px-4 py-4 text-center">
@@ -606,29 +654,38 @@ export default function SuperAdminDashboard() {
                                 {(Object.keys(FEATURE_LABELS) as Array<keyof FeatureConfig>).map((key) => (
                                     <label
                                         key={key}
-                                        className={`flex items-center justify-between p-4 rounded-xl border cursor-pointer transition-all ${
+                                        className={`flex items-start justify-between p-4 rounded-2xl border cursor-pointer transition-all ${
                                             editFeatures.config[key]
-                                                ? 'bg-indigo-500/20 border-indigo-500/50'
+                                                ? 'bg-indigo-500/10 border-indigo-500/40 shadow-sm'
                                                 : 'bg-white/5 border-white/10 hover:bg-white/10'
                                         }`}
                                     >
-                                        <div className="flex items-center gap-3">
-                                            <span className={editFeatures.config[key] ? 'text-indigo-400' : 'text-gray-500'}>
+                                        <div className="flex gap-4">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                                                editFeatures.config[key] ? 'bg-indigo-500 text-white' : 'bg-white/10 text-gray-400'
+                                            }`}>
                                                 {FEATURE_LABELS[key].icon}
-                                            </span>
-                                            <span className={`font-medium ${editFeatures.config[key] ? 'text-white' : 'text-gray-400'}`}>
-                                                {FEATURE_LABELS[key].label}
-                                            </span>
+                                            </div>
+                                            <div>
+                                                <p className={`font-bold text-sm ${editFeatures.config[key] ? 'text-white' : 'text-gray-400'}`}>
+                                                    {FEATURE_LABELS[key].label}
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    {FEATURE_LABELS[key].description}
+                                                </p>
+                                            </div>
                                         </div>
-                                        <input
-                                            type="checkbox"
-                                            checked={editFeatures.config[key]}
-                                            onChange={(e) => setEditFeatures({
-                                                ...editFeatures,
-                                                config: { ...editFeatures.config, [key]: e.target.checked }
-                                            })}
-                                            className="w-5 h-5 rounded border-gray-600 bg-gray-700 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0"
-                                        />
+                                        <div className="pt-1">
+                                            <input
+                                                type="checkbox"
+                                                checked={editFeatures.config[key]}
+                                                onChange={(e) => setEditFeatures({
+                                                    ...editFeatures,
+                                                    config: { ...editFeatures.config, [key]: e.target.checked }
+                                                })}
+                                                className="w-5 h-5 rounded-lg border-white/10 bg-white/5 text-indigo-500 focus:ring-indigo-500 focus:ring-offset-0 transition-all"
+                                            />
+                                        </div>
                                     </label>
                                 ))}
                             </div>
@@ -636,7 +693,7 @@ export default function SuperAdminDashboard() {
                                 <button
                                     onClick={() => setEditFeatures({
                                         ...editFeatures,
-                                        config: { catalog: true, leads: true, namecard: true, 'landing-pages': true, analytics: true, profile: true }
+                                        config: { catalog: true, leads: true, namecard: true, 'landing-pages': true, analytics: true, profile: true, referrals: true }
                                     })}
                                     className="flex-1 bg-green-500/20 hover:bg-green-500/30 text-green-400 py-2 rounded-xl text-sm font-medium"
                                 >
@@ -645,7 +702,7 @@ export default function SuperAdminDashboard() {
                                 <button
                                     onClick={() => setEditFeatures({
                                         ...editFeatures,
-                                        config: { catalog: false, leads: false, namecard: false, 'landing-pages': false, analytics: false, profile: false }
+                                        config: { catalog: false, leads: false, namecard: false, 'landing-pages': false, analytics: false, profile: false, referrals: false }
                                     })}
                                     className="flex-1 bg-red-500/20 hover:bg-red-500/30 text-red-400 py-2 rounded-xl text-sm font-medium"
                                 >

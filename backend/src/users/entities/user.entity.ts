@@ -15,6 +15,7 @@ export interface FeatureConfig {
     'landing-pages': boolean;
     analytics: boolean;
     profile: boolean;
+    referrals: boolean;
 }
 
 // Default feature config - all features enabled for existing users
@@ -25,16 +26,18 @@ export const DEFAULT_FEATURE_CONFIG_ALL_ENABLED: FeatureConfig = {
     'landing-pages': true,
     analytics: true,
     profile: true,
+    referrals: true,
 };
 
-// Default feature config for NEW self-registered users - all features LOCKED
+// Default feature config for NEW self-registered users - only 'profile' (Digital Business Card) enabled
 export const DEFAULT_FEATURE_CONFIG_LOCKED: FeatureConfig = {
     catalog: false,
     leads: false,
     namecard: false,
     'landing-pages': false,
     analytics: false,
-    profile: false,
+    profile: true,
+    referrals: false,
 };
 
 @Entity('users')

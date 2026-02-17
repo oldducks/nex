@@ -205,6 +205,12 @@ export default function Dashboard() {
                         >
                             <ExternalLink size={16} /> <span className="hidden md:inline">ดูเว็บ</span>
                         </Link>
+                        <Link
+                            href="/manage/account"
+                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
+                        >
+                            <Settings size={16} /> <span className="hidden md:inline">ตั้งค่าบัญชี</span>
+                        </Link>
                         <div className="h-6 w-px bg-foreground/10 mx-1" />
                         <ThemeToggle />
                         <button onClick={handleLogout} className="text-foreground/60 hover:text-red-500 transition-colors ml-2">

@@ -74,9 +74,8 @@ services:
       - "traefik.http.routers.namecard-api.rule=Host(`namecard.dpattown.com`) && PathPrefix(`/api`)"
       - "traefik.http.routers.namecard-api.entrypoints=websecure"
       - "traefik.http.routers.namecard-api.tls.certresolver=mytlschallenge"
-      - "traefik.http.middlewares.api-strip.stripprefix.prefixes=/api"
-      - "traefik.http.routers.namecard-api.middlewares=api-strip"
       - "traefik.http.services.namecard-api.loadbalancer.server.port=4000"
+      - "traefik.http.routers.namecard-api.priority=100"
 
   web:
     container_name: namecard_web

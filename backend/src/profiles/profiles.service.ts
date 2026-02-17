@@ -80,7 +80,8 @@ export class ProfilesService {
         company_name: '',
         profile_pic_url: '',
         bio: '',
-        social_links_json: []
+        social_links_json: [],
+        user: user ? { role: user.role } : null
       };
     }
 
@@ -88,7 +89,8 @@ export class ProfilesService {
       uid: profile.user?.uid || '',
       url_prefix: profile.user?.url_prefix,
       expiration_date: profile.user?.expiration_date,
-      ...profile
+      ...profile,
+      user: profile.user ? { role: profile.user.role } : null
     };
   }
 

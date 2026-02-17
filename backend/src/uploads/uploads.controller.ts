@@ -49,7 +49,7 @@ export class UploadsController {
             }
         }),
         limits: {
-            fileSize: 5 * 1024 * 1024, // 5MB
+            fileSize: 20 * 1024 * 1024, // 20MB
         },
         fileFilter: (req, file, cb) => {
             const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
@@ -62,11 +62,13 @@ export class UploadsController {
     }))
     uploadImage(@UploadedFile() file: any, @Request() req) {
         if (!file) {
+            console.error('No file received in uploadImage');
             throw new BadRequestException('No file uploaded');
         }
 
         const userId = req.user?.sub || 'anonymous';
         const relativePath = `/uploads/${userId}/${file.filename}`;
+        console.log(`Image uploaded successfully: ${relativePath} for user ${userId}`);
 
         return {
             url: relativePath,

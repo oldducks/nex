@@ -211,6 +211,7 @@ export default function ProfileEditorV2() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [uploadingSection, setUploadingSection] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [uid, setUid] = useState('');
     const [profile, setProfile] = useState<Profile>(defaultProfile);
@@ -276,47 +277,78 @@ export default function ProfileEditorV2() {
                 body: JSON.stringify(profile)
             });
             if (res.ok) { alert('บันทึกสำเร็จ!'); }
-            else { alert('บันทึกไม่สำเร็จ: ' + (await res.text())); }
+            else { 
+                const error = await res.json();
+                alert('บันทึกไม่สำเร็จ: ' + (error.message || 'Error saving profile')); 
+            }
         } catch (error) { console.error(error); alert('Error saving profile'); }
         finally { setSaving(false); }
     };
 
     const uploadImage = async (file: File, target: string) => {
         setUploading(true);
+        setUploadingSection(target);
         const formData = new FormData();
         formData.append('file', file);
         try {
+            console.log(`Uploading file for target: ${target}`);
             const res = await fetch(`${API_URL}/uploads/image`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData
             });
+
             if (res.ok) {
                 const data = await res.json();
+                console.log('Upload success:', data);
                 const imageUrl = `${API_URL}${data.url}`;
 
                 if (target === 'profile') {
                     setProfile(p => ({ ...p, profile_pic_url: imageUrl }));
                 } else if (target === 'logo') {
                     setProfile(p => ({ ...p, logo: { url: imageUrl, position: { x: 0, y: 0 } } }));
-                } else if (target === 'background') {
-                    setProfile(p => ({ ...p, backgrounds: [...p.backgrounds, { url: imageUrl, position: { x: 0, y: 0 } }] }));
-                } else if (target === 'banner') {
-                    setProfile(p => ({ ...p, banners: [...p.banners, { url: imageUrl, position: { x: 0, y: 0 }, scale: 1 }] }));
+                } else if (target === 'background' || target === 'backgrounds') {
+                    setProfile(p => {
+                        const backgrounds = p.backgrounds || [];
+                        const newBackgrounds = [...backgrounds, { url: imageUrl, position: { x: 0, y: 0 } }];
+                        console.log('Updated backgrounds:', newBackgrounds);
+                        return { ...p, backgrounds: newBackgrounds };
+                    });
+                } else if (target === 'banner' || target === 'banners') {
+                    setProfile(p => {
+                        const banners = p.banners || [];
+                        const newBanners = [...banners, { url: imageUrl, position: { x: 0, y: 0 }, scale: 1 }];
+                        console.log('Updated banners:', newBanners);
+                        return { ...p, banners: newBanners };
+                    });
                 }
+            } else {
+                const errorText = await res.text();
+                console.error(`Upload failed with status ${res.status}:`, errorText);
+                alert(`Upload failed (${res.status}): ${errorText.substring(0, 100)}`);
             }
-        } catch (error) { console.error('Upload failed:', error); }
-        finally { setUploading(false); }
+        } catch (error) { 
+            console.error('Upload error:', error);
+            alert('Error uploading image. Please try again.');
+        } finally { 
+            setUploading(false);
+            setUploadingSection(null);
+            if (fileInputRef.current) fileInputRef.current.value = '';
+        }
     };
 
     const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
-        if (file) uploadImage(file, uploadTarget);
+        if (file) {
+            console.log('File selected:', file.name, 'Target:', uploadTarget);
+            uploadImage(file, uploadTarget);
+        }
     };
 
     const triggerUpload = (target: string) => {
+        console.log('Triggering upload for:', target);
         setUploadTarget(target);
-        fileInputRef.current?.click();
+        setTimeout(() => fileInputRef.current?.click(), 0);
     };
 
     // Multi-field helpers
@@ -425,7 +457,11 @@ export default function ProfileEditorV2() {
                         
                         <ThemeToggle />
 
-                        <Link href={`/${profile.url_prefix}/${uid}`} target="_blank" className="p-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition-all text-foreground/60 hover:text-foreground">
+                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground transition-all font-bold text-sm">
+                            <ExternalLink size={18} />
+                            <span>{t.viewPublic}</span>
+                        </Link>
+                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="md:hidden p-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition-all text-foreground/60 hover:text-foreground">
                             <ExternalLink size={20} />
                         </Link>
                         
@@ -559,10 +595,10 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Backgrounds */}
-                <Section title={t.backgroundImages} icon={<ImageIcon size={22} className="text-primary" />} onAdd={profile.backgrounds.length < 10 ? () => triggerUpload('background') : undefined} canAdd={profile.backgrounds.length < 10}>
+                <Section title={t.backgroundImages} icon={<ImageIcon size={22} className="text-primary" />} onAdd={profile.backgrounds?.length < 10 ? () => triggerUpload('background') : undefined} canAdd={profile.backgrounds?.length < 10}>
                     <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">{t.max10Images}</div>
                     <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {profile.backgrounds.map((bg, i) => (
+                        {profile.backgrounds?.map((bg, i) => (
                             <div key={i} className="relative group aspect-[4/3] rounded-2xl overflow-hidden border border-foreground/10">
                                 <img src={bg.url} alt={`BG ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
@@ -572,10 +608,14 @@ export default function ProfileEditorV2() {
                                 </div>
                             </div>
                         ))}
-                        {profile.backgrounds.length < 10 && (
-                            <button onClick={() => triggerUpload('background')} className="aspect-[4/3] rounded-2xl border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-2 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary">
-                                <Plus size={24} />
-                                <span className="text-[9px] font-black uppercase tracking-widest">เพิ่มรูป</span>
+                        {profile.backgrounds?.length < 10 && (
+                            <button 
+                                onClick={() => triggerUpload('background')} 
+                                disabled={uploading}
+                                className={`aspect-[4/3] rounded-2xl border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-2 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'background' ? 'animate-pulse bg-primary/5' : ''}`}
+                            >
+                                {uploadingSection === 'background' ? <Loader2 size={24} className="animate-spin text-primary" /> : <Plus size={24} />}
+                                <span className="text-[9px] font-black uppercase tracking-widest">{uploadingSection === 'background' ? 'กำลังส่งข้อมูล...' : 'เพิ่มรูป'}</span>
                             </button>
                         )}
                     </div>
@@ -596,9 +636,13 @@ export default function ProfileEditorV2() {
                             </div>
                         ))}
                          {profile.banners.length < 10 && (
-                            <button onClick={() => triggerUpload('banner')} className="h-40 rounded-[32px] border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-3 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary">
-                                <Plus size={32} />
-                                <span className="text-[10px] font-black uppercase tracking-widest">เพิ่มแบนเนอร์ใหม่</span>
+                            <button 
+                                onClick={() => triggerUpload('banner')} 
+                                disabled={uploading}
+                                className={`h-40 rounded-[32px] border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-3 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'banner' ? 'animate-pulse bg-primary/5' : ''}`}
+                            >
+                                {uploadingSection === 'banner' ? <Loader2 size={32} className="animate-spin text-primary" /> : <Plus size={32} />}
+                                <span className="text-[10px] font-black uppercase tracking-widest">{uploadingSection === 'banner' ? 'กำลังอัปโหลดแบนเนอร์...' : 'เพิ่มแบนเนอร์ใหม่'}</span>
                             </button>
                         )}
                     </div>
@@ -758,34 +802,7 @@ export default function ProfileEditorV2() {
                     </div>
                 </Section>
 
-                {/* Account Settings Section */}
-                <Section title="ตั้งค่าบัญชี" icon={<Settings size={22} className="text-primary" />}>
-                     <div className="space-y-8">
-                        {/* Current UID Display */}
-                        <div className="space-y-3">
-                            <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">รหัสผู้ใช้ (UID)</label>
-                            <div className="flex items-center gap-4">
-                                <input
-                                    type="text"
-                                    value={uid}
-                                    disabled
-                                    className="flex-1 bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 text-foreground/40 font-mono text-sm cursor-not-allowed select-all"
-                                />
-                                <span className="text-[10px] font-black text-foreground/20 uppercase bg-foreground/5 px-4 py-4 rounded-2xl border border-foreground/5 shrink-0">RO-ONLY</span>
-                            </div>
-                        </div>
-
-                        {/* Change Password */}
-                        <div className="border-t border-foreground/5 pt-10">
-                            <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-tight">
-                                <Lock size={20} className="text-primary" /> เปลี่ยนรหัสผ่านความปลอดภัย
-                            </h3>
-                            <div className="bg-foreground/[0.02] p-8 rounded-[32px] border border-foreground/5">
-                                <PasswordChangeForm token={token} />
-                            </div>
-                        </div>
-                    </div>
-                </Section>
+                {/* Account Settings Moved to /manage/account */}
             </main>
             
             <footer className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-[0.3em]">

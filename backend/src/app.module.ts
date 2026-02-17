@@ -30,7 +30,7 @@ import { Referral } from './referrals/entities/referral.entity';
   imports: [
     ServeStaticModule.forRoot({
       rootPath: join(process.cwd(), 'uploads'),
-      serveRoot: '/uploads',
+      serveRoot: '/api/uploads',
     }),
     ConfigModule.forRoot({
       isGlobal: true,

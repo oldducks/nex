@@ -2,9 +2,10 @@
 
 interface VideoEmbedProps {
   url: string;
+  autoplay?: boolean;
 }
 
-export function VideoEmbed({ url }: VideoEmbedProps) {
+export function VideoEmbed({ url, autoplay = false }: VideoEmbedProps) {
   if (!url) return null;
 
   let embedUrl = "";
@@ -13,13 +14,13 @@ export function VideoEmbed({ url }: VideoEmbedProps) {
   const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/);
   if (ytMatch) {
     const id = ytMatch[1].split('&')[0];
-    embedUrl = `https://www.youtube.com/embed/${id}`;
+    embedUrl = `https://www.youtube.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&mute=${autoplay ? 1 : 0}`;
   }
 
   // Vimeo
   const vimeoMatch = url.match(/(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(.+)/);
   if (vimeoMatch) {
-    embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}`;
+    embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=${autoplay ? 1 : 0}&muted=${autoplay ? 1 : 0}`;
   }
 
   if (!embedUrl) return null;

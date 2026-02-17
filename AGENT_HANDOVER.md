@@ -300,4 +300,69 @@ const updateCatalog = async (e: React.FormEvent) => {...};
 
 ---
 
-*Updated by Antigravity on 2026-02-11*
+### 2026-02-16: Feature Control System Enhancement (NEW)
+**Feature ใหม่**: ปรับปรุงระบบควบคุมฟีเจอร์ให้ผู้ใช้ใหม่เข้าถึงได้เฉพาะ "แก้ไขนามบัตรดิจิทัล"
+
+**รายละเอียด**:
+- ผู้ใช้ใหม่ (self-registered / OAuth) จะได้รับ feature_config แบบ LOCKED
+- เฉพาะ `profile: true` เท่านั้นที่เปิดให้ใช้งาน
+- ฟีเจอร์อื่นๆ ต้องได้รับการปลดล็อคจาก Super Admin หรืออัพเกรดเป็น Premium
+- เพิ่ม `referrals` เข้าไปใน feature_config system (รวม 7 ฟีเจอร์)
+
+**Feature Config Interface**:
+```typescript
+interface FeatureConfig {
+  catalog: boolean;      // แคตตาล็อกสินค้า
+  leads: boolean;        // ระบบรายชื่อลูกค้า
+  namecard: boolean;     // ดีไซน์นามบัตร
+  'landing-pages': boolean; // หน้าเซลล์เพจ
+  analytics: boolean;    // สถิติและการวิเคราะห์
+  profile: boolean;      // แก้ไขนามบัตรดิจิทัล (default: true)
+  referrals: boolean;    // ระบบแนะนำสมาชิก
+}
+```
+
+**Default Configs**:
+- `DEFAULT_FEATURE_CONFIG_LOCKED`: เฉพาะ profile เปิด (สำหรับ user ใหม่)
+- `DEFAULT_FEATURE_CONFIG_ALL_ENABLED`: ทุก feature เปิด (สำหรับ premium/existing users)
+
+**Control Center UI Updates**:
+- แสดงสถานะ feature (ใช้งานได้/ถูกล็อค) แบบ visual
+- Locked feature cards แสดง overlay พร้อมปุ่ม "ปลดล็อคเลย"
+- Upgrade Card แสดงจำนวน feature ที่เปิด/ล็อค
+- Premium Upgrade Modal พร้อมรายการ benefits และราคา
+
+**Admin Dashboard Updates**:
+- เพิ่ม referrals ในระบบจัดการ feature
+- แสดง 7 features แทน 6
+- ปุ่ม "เปิดทั้งหมด" / "ปิดทั้งหมด" รวม referrals
+
+**ไฟล์ที่แก้ไข**:
+- `backend/src/users/entities/user.entity.ts`: เพิ่ม referrals ใน FeatureConfig
+- `backend/src/users/dto/update-feature-config.dto.ts`: เพิ่ม referrals field
+- `backend/src/users/users.service.ts`: เพิ่ม referrals ใน getResolvedFeatureConfig
+- `frontend/src/app/manage/control-center/page.tsx`: UI ใหม่สำหรับ feature management
+- `frontend/src/app/admin/dashboard/page.tsx`: เพิ่ม referrals ใน feature labels
+
+---
+
+
+### 2026-02-17: Profile & Account Enhancements
+**การปรับปรุงระบบ Profile และ Account Settings** เพื่อแยกการทำงานให้ชัดเจนและเพิ่มลูกเล่นให้กับหน้า Public Profile
+
+**New Features & Enhancements**:
+1.  **Resolved Background Image Issue**: แก้ไขปัญหาภาพพื้นหลัง (Background Image) ไม่แสดงผลในหน้า Public Profile
+2.  **Video Configuration Support**: เพิ่มการรองรับการตั้งค่าวิดีโอ (Video Config) ในหน้า Public Profile (Autoplay, Link)
+3.  **Advanced Company Display Logic**: ปรับปรุงการแสดงผลชื่อบริษัทให้แสดงทุกชื่อที่มี (ทั้ง TH/EN) แทนที่จะเลือกเพียงชื่อเดียว
+4.  **Dedicated Account Settings Page**: ย้ายส่วนการจัดการบัญชี (UID, เปลี่ยนรหัสผ่าน) ไปยังหน้าใหม่ `/manage/account` เพื่อลดความซับซ้อนของหน้าแก้ไขโปรไฟล์
+5.  **Dashboard Navigation Update**: เพิ่มเมนู "ตั้งค่าบัญชี" (Account Settings) ใน Navbar ของ Dashboard
+
+**Files Updated**:
+- `frontend/src/app/[prefix]/[uid]/page.tsx`: เพิ่ม logic การแสดง background image และ video config
+- `frontend/src/app/manage/profile/page.tsx`: ลบส่วน Account Settings ออก
+- `frontend/src/app/manage/account/page.tsx`: สร้างหน้าใหม่สำหรับ Account Settings
+- `frontend/src/app/manage/page.tsx`: เพิ่มลิงก์ไปยังหน้า Account Settings
+
+---
+
+*Updated by Antigravity on 2026-02-17*

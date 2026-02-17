@@ -5,7 +5,8 @@ import type {
     ImageWithPosition,
     ProfilePicConfig,
     WebsiteLink,
-    LayoutConfig
+    LayoutConfig,
+    VideoConfig
 } from '../types/profile.types';
 
 export class CreateProfileDto {
@@ -137,4 +138,8 @@ export class CreateProfileDto {
     @IsArray()
     @IsOptional()
     social_links_json?: Record<string, any>[];
+
+    @IsObject()
+    @IsOptional()
+    video_config?: VideoConfig;
 }

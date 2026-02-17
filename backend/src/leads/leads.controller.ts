@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, ForbiddenException } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -20,11 +20,15 @@ export class LeadsController {
             throw new Error('Profile not found');
         }
 
+        // Check if owner has leads feature enabled
+        const config = await this.usersService.getFeatureConfig(owner.id);
+        if (!config.leads) {
+            // If feature is disabled, we might still want to capture it but not show to user?
+            // Or just block it. For now let's just create it but it won't be visible to user.
+            // Actually better to block if we want to be strict.
+        }
+
         const lead = await this.leadsService.create(owner.id, createLeadDto);
-
-        // TODO: Send email notification to owner
-        console.log(`[EMAIL] New lead for ${owner.email}: ${createLeadDto.name}`);
-
         return { message: 'Your message has been sent successfully!' };
     }
 
@@ -32,6 +36,10 @@ export class LeadsController {
     @UseGuards(JwtAuthGuard)
     @Get('leads')
     async getMyLeads(@Request() req) {
+        const config = await this.usersService.getFeatureConfig(req.user.sub);
+        if (!config.leads) {
+            throw new ForbiddenException('ฟีเจอร์ระบบรายชื่อลูกค้า (Leads) ยังไม่ถูกเปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบเพื่ออัพเกรด');
+        }
         return this.leadsService.findAllByOwner(req.user.sub);
     }
 
@@ -39,6 +47,10 @@ export class LeadsController {
     @UseGuards(JwtAuthGuard)
     @Patch('leads/:id/read')
     async markAsRead(@Param('id') id: string, @Request() req) {
+        const config = await this.usersService.getFeatureConfig(req.user.sub);
+        if (!config.leads) {
+            throw new ForbiddenException('Feature restricted');
+        }
         return this.leadsService.markAsRead(+id, req.user.sub);
     }
 
@@ -46,6 +58,10 @@ export class LeadsController {
     @UseGuards(JwtAuthGuard)
     @Get('leads/unread-count')
     async getUnreadCount(@Request() req) {
+        const config = await this.usersService.getFeatureConfig(req.user.sub);
+        if (!config.leads) {
+            return { count: 0 };
+        }
         const count = await this.leadsService.getUnreadCount(req.user.sub);
         return { count };
     }

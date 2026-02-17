@@ -43,6 +43,8 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
         }
 
         setUploading(true);
+        console.log(`Uploading video: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
+
         try {
             const formData = new FormData();
             formData.append('file', file);
@@ -56,10 +58,14 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
             });
 
             if (!res.ok) {
-                throw new Error('Upload failed');
+                const errorText = await res.text();
+                console.error(`Upload failed with status ${res.status}:`, errorText);
+                throw new Error(`Upload failed: ${res.status} ${res.statusText} - ${errorText}`);
             }
 
             const data = await res.json();
+            console.log('Video upload success:', data);
+            
             onChange({
                 url: data.url,
                 autoplay: value?.autoplay ?? false,
@@ -67,11 +73,12 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                 link_enabled: value?.link_enabled ?? false,
                 enabled: true
             });
-        } catch (error) {
+        } catch (error: any) {
             console.error('Upload error:', error);
-            alert('อัพโหลดวิดีโอไม่สำเร็จ กรุณาลองใหม่');
+            alert(`อัพโหลดวิดีโอไม่สำเร็จ: ${error.message || 'กรุณาลองใหม่'}`);
         } finally {
             setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
