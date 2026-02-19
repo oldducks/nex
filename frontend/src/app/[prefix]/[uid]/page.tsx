@@ -124,6 +124,78 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     // Background Image Logic
     const bgImage = backgrounds?.[0]?.url ? getImageUrl(backgrounds[0].url) : null;
 
+    // Filter banners by position
+    const topBanners = banners?.filter((b: any) => (b.display_position || 'top') === 'top') || [];
+    const bottomBanners = banners?.filter((b: any) => b.display_position === 'bottom') || [];
+
+    // Single Banner Component
+    const BannerItem = ({ banner, index }: { banner: any; index: number }) => {
+        const imgUrl = getImageUrl(banner.url);
+        const height = banner.height || '320px';
+        const hasLink = banner.link_url && banner.link_url.trim() !== '';
+
+        const content = (
+            <>
+                <img
+                    src={imgUrl}
+                    alt={`Banner ${index + 1}`}
+                    className="w-full h-full object-cover"
+                    style={{
+                        objectPosition: `center ${banner.position?.y ?? 50}%`,
+                        transform: `scale(${(banner.scale ?? 1) + 0.05})`,
+                        transformOrigin: 'center center'
+                    }}
+                />
+                {/* Gradient Overlays */}
+                <div className="absolute inset-0 bg-gradient-to-t from-background via-background/20 to-transparent"></div>
+                <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-transparent to-transparent"></div>
+                {/* Vignette Effect */}
+                <div className="absolute inset-0 shadow-[inset_0_0_100px_rgba(0,0,0,0.3)]"></div>
+            </>
+        );
+
+        if (hasLink) {
+            return (
+                <a
+                    href={banner.link_url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative w-full z-10 overflow-hidden block cursor-pointer hover:opacity-95 transition-opacity"
+                    style={{ height }}
+                >
+                    {content}
+                </a>
+            );
+        }
+
+        return (
+            <div
+                className="relative w-full z-10 overflow-hidden"
+                style={{ height }}
+            >
+                {content}
+            </div>
+        );
+    };
+
+    // Top Banners Component
+    const TopBannersSection = () => topBanners.length > 0 ? (
+        <div className="space-y-0">
+            {topBanners.map((banner: any, i: number) => (
+                <BannerItem key={i} banner={banner} index={i} />
+            ))}
+        </div>
+    ) : null;
+
+    // Bottom Banners Component
+    const BottomBannersSection = () => bottomBanners.length > 0 ? (
+        <div className="space-y-0">
+            {bottomBanners.map((banner: any, i: number) => (
+                <BannerItem key={i} banner={banner} index={i} />
+            ))}
+        </div>
+    ) : null;
+
     return (
         <ProfilePageClient profileData={data}>
             <link href={`https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;700;900&display=swap`} rel="stylesheet" />
@@ -141,12 +213,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                 {/* Background Image Layer */}
                 {bgImage && (
                     <div className="fixed inset-0 z-0">
-                        <img 
-                            src={bgImage} 
-                            alt="Background" 
-                            className="w-full h-full object-cover opacity-20 blur-sm"
+                        <img
+                            src={bgImage}
+                            alt="Background"
+                            className="w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-background/80 backdrop-blur-[2px]"></div>
+                        {/* Stronger overlay for better text contrast */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black/90"></div>
                     </div>
                 )}
 
@@ -165,16 +238,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     </div>
                 )}
 
-                {/* Banner */}
-                {bannerUrl && (
-                    <div className="relative w-full h-48 md:h-64 z-10">
-                        <img src={bannerUrl} alt="Banner" className="w-full h-full object-cover" />
-                        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-zinc-950"></div>
-                    </div>
-                )}
+                {/* Mobile View Wrapper */}
+                <div className="relative w-full max-w-[480px] mx-auto min-h-screen shadow-2xl bg-black/10 backdrop-blur-[2px]">
+                    {/* Top Banners */}
+                    <TopBannersSection />
 
                 {/* Main Content */}
-                <div className="relative max-w-4xl mx-auto px-6 py-12 z-10">
+                <div className="relative px-6 py-12 z-10">
                     {/* Background Elements (if no bg image) */}
                     {!bgImage && (
                         <>
@@ -183,57 +253,63 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         </>
                     )}
 
-                    {/* Profile Section */}
-                    <section className={`relative mb-16 flex flex-col ${profilePosition === 'left' ? 'md:flex-row' : profilePosition === 'right' ? 'md:flex-row-reverse' : 'items-center'} gap-8 ${bannerUrl && profilePosition === 'overlay' ? '-mt-32' : ''}`}>
-                        {/* Profile Image */}
-                        <div className={`relative flex-shrink-0 ${profilePosition === 'overlay' ? 'z-10' : ''}`}>
-                            <div className="w-72 h-72 md:w-80 md:h-80 relative overflow-hidden rounded-[32px] border-4 border-white/10 shadow-2xl bg-zinc-800">
+                    {/* Profile Section - Banner Style */}
+                    <section className={`relative mb-16 flex flex-col items-center gap-8 ${bannerUrl && profilePosition === 'overlay' ? '-mt-32' : ''}`}>
+                        {/* Profile Image - Full Width Banner */}
+                        <div className={`relative w-full -mx-6 ${profilePosition === 'overlay' ? 'z-10' : ''}`}>
+                            <div className="relative w-full h-80 md:h-96 overflow-hidden bg-zinc-800">
                                 {profileImageUrl ? (
-                                    <img
-                                        src={profileImageUrl}
-                                        alt={displayName}
-                                        className="w-full h-full object-cover"
-                                        style={{
-                                            objectPosition: `${profile_pic_position?.x ?? 50}% ${profile_pic_position?.y ?? 50}%`,
-                                            transform: `scale(${profile_pic_position?.scale ?? 1})`,
-                                            transformOrigin: 'center center'
-                                        }}
-                                    />
+                                    <>
+                                        <img
+                                            src={profileImageUrl}
+                                            alt={displayName}
+                                            className="w-full h-full object-cover"
+                                            style={{
+                                                objectPosition: `${profile_pic_position?.x ?? 50}% ${profile_pic_position?.y ?? 50}%`,
+                                                transform: `scale(${profile_pic_position?.scale ?? 1})`,
+                                                transformOrigin: 'center center'
+                                            }}
+                                        />
+                                        {/* Gradient Overlays */}
+                                        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-transparent"></div>
+                                    </>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-zinc-600">
-                                        <User size={64} />
+                                        <User size={96} />
+                                    </div>
+                                )}
+                                {/* Logo Badge */}
+                                {logoUrl && (
+                                    <div className="absolute bottom-4 right-4 w-16 h-16 bg-white rounded-xl shadow-lg p-2 border border-gray-200">
+                                        <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
                                     </div>
                                 )}
                             </div>
-                            {logoUrl && (
-                                <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white rounded-xl shadow-lg p-2 border border-gray-200">
-                                    <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
-                                </div>
-                            )}
                         </div>
 
                         {/* Info */}
                         <div className={`flex-grow ${profilePosition === 'center' ? 'text-center' : 'text-left'}`}>
                             {displayPosition && (
-                                <div className={`text-primary font-bold tracking-[0.2em] uppercase text-sm mb-3 flex items-center gap-2 ${profilePosition === 'center' ? 'justify-center' : ''}`}>
+                                <div className={`text-primary font-bold tracking-[0.2em] uppercase text-sm mb-3 flex items-center gap-2 ${profilePosition === 'center' ? 'justify-center' : ''} drop-shadow-md`}>
                                     {displayPosition}
                                 </div>
                             )}
 
-                            <h1 className="text-4xl md:text-5xl font-black mb-4 tracking-tight leading-none">
+                            <h1 className="text-4xl font-black mb-4 tracking-tight leading-none drop-shadow-lg text-white">
                                 {displayName}
                             </h1>
 
                             {names_i18n?.length > 1 && (
-                                <div className="flex flex-wrap gap-2 mb-4 justify-center md:justify-start">
+                                <div className="flex flex-wrap gap-2 mb-4 justify-center">
                                     {names_i18n.slice(1).map((name: any, i: number) => (
-                                        <span key={i} className="text-gray-400 text-lg">{name.value}</span>
+                                        <span key={i} className="text-gray-200 text-lg drop-shadow-md">{name.value}</span>
                                     ))}
                                 </div>
                             )}
 
                             {displayCompanies.length > 0 && (
-                                <div className="mb-4 flex flex-col gap-2 items-center md:items-start text-gray-400">
+                                <div className="mb-4 flex flex-col gap-2 items-center text-gray-200 drop-shadow-md">
                                     {displayCompanies.map((comp: any, i: number) => (
                                         <p key={i} className="text-xl flex items-center gap-2">
                                             <Building2 size={18} /> {comp.value}
@@ -246,11 +322,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* About Me */}
                     {about_me && (
-                        <section className="mb-12 bg-white/5 rounded-2xl p-6 border border-white/10">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                        <section className="mb-12 bg-black/40 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white drop-shadow-sm">
                                 <Heart size={20} className="text-primary" /> เกี่ยวกับฉัน
                             </h3>
-                            <p className="text-gray-300 leading-relaxed whitespace-pre-line">{about_me}</p>
+                            <p className="text-gray-200 leading-relaxed whitespace-pre-line drop-shadow-sm">{about_me}</p>
                         </section>
                     )}
 
@@ -259,7 +335,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         <section className="mb-12">
                             <div className="flex flex-wrap gap-2 justify-center">
                                 {interests.map((tag: string, i: number) => (
-                                    <span key={i} className="bg-primary/10 text-primary px-4 py-2 rounded-full text-sm font-medium">
+                                    <span key={i} className="bg-primary/20 text-white border border-primary/30 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm shadow-sm">
                                         {tag}
                                     </span>
                                 ))}
@@ -270,7 +346,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     {/* Multimedia: Video */}
                     {(videoConfig?.enabled && videoConfig.url) && (
                         <section className="mb-12">
-                             <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-lg group">
+                             <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-lg group bg-black">
                                 <VideoEmbed url={videoConfig.url} autoplay={videoConfig.autoplay} />
                                 {videoConfig.link_enabled && videoConfig.link_url && (
                                     <a 
@@ -295,27 +371,27 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     )}
 
                     {/* Contact Info */}
-                    {(emails?.length > 0 || phones?.length > 0) && (
-                        <section className="mb-12 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {layout_config?.show_contact_info !== false && (emails?.length > 0 || phones?.length > 0) && (
+                        <section className="mb-12 grid grid-cols-1 gap-4">
                             {phones?.map((phone: any, i: number) => (
-                                <a key={i} href={`tel:${phone.value}`} className="bg-white/5 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors border border-white/10">
-                                    <div className="w-12 h-12 rounded-lg bg-green-500/10 flex items-center justify-center">
+                                <a key={i} href={`tel:${phone.value}`} className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
+                                    <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center border border-green-500/20">
                                         <Phone size={24} className="text-green-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs text-gray-500 uppercase">{phone.label || 'Phone'}</div>
-                                        <div className="font-medium">{phone.value}</div>
+                                        <div className="text-xs text-gray-400 uppercase font-bold">{phone.label || 'Phone'}</div>
+                                        <div className="font-medium text-white">{phone.value}</div>
                                     </div>
                                 </a>
                             ))}
                             {emails?.map((email: any, i: number) => (
-                                <a key={i} href={`mailto:${email.value}`} className="bg-white/5 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors border border-white/10">
-                                    <div className="w-12 h-12 rounded-lg bg-red-500/10 flex items-center justify-center">
+                                <a key={i} href={`mailto:${email.value}`} className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
+                                    <div className="w-12 h-12 rounded-lg bg-red-500/20 flex items-center justify-center border border-red-500/20">
                                         <Mail size={24} className="text-red-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs text-gray-500 uppercase">{email.label || 'Email'}</div>
-                                        <div className="font-medium">{email.value}</div>
+                                        <div className="text-xs text-gray-400 uppercase font-bold">{email.label || 'Email'}</div>
+                                        <div className="font-medium text-white">{email.value}</div>
                                     </div>
                                 </a>
                             ))}
@@ -325,15 +401,15 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     {/* Website Links */}
                     {websites?.length > 0 && (
                         <section className="mb-12">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 gap-4">
                                 {websites.map((site: any, i: number) => (
-                                    <a key={i} href={site.url} target="_blank" rel="noopener noreferrer" className="bg-white/5 rounded-xl p-4 flex items-center gap-4 hover:bg-white/10 transition-colors border border-white/10">
-                                        <div className="w-12 h-12 rounded-lg bg-indigo-500/10 flex items-center justify-center">
+                                    <a key={i} href={site.url} target="_blank" rel="noopener noreferrer" className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
+                                        <div className="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
                                             <Globe size={24} className="text-indigo-500" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium truncate">{site.label || 'Website'}</div>
-                                            <div className="text-sm text-gray-500 truncate">{site.url}</div>
+                                            <div className="font-medium truncate text-white">{site.label || 'Website'}</div>
+                                            <div className="text-sm text-gray-400 truncate">{site.url}</div>
                                         </div>
                                     </a>
                                 ))}
@@ -346,7 +422,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* QR Code */}
                     {qr_enabled !== false && (
-                        <section className="mb-12 text-center">
+                        <section className="mb-12 text-center text-white drop-shadow-md">
                             <h3 className="text-lg font-bold mb-4">Scan to Connect</h3>
                             <QrCodeImage url={profileUrl} size={180} />
                         </section>
@@ -369,8 +445,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* Lead Generation Form */}
                     {layout_config?.show_lead_form !== false && (
-                        <section className="mb-12">
-                            <LeadForm ownerId={data.user_id} />
+                        <section className="mb-12 cursor-default">
+                            <LeadForm targetUid={uid} />
                         </section>
                     )}
 
@@ -392,13 +468,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* Catalogs */}
                     <CatalogsDisplay catalogs={catalogs} />
+                </div>
 
+                {/* Bottom Banners */}
+                <BottomBannersSection />
+
+                <div className="relative px-6 z-10">
                     {/* Footer */}
                     <footer className="mt-16 pb-8 text-center border-t border-white/5 pt-8">
                         <p className="text-gray-600 text-sm font-medium tracking-wide">
                             © {new Date().getFullYear()} {displayName.toUpperCase()}
                         </p>
                     </footer>
+                </div>
                 </div>
             </main>
         </ProfilePageClient>

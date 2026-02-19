@@ -1,7 +1,7 @@
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
 // Use internal container name when running on server side (SSR) inside Docker
-const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://namecard_api:4000';
+const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://namecard_api:4000/api';
 
 const getBaseUrl = () => {
     if (typeof window === 'undefined') {

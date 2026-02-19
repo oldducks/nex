@@ -1,6 +1,7 @@
 'use client';
 
-import { BookOpen, Dumbbell, Palette, ShoppingBag, Utensils, Car, Home, Heart, Sparkles } from 'lucide-react';
+import { useState } from 'react';
+import { BookOpen, Dumbbell, Palette, ShoppingBag, Utensils, Car, Home, Heart, Sparkles, ChevronDown } from 'lucide-react';
 import Link from 'next/link';
 
 interface Catalog {
@@ -41,58 +42,83 @@ const CATEGORY_GRADIENTS: Record<string, string> = {
 };
 
 export function CatalogsDisplay({ catalogs }: CatalogsDisplayProps) {
+    const [isExpanded, setIsExpanded] = useState(false);
+
     if (!catalogs || catalogs.length === 0) return null;
 
     return (
-        <section className="mb-12">
-            <h3 className="text-lg font-bold mb-6 text-center flex items-center justify-center gap-2">
-                <BookOpen size={24} className="text-primary" />
-                แคตตาล็อกสินค้า
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {catalogs.map((catalog) => {
-                    const icon = CATEGORY_ICONS[catalog.category || ''] || <BookOpen size={32} />;
-                    const gradient = CATEGORY_GRADIENTS[catalog.category || ''] || 'from-indigo-500 to-purple-500';
-                    const productCount = catalog.products?.length || 0;
-                    const catalogUrl = catalog.custom_slug
-                        ? `/catalog/${catalog.custom_slug}?view=book`
-                        : `/catalog/${catalog.id}?view=book`;
+        <section className="mb-8">
+            <div className="bg-black/40 backdrop-blur-xl border border-white/20 rounded-3xl overflow-hidden transition-all duration-300 shadow-2xl">
+                {/* Header / Toggle */}
+                <div
+                    onClick={() => setIsExpanded(!isExpanded)}
+                    className="w-full flex items-center justify-between p-6 md:p-8 hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5"
+                >
+                    <div className="flex items-center gap-4">
+                        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors shadow-lg ${isExpanded ? 'bg-primary text-white shadow-primary/30' : 'bg-white/10 text-white shadow-black/20'}`}>
+                            <BookOpen size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-black text-white drop-shadow-md tracking-tight">แคตตาล็อกสินค้า</h3>
+                            <p className="text-sm text-white/70 font-medium">{catalogs.length} แคตตาล็อก</p>
+                        </div>
+                    </div>
 
-                    return (
-                        <Link
-                            key={catalog.id}
-                            href={catalogUrl}
-                            className="group relative overflow-hidden rounded-2xl bg-white/5 border border-white/10 hover:border-white/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
-                        >
-                            {/* Gradient Background */}
-                            <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-80 group-hover:opacity-100 transition-opacity`} />
+                    <div className={`transition-transform duration-300 p-2 rounded-full bg-white/5 ${isExpanded ? 'rotate-180' : ''}`}>
+                        <ChevronDown size={24} className="text-white" />
+                    </div>
+                </div>
 
-                            {/* Content */}
-                            <div className="relative p-4 text-white text-center">
-                                {/* Icon */}
-                                <div className="w-16 h-16 mx-auto mb-3 bg-white/20 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform">
-                                    {icon}
-                                </div>
+                {/* Content - Expandable */}
+                <div className={`transition-all duration-300 ease-in-out ${isExpanded ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                    <div className="p-6 md:p-8 pt-6">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                            {catalogs.map((catalog) => {
+                                const icon = CATEGORY_ICONS[catalog.category || ''] || <BookOpen size={32} />;
+                                const gradient = CATEGORY_GRADIENTS[catalog.category || ''] || 'from-indigo-500 to-purple-500';
+                                const productCount = catalog.products?.length || 0;
+                                const catalogUrl = catalog.custom_slug
+                                    ? `/catalog/${catalog.custom_slug}?view=book`
+                                    : `/catalog/${catalog.id}?view=book`;
 
-                                {/* Title */}
-                                <h4 className="font-bold text-sm md:text-base line-clamp-2 mb-1">
-                                    {catalog.title}
-                                </h4>
+                                return (
+                                    <Link
+                                        key={catalog.id}
+                                        href={catalogUrl}
+                                        className="group relative overflow-hidden rounded-2xl bg-black/30 border border-white/20 hover:border-white/40 transition-all duration-300 hover:scale-[1.02] hover:shadow-xl"
+                                    >
+                                        {/* Gradient Background */}
+                                        <div className={`absolute inset-0 bg-gradient-to-br ${gradient} opacity-90 group-hover:opacity-100 transition-opacity`} />
 
-                                {/* Product Count */}
-                                <p className="text-xs text-white/70">
-                                    {productCount} รายการ
-                                </p>
+                                        {/* Content */}
+                                        <div className="relative p-4 text-center">
+                                            {/* Icon */}
+                                            <div className="w-16 h-16 mx-auto mb-3 bg-white/30 rounded-2xl flex items-center justify-center backdrop-blur-sm group-hover:scale-110 transition-transform text-white drop-shadow-lg">
+                                                {icon}
+                                            </div>
 
-                                {/* View Button */}
-                                <div className="mt-3 py-1.5 px-3 bg-white/20 rounded-full text-xs font-medium inline-flex items-center gap-1 group-hover:bg-white/30 transition-colors">
-                                    <BookOpen size={12} />
-                                    ดูแคตตาล็อก
-                                </div>
-                            </div>
-                        </Link>
-                    );
-                })}
+                                            {/* Title */}
+                                            <h4 className="font-bold text-sm md:text-base line-clamp-2 mb-1 text-white drop-shadow-md">
+                                                {catalog.title}
+                                            </h4>
+
+                                            {/* Product Count */}
+                                            <p className="text-xs text-white/90 font-medium drop-shadow-sm">
+                                                {productCount} รายการ
+                                            </p>
+
+                                            {/* View Button */}
+                                            <div className="mt-3 py-1.5 px-3 bg-white/30 rounded-full text-xs font-bold inline-flex items-center gap-1 group-hover:bg-white/40 transition-colors text-white drop-shadow-sm">
+                                                <BookOpen size={12} />
+                                                ดูแคตตาล็อก
+                                            </div>
+                                        </div>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
             </div>
         </section>
     );

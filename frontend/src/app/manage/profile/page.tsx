@@ -49,6 +49,14 @@ const LANGUAGES = [
 interface I18nField { lang: string; value: string; }
 interface ContactField { label: string; value: string; }
 interface ImageWithPosition { url: string; position: { x: number; y: number }; scale?: number; }
+interface BannerImage {
+    url: string;
+    position: { x: number; y: number };
+    scale?: number;
+    display_position?: 'top' | 'bottom';
+    height?: string;
+    link_url?: string;
+}
 interface WebsiteLink { label: string; url: string; position?: string; }
 interface VideoConfig { url: string; autoplay: boolean; link_url?: string; link_enabled: boolean; enabled: boolean; }
 
@@ -66,7 +74,7 @@ interface Profile {
     profile_pic_position: { x: number; y: number; scale: number };
     logo: ImageWithPosition | null;
     backgrounds: ImageWithPosition[];
-    banners: ImageWithPosition[];
+    banners: BannerImage[];
     // Links
     websites: WebsiteLink[];
     social_links_json: any[];
@@ -85,6 +93,10 @@ interface Profile {
         background_color?: string;
         font_family?: string;
         card_style?: 'glass' | 'solid' | 'outline';
+        banner_height?: string;
+        banner_position?: 'top' | 'bottom';
+        show_lead_form?: boolean;
+        show_contact_info?: boolean;
     };
 }
 
@@ -112,7 +124,9 @@ const defaultProfile: Profile = {
         primary_color: '#6366F1',
         background_color: '#09090b',
         font_family: 'Inter',
-        card_style: 'glass'
+        card_style: 'glass',
+        show_lead_form: true,
+        show_contact_info: true
     }
 };
 
@@ -160,6 +174,10 @@ const UI_TEXT = {
         themeCustomization: 'การตกแต่ง (Theme)',
         qrCodeDescription: 'QR Code นี้จะลิงก์ไปที่หน้า Public Profile ของคุณ',
         qrCodeHint: 'QR Code จะแสดงอัตโนมัติในหน้า Public Profile',
+        leadGeneration: 'ระบบเก็บข้อมูล (Lead Generation)',
+        showContactForm: 'แสดงฟอร์มติดต่อ',
+        contactSettings: 'ตั้งค่าการติดต่อ (Contact Settings)',
+        showContactInfo: 'แสดงข้อมูลติดต่อ (เบอร์/อีเมล)',
     },
     en: {
         save: 'Save',
@@ -204,6 +222,10 @@ const UI_TEXT = {
         themeCustomization: 'Theme & Appearance',
         qrCodeDescription: 'This QR Code links to your public profile',
         qrCodeHint: 'QR Code automatically appears on your public profile',
+        leadGeneration: 'Lead Generation System',
+        showContactForm: 'Show Contact Form',
+        contactSettings: 'Contact Settings',
+        showContactInfo: 'Show Contact Details',
     }
 };
 
@@ -317,7 +339,13 @@ export default function ProfileEditorV2() {
                 } else if (target === 'banner' || target === 'banners') {
                     setProfile(p => {
                         const banners = p.banners || [];
-                        const newBanners = [...banners, { url: imageUrl, position: { x: 0, y: 0 }, scale: 1 }];
+                        const newBanners: BannerImage[] = [...banners, {
+                            url: imageUrl,
+                            position: { x: 0, y: 0 },
+                            scale: 1,
+                            display_position: 'top',
+                            height: '320px'
+                        }];
                         console.log('Updated banners:', newBanners);
                         return { ...p, banners: newBanners };
                     });
@@ -623,26 +651,118 @@ export default function ProfileEditorV2() {
 
                 {/* Banners */}
                 <Section title={t.banners} icon={<ImageIcon size={22} className="text-primary" />} onAdd={profile.banners.length < 10 ? () => triggerUpload('banner') : undefined} canAdd={profile.banners.length < 10}>
-                    <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">{t.max10Images}</div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">
+                        {lang === 'th' ? 'แต่ละภาพตั้งค่าแยกได้ • สูงสุด 10 รูป' : 'Each image has its own settings • Max 10'}
+                    </div>
+
+                    <div className="space-y-6">
                         {profile.banners.map((bn, i) => (
-                            <div key={i} className="relative group h-40 rounded-[32px] overflow-hidden border border-foreground/10">
-                                <img src={bn.url} alt={`Banner ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
-                                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-4">
-                                     <button onClick={() => removeImage('banners', i)} className="bg-red-500 text-white px-4 py-2 rounded-xl flex items-center gap-2 text-xs font-black uppercase tracking-widest hover:scale-105 transition-transform">
-                                        <Trash2 size={16} /> Delete
+                            <div key={i} className="bg-foreground/5 rounded-2xl border border-foreground/10 overflow-hidden">
+                                {/* Banner Preview */}
+                                <div className="relative h-32 overflow-hidden">
+                                    <img src={bn.url} alt={`Banner ${i + 1}`} className="w-full h-full object-cover" />
+                                    <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded-lg text-xs font-bold">
+                                        #{i + 1}
+                                    </div>
+                                    <div className="absolute top-2 right-2 flex gap-2">
+                                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${bn.display_position === 'bottom' ? 'bg-orange-500' : 'bg-blue-500'} text-white`}>
+                                            {bn.display_position === 'bottom' ? '🔽 ล่าง' : '🔼 บน'}
+                                        </span>
+                                    </div>
+                                    <button
+                                        onClick={() => removeImage('banners', i)}
+                                        className="absolute bottom-2 right-2 bg-red-500 hover:bg-red-600 text-white p-2 rounded-lg transition-colors"
+                                    >
+                                        <Trash2 size={16} />
                                     </button>
+                                </div>
+
+                                {/* Banner Settings */}
+                                <div className="p-4 space-y-4">
+                                    {/* Position */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold text-foreground/50 w-16">{lang === 'th' ? 'ตำแหน่ง' : 'Position'}</span>
+                                        <div className="flex gap-2 flex-1">
+                                            {[
+                                                { value: 'top', label: lang === 'th' ? '🔼 บน' : '🔼 Top' },
+                                                { value: 'bottom', label: lang === 'th' ? '🔽 ล่าง' : '🔽 Bottom' },
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.value}
+                                                    onClick={() => {
+                                                        const newBanners = [...profile.banners];
+                                                        newBanners[i] = { ...newBanners[i], display_position: opt.value as 'top' | 'bottom' };
+                                                        setProfile(p => ({ ...p, banners: newBanners }));
+                                                    }}
+                                                    className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
+                                                        (bn.display_position || 'top') === opt.value
+                                                            ? 'bg-primary text-white'
+                                                            : 'bg-background text-foreground/50 hover:bg-foreground/10'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Height */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold text-foreground/50 w-16">{lang === 'th' ? 'ความสูง' : 'Height'}</span>
+                                        <div className="flex gap-1 flex-1 flex-wrap">
+                                            {[
+                                                { value: '200px', label: 'S' },
+                                                { value: '280px', label: 'M' },
+                                                { value: '360px', label: 'L' },
+                                                { value: '450px', label: 'XL' },
+                                            ].map(opt => (
+                                                <button
+                                                    key={opt.value}
+                                                    onClick={() => {
+                                                        const newBanners = [...profile.banners];
+                                                        newBanners[i] = { ...newBanners[i], height: opt.value };
+                                                        setProfile(p => ({ ...p, banners: newBanners }));
+                                                    }}
+                                                    className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                                                        (bn.height || '320px') === opt.value
+                                                            ? 'bg-primary text-white'
+                                                            : 'bg-background text-foreground/50 hover:bg-foreground/10'
+                                                    }`}
+                                                >
+                                                    {opt.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    {/* Link URL */}
+                                    <div className="flex items-center gap-3">
+                                        <span className="text-xs font-bold text-foreground/50 w-16">{lang === 'th' ? 'ลิงก์' : 'Link'}</span>
+                                        <input
+                                            type="url"
+                                            value={bn.link_url || ''}
+                                            onChange={(e) => {
+                                                const newBanners = [...profile.banners];
+                                                newBanners[i] = { ...newBanners[i], link_url: e.target.value };
+                                                setProfile(p => ({ ...p, banners: newBanners }));
+                                            }}
+                                            placeholder={lang === 'th' ? 'https://example.com (คลิกแบนเนอร์แล้วเปิด)' : 'https://example.com (Click to open)'}
+                                            className="flex-1 bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                                        />
+                                    </div>
                                 </div>
                             </div>
                         ))}
-                         {profile.banners.length < 10 && (
-                            <button 
-                                onClick={() => triggerUpload('banner')} 
+
+                        {/* Add Banner Button */}
+                        {profile.banners.length < 10 && (
+                            <button
+                                onClick={() => triggerUpload('banner')}
                                 disabled={uploading}
-                                className={`h-40 rounded-[32px] border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-3 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'banner' ? 'animate-pulse bg-primary/5' : ''}`}
+                                className={`w-full h-32 rounded-2xl border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-3 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'banner' ? 'animate-pulse bg-primary/5' : ''}`}
                             >
                                 {uploadingSection === 'banner' ? <Loader2 size={32} className="animate-spin text-primary" /> : <Plus size={32} />}
-                                <span className="text-[10px] font-black uppercase tracking-widest">{uploadingSection === 'banner' ? 'กำลังอัปโหลดแบนเนอร์...' : 'เพิ่มแบนเนอร์ใหม่'}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest">{uploadingSection === 'banner' ? 'กำลังอัปโหลด...' : 'เพิ่มแบนเนอร์'}</span>
                             </button>
                         )}
                     </div>
@@ -713,6 +833,58 @@ export default function ProfileEditorV2() {
                                 </div>
                             );
                         })}
+                    </div>
+                </Section>
+
+
+                {/* Contact Settings */}
+                <Section title={t.contactSettings || "Contact Settings"} icon={<MessageCircle size={22} className="text-primary" />}>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {/* Show Lead Form */}
+                        <div className="flex items-center justify-between bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
+                            <div>
+                                <h4 className="font-bold text-sm mb-1">{t.showContactForm || "Show Contact Form"}</h4>
+                                <p className="text-xs text-foreground/50">Allow visitors to send you messages directly.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={profile.layout_config?.show_lead_form !== false}
+                                    onChange={(e) => setProfile(p => ({
+                                        ...p,
+                                        layout_config: {
+                                            ...p.layout_config,
+                                            show_lead_form: e.target.checked
+                                        }
+                                    }))}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
+                        
+                        {/* Show Contact Info */}
+                        <div className="flex items-center justify-between bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
+                            <div>
+                                <h4 className="font-bold text-sm mb-1">{t.showContactInfo || "Show Contact Info"}</h4>
+                                <p className="text-xs text-foreground/50">Display email, phone, and address on your profile.</p>
+                            </div>
+                            <label className="relative inline-flex items-center cursor-pointer">
+                                <input 
+                                    type="checkbox" 
+                                    className="sr-only peer" 
+                                    checked={profile.layout_config?.show_contact_info !== false}
+                                    onChange={(e) => setProfile(p => ({
+                                        ...p,
+                                        layout_config: {
+                                            ...p.layout_config,
+                                            show_contact_info: e.target.checked
+                                        }
+                                    }))}
+                                />
+                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                            </label>
+                        </div>
                     </div>
                 </Section>
 

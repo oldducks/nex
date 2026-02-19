@@ -12,6 +12,10 @@ export class CreateLeadDto {
     @IsString()
     phone?: string;
 
+    @IsOptional()
+    @IsString()
+    occupation?: string;
+
     @IsNotEmpty()
     @IsString()
     message: string;

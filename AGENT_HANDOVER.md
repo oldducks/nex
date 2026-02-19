@@ -366,3 +366,113 @@ interface FeatureConfig {
 ---
 
 *Updated by Antigravity on 2026-02-17*
+
+### 2026-02-18: Video Playback Fix
+**ปัญหา**: วิดีโอที่อัพโหลดผ่านหน้าจัดการโปรไฟล์ (`/manage/profile`) ไม่แสดงผลในหน้า Public Profile (`/p/[uid]`)
+**สาเหตุ**: Component `VideoEmbed` เดิมรองรับเฉพาะ YouTube/Vimeo ทำให้วิดีโอที่อัพโหลดเอง (Direct Upload) ไม่แสดงผลเพราะ URL เป็น Relative Path
+**การแก้ไข**:
+- ปรับปรุง `frontend/src/components/VideoEmbed.tsx` ให้รองรับ Direct Video File (MP4, WebM)
+- เพิ่ม logic ตรวจสอบ path และ prepend `NEXT_PUBLIC_API_URL` สำหรับไฟล์ที่อยู่ใน `/uploads/`
+- เพิ่ม fallback ให้ใช้ HTML5 `<video>` player เมื่อ URL ไม่ใช่ YouTube/Vimeo
+
+**Files Updated**:
+- `frontend/src/components/VideoEmbed.tsx`: เพิ่มการรองรับ direct file playback
+
+---
+
+
+### 2026-02-18: UI Improvements & Smart Video Autoplay
+**ปัญหา**:
+1. สีข้อความในหน้า Public Profile กลืนไปกับพื้นหลังทำให้อ่านยาก
+2. ผู้ต้องการให้วิดีโอเล่นอัตโนมัติเมื่อเลื่อนลงมาเจอ (Scroll-based Autoplay)
+
+**การแก้ไข**:
+1. **Text Contrast**:
+   - ปรับ Overlay ของ Background ให้เข้มขึ้น (Gradient Black)
+   - เพิ่ม `drop-shadow` และ `backdrop-blur` ให้กับ Text และ Container ต่างๆ
+   - เปลี่ยนสีข้อความจาก Gray เป็น White/Light Gray เพื่อให้ตัดกับพื้นหลัง
+2. **Video Autoplay**:
+   - ใช้ `IntersectionObserver` ใน `VideoEmbed.tsx`
+   - เมื่อวิดีโอ (Direct File) เข้าสู่ Viewport (50%) จะเล่นอัตโนมัติ (ถ้าเปิด setting autoplay)
+   - เมื่อออกจาก Viewport จะหยุดเล่นชั่วคราว
+
+**Files Updated**:
+- `frontend/src/app/[prefix]/[uid]/page.tsx`: ปรับ styling เพื่อเพิ่ม contrast
+- `frontend/src/components/VideoEmbed.tsx`: เพิ่ม logic play/pause ตามการ scroll
+
+---
+
+
+### 2026-02-18: Lead Generation System Fixes
+**ปัญหา**:
+1. แบบฟอร์มติดต่อกลับ (`LeadForm`) ในหน้า Public Profile ใช้งานไม่ได้จริง (ส่งข้อมูลไม่เข้า Backend)
+2. ผู้ต้องการเปิด/ปิดการแสดงผลแบบฟอร์มติดต่อกลับได้
+3. ต้องการเก็บข้อมูล "อาชีพ/บริษัท" (`occupation`) เพิ่มเติม
+
+**การแก้ไข**:
+1. **Backend**:
+   - เพิ่ม field `occupation` ใน `CreateLeadDto` เพื่อรองรับข้อมูลอาชีพ
+2. **Frontend (Public Profile)**:
+   - แก้ไข `LeadForm` ให้ยิง API ไปที่ `/api/contact/:uid` แทน `/api/leads` (ซึ่งผิด)
+   - ส่ง `occupation` ไปพร้อมกับข้อมูลอื่นๆ
+3. **Frontend (Manage Profile)**:
+   - เพิ่ม Toggle "Show Contact Form" (แสดงฟอร์มติดต่อ) ในหน้าแก้ไขโปรไฟล์
+   - เพิ่ม Toggle "Show Contact Info" (แสดงข้อมูลติดต่อ เบอร์/อีเมล) ในหน้าแก้ไขโปรไฟล์
+   - เชื่อมต่อกับค่า `layout_config.show_lead_form` และ `layout_config.show_contact_info`
+
+**Files Updated**:
+- `backend/src/leads/dto/create-lead.dto.ts`: เพิ่ม `occupation`
+- `backend/src/profiles/types/profile.types.ts`: เพิ่ม field ใน `LayoutConfig`
+- `frontend/src/components/LeadForm.tsx`: แก้ไข endpoint และเพิ่ม field
+- `frontend/src/app/[prefix]/[uid]/page.tsx`: ส่ง `uid` ให้ `LeadForm`, เช็ค config `show_lead_form`, เช็ค config `show_contact_info`
+- `frontend/src/app/manage/profile/page.tsx`: เพิ่ม UI Toggle สำหรับ Show/Hide Form และ Contact Info
+
+---
+
+*Updated by Antigravity on 2026-02-18*
+
+### 2026-02-18: Lead Generation & Contact Info Visibility (Verified)
+**Status**: Implemented & Ready for Deployment
+**User Request**:
+1. Make the contact form on public profiles work (send data to `/manage/leads`).
+2. Add a toggle to hide "Contact Information" on public profiles.
+
+**Implementation Details**:
+1. **Lead Generation System**:
+   - **Frontend**: `LeadForm` component updated to send `occupation` field and post to `/api/contact/:uid`.
+   - **Backend**: `LeadsController` listens on `/contact/:uid`, validates user, checks feature flags, and saves data via `LeadsService`.
+   - **Database**: `Lead` entity includes `occupation` column.
+   
+2. **Profile Visibility Controls**:
+   - **Manage Profile**: Added toggles for:
+     - "Show Contact Form" (`show_lead_form`)
+     - "Show Contact Info" (`show_contact_info`) - hides email/phone section.
+   - **Public Profile**: Updated logic to respect these flags in `layout_config`.
+   - **Lead Form UI**: 
+     - Improved readability with higher contrast text and inputs.
+     - Added collapsible/expandable functionality (default collapsed) with a "Contact Us" header.
+
+**Action Required**:
+- **Deploy**: Run `docker-compose up -d --build` to apply changes.
+- **Verify**: Check `https://namecard.dpattown.com/2f265/admin_01_10bbe`. The contact form should start collapsed and expand when clicked. Text inside should be clear and readable.
+
+### 2026-02-18: Lead Count & Direct Hide Form (NEW)
+**Feature Updates**:
+1.  **Control Center Lead Count**: Fixed the "Leads Recieved" count in `/manage/control-center` to display the actual number of unread leads.
+    - **Frontend**: Added fetch logic to `/api/leads/unread-count`.
+2.  **Direct Hide Form**: Added a "Hide" button on the public profile's lead form, visible only to the profile owner.
+    - **Frontend**: `LeadForm` checks if the logged-in user is the owner (`cookie.uid === targetUid`). If so, a "Hide" icon appears. Clicking it updates the profile config and reloads the page.
+
+**Files Updated**:
+- `frontend/src/app/manage/control-center/page.tsx`: Added lead count fetch.
+- `frontend/src/components/LeadForm.tsx`: Added owner check and hide functionality.
+
+### 2026-02-18: Lead Form Visual Update (Clean Text)
+**Feature Updates**:
+1.  **High Contrast UI**: Significantly clearer text labels and inputs for the Lead Form on dark backgrounds.
+    - **Labels**: White, drop-shadowed text.
+    - **Inputs**: Darker background with reduced opacity (`bg-black/50`), clearer borders, and brighter placeholder text.
+    - **Button**: Gradient primary button with shadow.
+
+**Files Updated**:
+- `frontend/src/components/LeadForm.tsx`: CSS/Tailwind updates for better visibility.

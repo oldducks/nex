@@ -114,6 +114,7 @@ export default function ControlCenterPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [leadCount, setLeadCount] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const token = Cookies.get('token');
@@ -146,6 +147,7 @@ export default function ControlCenterPage() {
       return;
     }
 
+    // Fetch user profile
     fetch('/api/users/me', {
       headers: { 'Authorization': `Bearer ${token}` }
     })
@@ -155,6 +157,19 @@ export default function ControlCenterPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+
+    // Fetch lead count
+    fetch('/api/leads/unread-count', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
+      .then(res => res.json())
+      .then(data => {
+        if (typeof data.count === 'number') {
+          setLeadCount(data.count);
+        }
+      })
+      .catch(err => console.error('Failed to fetch leads count:', err));
+
   }, [token, router]);
 
   const handleLogout = () => {
@@ -240,7 +255,7 @@ export default function ControlCenterPage() {
               </div>
               <div>
                 <div className="text-[10px] text-foreground/30 uppercase font-black tracking-widest mb-1">รายชื่อลูกค้า</div>
-                <div className="text-2xl font-black tabular-nums">--</div>
+                <div className="text-2xl font-black tabular-nums">{leadCount > 0 ? leadCount : '--'}</div>
               </div>
             </div>
           </div>
@@ -430,7 +445,7 @@ export default function ControlCenterPage() {
                     <div className="text-[10px] text-foreground/30 uppercase font-black tracking-widest mt-2">Today Views</div>
                  </div>
                  <div className="p-6 rounded-[24px] bg-foreground/5 border border-foreground/5 text-center group-hover:bg-foreground/10 transition-colors">
-                    <div className="text-3xl font-black text-foreground tabular-nums">0</div>
+                    <div className="text-3xl font-black text-foreground tabular-nums">{leadCount > 0 ? leadCount : '--'}</div>
                     <div className="text-[10px] text-foreground/30 uppercase font-black tracking-widest mt-2">Leads Recieved</div>
                  </div>
               </div>

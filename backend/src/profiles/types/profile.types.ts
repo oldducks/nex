@@ -14,6 +14,7 @@ export interface ImageWithPosition {
     position: { x: number; y: number };
     scale?: number;
     objectPosition?: string; // CSS object-position, e.g., "center top"
+    link_url?: string; // Optional URL to navigate when clicked
 }
 
 export interface ProfilePicConfig {
@@ -41,6 +42,7 @@ export interface LayoutConfig {
     video_url?: string;
     show_gallery?: boolean;
     show_lead_form?: boolean;
+    show_contact_info?: boolean;
 }
 
 // Theme customization
