@@ -45,12 +45,12 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 border-b border-foreground/5 backdrop-blur-xl bg-background/80">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-center" style={{ overflow: 'visible' }}>
             <img
               src="/logo-namecard-ai.png"
               alt="NAMECARD.AI"
               className="w-auto object-contain"
-              style={{ height: '48px', maxWidth: '280px' }}
+              style={{ height: '56px', maxWidth: '320px', transform: 'scale(1.3)', transformOrigin: 'left center' }}
             />
           </div>
 
@@ -176,17 +176,17 @@ export default function LandingPage() {
 
                   {/* Banner / Avatar Area */}
                   <div className="relative h-44 overflow-hidden">
-                    {/* Banner Image */}
+                    {/* Banner Image — DPAT background */}
                     <img
-                      src="/demo-banner.png"
+                      src="/demo-profile.jpg"
                       alt="banner"
-                      className="absolute inset-0 w-full h-full object-cover"
+                      className="absolute inset-0 w-full h-full object-cover object-center"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 to-transparent" />
-                    {/* Avatar — real profile photo, larger */}
+                    {/* Avatar — man's portrait photo */}
                     <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-24 h-24 rounded-2xl border-2 border-white/40 shadow-2xl overflow-hidden">
                       <img
-                        src="/demo-profile.jpg"
+                        src="/demo-banner.png"
                         alt="profile"
                         className="w-full h-full object-cover object-top"
                       />
