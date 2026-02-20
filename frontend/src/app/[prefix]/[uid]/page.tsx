@@ -1,6 +1,16 @@
 import { getProfile, getCatalogsByUserId } from '../../../lib/api';
 import { notFound } from 'next/navigation';
 import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2, ExternalLink } from 'lucide-react';
+
+// Helper function to ensure URL has protocol
+function ensureHttps(url: string): string {
+    if (!url) return '';
+    const trimmed = url.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+        return trimmed;
+    }
+    return `https://${trimmed}`;
+}
 import { VcfDownloadButton } from '../../../components/VcfDownload';
 import { QrCodeImage } from '../../../components/QrCode';
 import { AnalyticsTracker } from '../../../components/AnalyticsTracker';
@@ -403,7 +413,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         <section className="mb-12">
                             <div className="grid grid-cols-1 gap-4">
                                 {websites.map((site: any, i: number) => (
-                                    <a key={i} href={site.url} target="_blank" rel="noopener noreferrer" className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
+                                    <a key={i} href={ensureHttps(site.url)} target="_blank" rel="noopener noreferrer" className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
                                         <div className="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
                                             <Globe size={24} className="text-indigo-500" />
                                         </div>
@@ -437,7 +447,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 company={displayCompany}
                                 phones={phones}
                                 emails={emails}
-                                website={websites?.[0]?.url}
+                                website={ensureHttps(websites?.[0]?.url || '')}
                                 profilePicUrl={profileImageUrl}
                             />
                         </section>
@@ -459,7 +469,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             company={displayCompany}
                             phone={phones?.[0]?.value}
                             email={emails?.[0]?.value}
-                            website={websites?.[0]?.url}
+                            website={ensureHttps(websites?.[0]?.url || '')}
                             logoUrl={logo?.url}
                             qrUrl={profileUrl}
                             template="gradient"

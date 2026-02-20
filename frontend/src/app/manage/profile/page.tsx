@@ -486,11 +486,11 @@ export default function ProfileEditorV2() {
                         <ThemeToggle />
 
                         <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground transition-all font-bold text-sm">
-                            <ExternalLink size={18} />
+                            <Eye size={18} />
                             <span>{t.viewPublic}</span>
                         </Link>
-                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="md:hidden p-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition-all text-foreground/60 hover:text-foreground">
-                            <ExternalLink size={20} />
+                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="md:hidden p-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition-all text-foreground/60 hover:text-foreground" title="ดูหน้าโปรไฟล์">
+                            <Eye size={20} />
                         </Link>
                         
                         <button
@@ -505,7 +505,7 @@ export default function ProfileEditorV2() {
                 </div>
             </header>
 
-            <main className="max-w-5xl mx-auto px-6 py-12 space-y-10">
+            <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-10">
                 {/* Names */}
                 <Section title={t.name} icon={<User size={22} className="text-primary" />} onAdd={() => addI18n('names_i18n')} canAdd={profile.names_i18n.length < LANGUAGES.length}>
                     <div className="space-y-4">
@@ -794,7 +794,7 @@ export default function ProfileEditorV2() {
 
                 {/* About Me */}
                 <Section title={t.aboutMe} icon={<Heart size={22} className="text-primary" />}>
-                    <textarea value={profile.about_me} onChange={e => setProfile(p => ({ ...p, about_me: e.target.value }))} placeholder={t.aboutMePlaceholder} className="w-full bg-foreground/5 border border-foreground/10 rounded-[24px] px-6 py-5 h-48 resize-none focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-foreground/20 text-lg leading-relaxed" />
+                    <textarea value={profile.about_me} onChange={e => setProfile(p => ({ ...p, about_me: e.target.value }))} placeholder={t.aboutMePlaceholder} className="w-full bg-foreground/5 border border-foreground/10 rounded-[24px] px-4 md:px-6 py-4 md:py-5 min-h-[200px] md:min-h-[250px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-foreground/20 text-base md:text-lg leading-relaxed" />
                 </Section>
 
                 {/* Interests */}
@@ -821,15 +821,19 @@ export default function ProfileEditorV2() {
                             const IconComponent = SOCIAL_ICONS[link.platform] || Globe;
                             const option = SOCIAL_OPTIONS.find(o => o.value === link.platform);
                             return (
-                                <div key={i} className="flex items-center gap-4 group p-2 rounded-2xl hover:bg-foreground/[0.02] transition-colors border border-transparent hover:border-foreground/5">
-                                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform duration-500 shrink-0" style={{ backgroundColor: option?.color || 'var(--primary)' }}>
-                                        <IconComponent size={24} className="text-white" />
+                                <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 group p-3 sm:p-2 rounded-2xl bg-foreground/[0.02] sm:bg-transparent hover:bg-foreground/[0.03] transition-colors border border-foreground/5 sm:border-transparent hover:border-foreground/5">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg shrink-0" style={{ backgroundColor: option?.color || 'var(--primary)' }}>
+                                            <IconComponent size={20} className="text-white sm:hidden" />
+                                            <IconComponent size={24} className="text-white hidden sm:block" />
+                                        </div>
+                                        <select value={link.platform} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, platform: e.target.value } : l) }))} className="flex-1 sm:flex-none bg-foreground/5 border border-foreground/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+                                            {SOCIAL_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-background text-foreground">{opt.label}</option>)}
+                                        </select>
+                                        <button onClick={() => setProfile(p => ({ ...p, social_links_json: p.social_links_json.filter((_, j) => j !== i) }))} className="sm:hidden text-foreground/20 hover:text-red-500 p-2"><Trash2 size={18} /></button>
                                     </div>
-                                    <select value={link.platform} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, platform: e.target.value } : l) }))} className="bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
-                                        {SOCIAL_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-background text-foreground">{opt.label}</option>)}
-                                    </select>
-                                    <input type="url" placeholder="ใส่ชื่อผู้ใช้หรือลิงก์ URL..." value={link.url} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, url: e.target.value } : l) }))} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                                    <button onClick={() => setProfile(p => ({ ...p, social_links_json: p.social_links_json.filter((_, j) => j !== i) }))} className="text-foreground/20 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>
+                                    <input type="url" placeholder="ใส่ชื่อผู้ใช้หรือลิงก์ URL..." value={link.url} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, url: e.target.value } : l) }))} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                    <button onClick={() => setProfile(p => ({ ...p, social_links_json: p.social_links_json.filter((_, j) => j !== i) }))} className="hidden sm:block text-foreground/20 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>
                                 </div>
                             );
                         })}
@@ -1005,12 +1009,15 @@ function Section({ title, icon, children, onAdd, canAdd = true }: { title: strin
 function I18nInput({ item, languages, onChange, onRemove }: { item: I18nField; languages: typeof LANGUAGES; onChange: (v: string) => void; onRemove?: () => void }) {
     const lang = languages.find(l => l.code === item.lang);
     return (
-        <div className="flex items-center gap-4 group">
-            <div className="w-28 flex items-center gap-2 text-xs font-black text-foreground/30 uppercase tracking-widest shrink-0">
-                <span className="text-lg">{lang?.flag}</span> {lang?.code}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 group">
+            <div className="flex items-center justify-between sm:justify-start">
+                <div className="w-20 sm:w-28 flex items-center gap-2 text-xs font-black text-foreground/30 uppercase tracking-widest shrink-0">
+                    <span className="text-lg">{lang?.flag}</span> {lang?.code}
+                </div>
+                {onRemove && <button onClick={onRemove} className="sm:hidden text-foreground/20 hover:text-red-500 p-2"><Trash2 size={18} /></button>}
             </div>
-            <input type="text" value={item.value} onChange={e => onChange(e.target.value)} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-5 py-3.5 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-            {onRemove && <button onClick={onRemove} className="text-foreground/10 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>}
+            <input type="text" value={item.value} onChange={e => onChange(e.target.value)} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+            {onRemove && <button onClick={onRemove} className="hidden sm:block text-foreground/10 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>}
         </div>
     );
 }
@@ -1018,10 +1025,13 @@ function I18nInput({ item, languages, onChange, onRemove }: { item: I18nField; l
 // Contact input component
 function ContactInput({ item, placeholder, onLabelChange, onValueChange, onRemove }: { item: ContactField; placeholder: string; onLabelChange: (v: string) => void; onValueChange: (v: string) => void; onRemove?: () => void }) {
     return (
-        <div className="flex items-center gap-4 group">
-            <input type="text" placeholder="หัวข้อ" value={item.label} onChange={e => onLabelChange(e.target.value)} className="w-28 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3.5 text-xs font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-            <input type="text" placeholder={placeholder} value={item.value} onChange={e => onValueChange(e.target.value)} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-5 py-3.5 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-            {onRemove && <button onClick={onRemove} className="text-foreground/10 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>}
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 group">
+            <div className="flex items-center gap-2">
+                <input type="text" placeholder="หัวข้อ" value={item.label} onChange={e => onLabelChange(e.target.value)} className="w-24 sm:w-28 bg-foreground/5 border border-foreground/10 rounded-xl px-3 sm:px-4 py-3 sm:py-3.5 text-xs font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                {onRemove && <button onClick={onRemove} className="sm:hidden text-foreground/20 hover:text-red-500 p-2"><Trash2 size={18} /></button>}
+            </div>
+            <input type="text" placeholder={placeholder} value={item.value} onChange={e => onValueChange(e.target.value)} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+            {onRemove && <button onClick={onRemove} className="hidden sm:block text-foreground/10 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>}
         </div>
     );
 }

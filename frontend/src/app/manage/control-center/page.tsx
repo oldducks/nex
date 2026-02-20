@@ -7,8 +7,9 @@ import {
   LogOut, Globe, BookOpen, CreditCard, ArrowRight,
   Users, BarChart3, ShieldCheck, Mail, Sparkles,
   Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift,
-  CheckCircle, XCircle, Crown, Zap, Star
+  CheckCircle, XCircle, Crown, Zap, Star, Copy, ExternalLink, Check, Eye
 } from 'lucide-react';
+import { QrCodeImage } from '@/components/QrCode';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -30,6 +31,7 @@ interface UserData {
   max_cards: number;
   expiration_date: string;
   uid: string;
+  url_prefix: string;
   feature_config?: FeatureConfig;
 }
 
@@ -117,7 +119,24 @@ export default function ControlCenterPage() {
   const [leadCount, setLeadCount] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
   const token = Cookies.get('token');
+
+  // Generate profile URL
+  const getProfileUrl = () => {
+    if (!user?.url_prefix || !user?.uid) return '';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://namecard.dpattown.com';
+    return `${baseUrl}/${user.url_prefix}/${user.uid}`;
+  };
+
+  const handleCopyUrl = async () => {
+    const url = getProfileUrl();
+    if (url) {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   // Count enabled/locked features
   const getFeatureCounts = () => {
@@ -318,7 +337,83 @@ export default function ControlCenterPage() {
               );
             }
 
-            // Enabled feature card
+            // Special card for "แก้ไขนามบัตรดิจิทัล" with QR code and quick actions
+            if (feature.id === 'landing') {
+              const profileUrl = getProfileUrl();
+              return (
+                <div
+                  key={feature.id}
+                  className="group relative bg-card-bg border border-foreground/5 p-10 rounded-[40px] overflow-hidden shadow-2xl glass-card"
+                >
+                  {/* Feature Icon */}
+                  <div className={`inline-flex items-center justify-center w-20 h-20 rounded-3xl
+                                    bg-gradient-to-br ${feature.gradient} mb-6 shadow-2xl`}>
+                    <feature.icon size={36} className="text-white" />
+                  </div>
+
+                  {/* Tags */}
+                  <div className="flex gap-2 mb-4">
+                    {feature.tags.map(tag => (
+                      <span key={tag} className="px-3 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+
+                  <h2 className="text-2xl font-black mb-2 tracking-tight">
+                    {feature.title}
+                  </h2>
+                  <p className="text-foreground/50 text-sm leading-relaxed mb-6">
+                    {feature.description}
+                  </p>
+
+                  {/* QR Code Section */}
+                  {profileUrl && (
+                    <div className="mb-6">
+                      <QrCodeImage url={profileUrl} size={120} />
+                    </div>
+                  )}
+
+                  {/* Profile URL */}
+                  <div className="bg-foreground/5 rounded-xl p-3 mb-6">
+                    <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">ลิงก์โปรไฟล์ของคุณ</p>
+                    <p className="text-sm text-foreground/70 truncate font-mono">{profileUrl || 'กำลังโหลด...'}</p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-wrap gap-3">
+                    <button
+                      onClick={handleCopyUrl}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-sm font-bold transition-colors"
+                    >
+                      {copied ? <Check size={16} className="text-green-500" /> : <Copy size={16} />}
+                      {copied ? 'คัดลอกแล้ว!' : 'คัดลอก URL'}
+                    </button>
+                    <a
+                      href={profileUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 px-4 py-2.5 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-sm font-bold transition-colors"
+                    >
+                      <ExternalLink size={16} />
+                      ดูหน้าโปรไฟล์
+                    </a>
+                    <Link
+                      href={feature.href}
+                      className="flex items-center gap-2 px-4 py-2.5 bg-primary text-white hover:bg-primary/90 rounded-xl text-sm font-bold transition-colors"
+                    >
+                      <ArrowRight size={16} />
+                      แก้ไขโปรไฟล์
+                    </Link>
+                  </div>
+
+                  {/* Decorative accent */}
+                  <div className={`absolute bottom-0 right-0 w-32 h-32 bg-gradient-to-br ${feature.gradient} opacity-10 blur-[80px]`} />
+                </div>
+              );
+            }
+
+            // Enabled feature card (other features)
             return (
               <Link
                 key={feature.id}
