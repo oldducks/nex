@@ -47,10 +47,10 @@ export default function LandingPage() {
           {/* Logo */}
           <div className="flex items-center">
             <img
-              src="/logo-namecard-ai.jpg"
+              src="/logo-namecard-ai.png"
               alt="NAMECARD.AI"
-              className="h-9 w-auto object-contain"
-              style={{ maxWidth: '220px' }}
+              className="h-12 w-auto object-contain"
+              style={{ maxWidth: '260px' }}
             />
           </div>
 
