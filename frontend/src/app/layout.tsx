@@ -9,12 +9,17 @@ export const metadata: Metadata = {
   title: "NAMECARD.AI | Digital Business Card Platform",
   description:
     "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI",
+  icons: {
+    icon: "/logo-ai.jpg",
+    shortcut: "/logo-ai.jpg",
+    apple: "/logo-ai.jpg",
+  },
 };
 
 const themeScript = `
 (function() {
   try {
-    const theme = localStorage.getItem('theme') || 'dark';
+    const theme = localStorage.getItem('theme') || 'light';
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {}
 })();

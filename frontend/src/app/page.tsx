@@ -43,14 +43,14 @@ export default function LandingPage() {
 
       {/* ═══════════ NAVBAR ═══════════ */}
       <nav className="sticky top-0 z-50 border-b border-foreground/5 backdrop-blur-xl bg-background/80">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-stretch h-full py-1">
+          <div className="flex items-center">
             <img
               src="/logo-namecard-ai.png"
               alt="NAMECARD.AI"
-              className="h-full w-auto object-contain"
-              style={{ maxWidth: '320px' }}
+              className="w-auto object-contain"
+              style={{ height: '48px', maxWidth: '280px' }}
             />
           </div>
 
@@ -75,7 +75,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ═══════════ HERO — SPLIT LAYOUT ═══════════ */}
-      <section className="max-w-7xl mx-auto px-6 pt-16 pb-20 lg:pt-24 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+      <section className="max-w-7xl mx-auto px-6 pt-12 pb-20 lg:pt-20 grid grid-cols-1 lg:grid-cols-2 gap-6 items-center">
 
         {/* LEFT — Copy */}
         <div className="order-2 lg:order-1 flex flex-col gap-6">
@@ -151,7 +151,7 @@ export default function LandingPage() {
         </div>
 
         {/* RIGHT — Live Demo Card Preview */}
-        <div className="order-1 lg:order-2 flex justify-center lg:justify-end">
+        <div className="order-1 lg:order-2 flex justify-center">
           <div className="relative w-full max-w-[340px]">
             {/* Glow */}
             <div className="absolute inset-0 bg-primary/20 blur-[60px] rounded-full -z-10 scale-75 opacity-60" />
@@ -175,11 +175,21 @@ export default function LandingPage() {
                 <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 min-h-[520px] flex flex-col">
 
                   {/* Banner / Avatar Area */}
-                  <div className={`bg-gradient-to-br ${DEMO_PROFILE.avatarColor} h-44 relative flex items-end`}>
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/80 to-transparent" />
-                    {/* Avatar */}
-                    <div className="relative mx-auto mb-[-32px] w-20 h-20 rounded-2xl bg-white/10 backdrop-blur border-2 border-white/30 flex items-center justify-center text-2xl font-extrabold text-white shadow-xl">
-                      {DEMO_PROFILE.name.charAt(0)}
+                  <div className="relative h-44 overflow-hidden">
+                    {/* Banner Image */}
+                    <img
+                      src="/demo-banner.png"
+                      alt="banner"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 to-transparent" />
+                    {/* Avatar — real profile photo, larger */}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-24 h-24 rounded-2xl border-2 border-white/40 shadow-2xl overflow-hidden">
+                      <img
+                        src="/demo-profile.jpg"
+                        alt="profile"
+                        className="w-full h-full object-cover object-top"
+                      />
                     </div>
                   </div>
 
