@@ -173,17 +173,19 @@ export default function LandingPage() {
                 {/* Card Content */}
                 <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 min-h-[520px] flex flex-col">
 
-                  {/* Banner / Avatar Area */}
-                  <div className="relative h-44 overflow-hidden">
-                    {/* Banner Image — DPAT background */}
-                    <img
-                      src="/demo-profile.jpg"
-                      alt="banner"
-                      className="absolute inset-0 w-full h-full object-cover object-center"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 to-transparent" />
-                    {/* Avatar — man's portrait photo */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-24 h-24 rounded-2xl border-2 border-white/40 shadow-2xl overflow-hidden">
+                  {/* Banner / Avatar — outer wrapper has no overflow so avatar can extend below */}
+                  <div className="relative h-44">
+                    {/* Background image clipped independently */}
+                    <div className="absolute inset-0 overflow-hidden">
+                      <img
+                        src="/demo-profile.jpg"
+                        alt="banner"
+                        className="w-full h-full object-cover object-center"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 to-transparent" />
+                    </div>
+                    {/* Avatar — sibling of clipped area, free to extend below */}
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-24 h-24 rounded-2xl border-2 border-white/40 shadow-2xl overflow-hidden z-10">
                       <img
                         src="/demo-banner.png"
                         alt="profile"
