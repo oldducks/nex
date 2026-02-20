@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
-import { ArrowRight, Globe, Zap, Shield, BarChart3, QrCode, Share2, CheckCircle, Phone, Mail } from 'lucide-react';
+import { ArrowRight, Globe, Zap, Shield, BarChart3, Share2, CheckCircle, Phone, Mail } from 'lucide-react';
 import { dictionary, Language } from '@/lib/i18n';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -45,13 +45,13 @@ export default function LandingPage() {
       <nav className="sticky top-0 z-50 border-b border-foreground/5 backdrop-blur-xl bg-background/80">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center shadow-md">
-              <QrCode size={16} className="text-white" />
-            </div>
-            <span className="font-extrabold text-xl tracking-tight">
-              NAMECARD<span className="text-primary">.AI</span>
-            </span>
+          <div className="flex items-center">
+            <img
+              src="/logo-namecard-ai.jpg"
+              alt="NAMECARD.AI"
+              className="h-9 w-auto object-contain"
+              style={{ maxWidth: '220px' }}
+            />
           </div>
 
           {/* Nav Actions */}
@@ -134,7 +134,7 @@ export default function LandingPage() {
               target="_blank"
               className="inline-flex items-center gap-2 bg-foreground/5 hover:bg-foreground/10 text-foreground font-semibold text-base px-7 py-3.5 rounded-full border border-foreground/10 transition-all hover:scale-105"
             >
-              <QrCode size={16} />
+              <Globe size={16} />
               {lang === 'th' ? 'ดูตัวอย่างจริง' : 'Live Demo'}
             </Link>
           </div>
