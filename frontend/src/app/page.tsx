@@ -49,8 +49,8 @@ export default function LandingPage() {
             <img
               src="/logo-namecard-ai.png"
               alt="NAMECARD.AI"
-              className="h-12 w-auto object-contain"
-              style={{ maxWidth: '260px' }}
+              className="h-16 w-auto object-contain"
+              style={{ maxWidth: '300px' }}
             />
           </div>
 
