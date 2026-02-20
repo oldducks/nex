@@ -43,14 +43,14 @@ export default function LandingPage() {
 
       {/* ═══════════ NAVBAR ═══════════ */}
       <nav className="sticky top-0 z-50 border-b border-foreground/5 backdrop-blur-xl bg-background/80">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           {/* Logo */}
-          <div className="flex items-center">
+          <div className="flex items-stretch h-full py-1">
             <img
               src="/logo-namecard-ai.png"
               alt="NAMECARD.AI"
-              className="h-16 w-auto object-contain"
-              style={{ maxWidth: '300px' }}
+              className="h-full w-auto object-contain"
+              style={{ maxWidth: '320px' }}
             />
           </div>
 
