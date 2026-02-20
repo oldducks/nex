@@ -6,8 +6,9 @@ import { ThemeProvider } from "@/components/ThemeProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Mind | Personal Portfolio",
-  description: "Experience my world - Digital portfolio, catalog, and contact hub.",
+  title: "NAMECARD.AI | Digital Business Card Platform",
+  description:
+    "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI",
 };
 
 const themeScript = `
