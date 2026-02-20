@@ -44,13 +44,12 @@ export default function LandingPage() {
       {/* ═══════════ NAVBAR ═══════════ */}
       <nav className="sticky top-0 z-50 border-b border-foreground/5 backdrop-blur-xl bg-background/80">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          {/* Logo */}
-          <div className="flex items-center" style={{ overflow: 'visible' }}>
+          {/* Logo — overflow crop removes transparent PNG border */}
+          <div style={{ height: '62px', overflow: 'hidden', display: 'flex', alignItems: 'center' }}>
             <img
               src="/logo-namecard-ai.png"
               alt="NAMECARD.AI"
-              className="w-auto object-contain"
-              style={{ height: '56px', maxWidth: '320px', transform: 'scale(1.3)', transformOrigin: 'left center' }}
+              style={{ height: '100px', width: 'auto', display: 'block', flexShrink: 0 }}
             />
           </div>
 
