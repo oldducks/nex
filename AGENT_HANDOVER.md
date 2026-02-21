@@ -498,4 +498,63 @@ interface FeatureConfig {
 - `frontend/src/app/page.tsx`: Landing page layout, mockup images, and styling.
 - `frontend/src/components/Navbar.tsx`: Navbar size and logo integration.
 
+---
+
+### 2026-02-21: Profile UI Optimization
+**Feature Updates**:
+1.  **Avatar Enlargement**:
+    - Increased profile avatar size in the landing page mockup from `w-24` to `w-32`.
+    - Adjusted vertical spacing (`padding-top`) to maintain layout balance.
+2.  **Branding Persistence**:
+    - Finalized the integration of official logo and secondary assets (`favicon.ico`, `logo-ai.jpg`).
+3.  **Deployment & Sync**:
+    - Successfully deployed to production using `docker compose`.
+    - Synchronized all local changes to GitHub `main` branch.
+
+**Files Updated**:
+- `frontend/src/app/page.tsx`: Avatar size and padding adjustments.
+- `AGENT_HANDOVER.md`: Updated project logs.
+
 *Updated by Antigravity on 2026-02-21*
+
+---
+
+### 2026-02-21: Landing, Login, Control Center & Public Profile Light Theme Refinements
+**Feature Updates**:
+1. **Landing Page Cleanup**:
+   - Removed Theme Toggle from Landing page navbar (hide only, not delete system).
+   - Adjusted mockup avatar crop/scale so face and head are visible more naturally.
+2. **Login UX Improvements**:
+   - Added close button (`X`) at top-right of login card.
+   - Close behavior: go back if history exists, otherwise redirect to `/`.
+   - Removed Theme Toggle from Login page.
+3. **Control Center UI/UX Optimization**:
+   - Matched branding with Landing page (logo + font tone).
+   - Compacted hero/header area (removed long subtitle and welcome headline on request).
+   - Added quick action button **"โชว์นามบัตร"** and tuned size to align with side stat boxes.
+   - Changed logout flow to redirect to Landing page (`/`) after sign out.
+   - Reordered feature cards per request:
+     1) นามบัตรดิจิทัล  
+     2) หน้าเซลล์เพจ  
+     3) แคตตาล็อก  
+     4) ระบบรายชื่อลูกค้า  
+     5) สถิติและการวิเคราะห์  
+     6) ดีไซน์นามบัตร
+   - Updated card title from **"แก้ไขนามบัตรดิจิทัล"** to **"นามบัตรดิจิทัล"**.
+   - Made "นามบัตรดิจิทัล" card fully clickable (same behavior as other cards) and added matching hover/active effects.
+   - Updated "โชว์นามบัตร" button style to neutral in normal state and orange on press/active.
+4. **Public Profile Apple Light Theme Alignment**:
+   - Reworked profile page light-mode surfaces/texts to align with Landing page tone.
+   - Replaced hardcoded dark/white blocks with theme-aware `background/foreground` styling in key sections (about/contact/website/QR/footer) for better readability and brand consistency.
+
+**Files Updated**:
+- `frontend/src/app/page.tsx`
+- `frontend/src/app/login/page.tsx`
+- `frontend/src/app/manage/control-center/page.tsx`
+- `frontend/src/app/[prefix]/[uid]/page.tsx`
+- `AGENT_HANDOVER.md`
+
+**Deployment**:
+- Applied and verified via `docker compose up -d --build` (services `web`, `api`, `postgres`, `redis` running).
+
+*Updated by Codex on 2026-02-21*

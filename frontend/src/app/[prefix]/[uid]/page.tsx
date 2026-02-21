@@ -249,7 +249,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                 )}
 
                 {/* Mobile View Wrapper */}
-                <div className="relative w-full max-w-[480px] mx-auto min-h-screen shadow-2xl bg-black/10 backdrop-blur-[2px]">
+                <div className="relative w-full max-w-[480px] mx-auto min-h-screen shadow-2xl bg-background/40 backdrop-blur-[2px]">
                     {/* Top Banners */}
                     <TopBannersSection />
 
@@ -264,10 +264,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     )}
 
                     {/* Profile Section - Banner Style */}
-                    <section className={`relative mb-16 flex flex-col items-center gap-8 ${bannerUrl && profilePosition === 'overlay' ? '-mt-32' : ''}`}>
+                    <section className={`relative mb-16 flex flex-col items-center gap-6 ${topBanners.length > 0 ? '-mt-28 md:-mt-32' : ''}`}>
                         {/* Profile Image - Full Width Banner */}
-                        <div className={`relative w-full -mx-6 ${profilePosition === 'overlay' ? 'z-10' : ''}`}>
-                            <div className="relative w-full h-80 md:h-96 overflow-hidden bg-zinc-800">
+                        <div className={`relative w-full -mx-6 ${topBanners.length > 0 ? 'z-10' : ''}`}>
+                            <div className="relative w-full h-80 md:h-96 overflow-hidden bg-foreground/5">
                                 {profileImageUrl ? (
                                     <>
                                         <img
@@ -285,7 +285,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                         <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-transparent"></div>
                                     </>
                                 ) : (
-                                    <div className="w-full h-full flex items-center justify-center text-zinc-600">
+                                    <div className="w-full h-full flex items-center justify-center text-foreground/30">
                                         <User size={96} />
                                     </div>
                                 )}
@@ -306,20 +306,20 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 </div>
                             )}
 
-                            <h1 className="text-4xl font-black mb-4 tracking-tight leading-none drop-shadow-lg text-white">
+                            <h1 className="text-4xl font-black mb-4 tracking-tight leading-none drop-shadow-lg text-foreground">
                                 {displayName}
                             </h1>
 
                             {names_i18n?.length > 1 && (
                                 <div className="flex flex-wrap gap-2 mb-4 justify-center">
                                     {names_i18n.slice(1).map((name: any, i: number) => (
-                                        <span key={i} className="text-gray-200 text-lg drop-shadow-md">{name.value}</span>
+                                        <span key={i} className="text-foreground/70 text-lg drop-shadow-md">{name.value}</span>
                                     ))}
                                 </div>
                             )}
 
                             {displayCompanies.length > 0 && (
-                                <div className="mb-4 flex flex-col gap-2 items-center text-gray-200 drop-shadow-md">
+                                <div className="mb-4 flex flex-col gap-2 items-center text-foreground/65 drop-shadow-md">
                                     {displayCompanies.map((comp: any, i: number) => (
                                         <p key={i} className="text-xl flex items-center gap-2">
                                             <Building2 size={18} /> {comp.value}
@@ -332,11 +332,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* About Me */}
                     {about_me && (
-                        <section className="mb-12 bg-black/40 backdrop-blur-md rounded-2xl p-6 border border-white/10 shadow-lg">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-white drop-shadow-sm">
+                        <section className="mb-12 bg-background/60 backdrop-blur-md rounded-2xl p-6 border border-foreground/10 shadow-lg">
+                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground drop-shadow-sm">
                                 <Heart size={20} className="text-primary" /> เกี่ยวกับฉัน
                             </h3>
-                            <p className="text-gray-200 leading-relaxed whitespace-pre-line drop-shadow-sm">{about_me}</p>
+                            <p className="text-foreground/75 leading-relaxed whitespace-pre-line drop-shadow-sm">{about_me}</p>
                         </section>
                     )}
 
@@ -345,7 +345,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         <section className="mb-12">
                             <div className="flex flex-wrap gap-2 justify-center">
                                 {interests.map((tag: string, i: number) => (
-                                    <span key={i} className="bg-primary/20 text-white border border-primary/30 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm shadow-sm">
+                                    <span key={i} className="bg-primary/20 text-foreground border border-primary/30 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm shadow-sm">
                                         {tag}
                                     </span>
                                 ))}
@@ -356,7 +356,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     {/* Multimedia: Video */}
                     {(videoConfig?.enabled && videoConfig.url) && (
                         <section className="mb-12">
-                             <div className="relative rounded-2xl overflow-hidden border border-white/10 shadow-lg group bg-black">
+                             <div className="relative rounded-2xl overflow-hidden border border-foreground/10 shadow-lg group bg-background/70">
                                 <VideoEmbed url={videoConfig.url} autoplay={videoConfig.autoplay} />
                                 {videoConfig.link_enabled && videoConfig.link_url && (
                                     <a 
@@ -384,24 +384,24 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     {layout_config?.show_contact_info !== false && (emails?.length > 0 || phones?.length > 0) && (
                         <section className="mb-12 grid grid-cols-1 gap-4">
                             {phones?.map((phone: any, i: number) => (
-                                <a key={i} href={`tel:${phone.value}`} className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
+                                <a key={i} href={`tel:${phone.value}`} className="bg-background/60 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-background/75 transition-colors border border-foreground/10 shadow-lg">
                                     <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center border border-green-500/20">
                                         <Phone size={24} className="text-green-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs text-gray-400 uppercase font-bold">{phone.label || 'Phone'}</div>
-                                        <div className="font-medium text-white">{phone.value}</div>
+                                        <div className="text-xs text-foreground/50 uppercase font-bold">{phone.label || 'Phone'}</div>
+                                        <div className="font-medium text-foreground">{phone.value}</div>
                                     </div>
                                 </a>
                             ))}
                             {emails?.map((email: any, i: number) => (
-                                <a key={i} href={`mailto:${email.value}`} className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
+                                <a key={i} href={`mailto:${email.value}`} className="bg-background/60 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-background/75 transition-colors border border-foreground/10 shadow-lg">
                                     <div className="w-12 h-12 rounded-lg bg-red-500/20 flex items-center justify-center border border-red-500/20">
                                         <Mail size={24} className="text-red-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs text-gray-400 uppercase font-bold">{email.label || 'Email'}</div>
-                                        <div className="font-medium text-white">{email.value}</div>
+                                        <div className="text-xs text-foreground/50 uppercase font-bold">{email.label || 'Email'}</div>
+                                        <div className="font-medium text-foreground">{email.value}</div>
                                     </div>
                                 </a>
                             ))}
@@ -413,13 +413,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         <section className="mb-12">
                             <div className="grid grid-cols-1 gap-4">
                                 {websites.map((site: any, i: number) => (
-                                    <a key={i} href={ensureHttps(site.url)} target="_blank" rel="noopener noreferrer" className="bg-black/40 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-black/50 transition-colors border border-white/10 shadow-lg">
+                                    <a key={i} href={ensureHttps(site.url)} target="_blank" rel="noopener noreferrer" className="bg-background/60 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-background/75 transition-colors border border-foreground/10 shadow-lg">
                                         <div className="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
                                             <Globe size={24} className="text-indigo-500" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium truncate text-white">{site.label || 'Website'}</div>
-                                            <div className="text-sm text-gray-400 truncate">{site.url}</div>
+                                            <div className="font-medium truncate text-foreground">{site.label || 'Website'}</div>
+                                            <div className="text-sm text-foreground/55 truncate">{site.url}</div>
                                         </div>
                                     </a>
                                 ))}
@@ -432,7 +432,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* QR Code */}
                     {qr_enabled !== false && (
-                        <section className="mb-12 text-center text-white drop-shadow-md">
+                        <section className="mb-12 text-center text-foreground drop-shadow-md">
                             <h3 className="text-lg font-bold mb-4">Scan to Connect</h3>
                             <QrCodeImage url={profileUrl} size={180} />
                         </section>
@@ -485,8 +485,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                 <div className="relative px-6 z-10">
                     {/* Footer */}
-                    <footer className="mt-16 pb-8 text-center border-t border-white/5 pt-8">
-                        <p className="text-gray-600 text-sm font-medium tracking-wide">
+                    <footer className="mt-16 pb-8 text-center border-t border-foreground/10 pt-8">
+                        <p className="text-foreground/50 text-sm font-medium tracking-wide">
                             © {new Date().getFullYear()} {displayName.toUpperCase()}
                         </p>
                     </footer>

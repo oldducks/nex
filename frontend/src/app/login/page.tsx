@@ -2,8 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
-import { ThemeToggle } from '@/components/ThemeToggle';
+import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 
@@ -70,18 +69,31 @@ function LoginContent() {
         window.location.href = `${API_URL}/auth/${provider}`;
     };
 
+    const handleClose = () => {
+        if (window.history.length > 1) {
+            router.back();
+            return;
+        }
+        router.push('/');
+    };
+
     return (
         <div className="min-h-screen text-foreground flex flex-col items-center justify-center p-6 relative overflow-hidden transition-colors duration-500">
-            {/* Theme Toggle in Login Page - Use FIXED to ensure it stays in corner regardless of scroll/flex */}
-            <div className="fixed top-6 right-6 z-[100]">
-                <ThemeToggle />
-            </div>
-
             {/* Background Ambience */}
             <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-primary/20 blur-[120px] rounded-full -translate-x-1/2 -translate-y-1/2 pointer-events-none opacity-30" />
             <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-secondary/20 blur-[120px] rounded-full translate-x-1/2 translate-y-1/2 pointer-events-none opacity-30" />
 
             <div className="w-full max-w-md glass-card p-8 rounded-[32px] border border-glass-border bg-glass relative z-10 shadow-2xl">
+                <button
+                    type="button"
+                    onClick={handleClose}
+                    aria-label="ปิดหน้าล็อกอิน"
+                    title="ปิด"
+                    className="absolute top-4 right-4 h-9 w-9 rounded-full border border-glass-border bg-foreground/5 hover:bg-foreground/10 text-foreground/60 hover:text-foreground transition-colors flex items-center justify-center"
+                >
+                    <X size={18} />
+                </button>
+
                 <div className="text-center mb-8">
                     <div className="inline-block p-3 rounded-2xl bg-primary/10 text-primary mb-4">
                         <Lock size={32} />

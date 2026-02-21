@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { ArrowRight, Globe, Zap, Shield, BarChart3, Share2, CheckCircle, Phone, Mail } from 'lucide-react';
 import { dictionary, Language } from '@/lib/i18n';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 // --- Demo Card Data ---
 const DEMO_PROFILE = {
@@ -53,7 +52,6 @@ export default function LandingPage() {
 
           {/* Nav Actions */}
           <div className="flex items-center gap-3">
-            <ThemeToggle />
             <button
               onClick={() => setLang(lang === 'en' ? 'th' : 'en')}
               className="text-sm font-medium text-foreground/60 hover:text-primary transition-colors flex items-center gap-1.5 px-3 py-1.5 rounded-full hover:bg-foreground/5"
@@ -187,7 +185,7 @@ export default function LandingPage() {
                       <img
                         src="/demo-banner.png"
                         alt="profile"
-                        className="w-full h-full object-cover" style={{ objectPosition: 'center 25%' }}
+                        className="w-full h-full object-cover scale-[1.12]" style={{ objectPosition: 'center 10%' }}
                       />
                     </div>
                   </div>
