@@ -476,3 +476,26 @@ interface FeatureConfig {
 
 **Files Updated**:
 - `frontend/src/components/LeadForm.tsx`: CSS/Tailwind updates for better visibility.
+
+---
+
+### 2026-02-20: Branding & Landing Page Optimization
+**Feature Updates**:
+1.  **New Branding Integration**:
+    - Replaced the old logo with the new official NAMECARD.AI logo.
+    - Updated `frontend/src/app/layout.tsx` metadata (Title: `NAMECARD.AI | Digital Business Card Platform`).
+    - Matched the overall page colors to the logo (Navy + Orange scheme).
+2.  **Layout & UI Refinements**:
+    - Increased Navbar height (to `h-20`) to accommodate the larger logo.
+    - Enlarged the logo in the phone mockup (using `scale(1.3)`).
+    - Swapped the banner and avatar images in the mockup to be more contextually correct.
+    - Fixed spacing and layout alignment on the landing page.
+3.  **Theme Persistence**:
+    - Defaulted the site to Light Mode as per the new branding design.
+
+**Files Updated**:
+- `frontend/src/app/layout.tsx`: Metadata and default theme updates.
+- `frontend/src/app/page.tsx`: Landing page layout, mockup images, and styling.
+- `frontend/src/components/Navbar.tsx`: Navbar size and logo integration.
+
+*Updated by Antigravity on 2026-02-21*

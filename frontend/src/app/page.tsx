@@ -183,7 +183,7 @@ export default function LandingPage() {
                       <div className="absolute inset-0 bg-gradient-to-t from-zinc-900/90 to-transparent" />
                     </div>
                     {/* Avatar — sibling of clipped area, free to extend below */}
-                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-24 h-24 rounded-2xl border-2 border-white/40 shadow-2xl overflow-hidden z-10">
+                    <div className="absolute bottom-0 left-1/2 -translate-x-1/2 translate-y-1/2 w-32 h-32 rounded-2xl border-2 border-white/40 shadow-2xl overflow-hidden z-10">
                       <img
                         src="/demo-banner.png"
                         alt="profile"
@@ -193,7 +193,7 @@ export default function LandingPage() {
                   </div>
 
                   {/* Profile Info */}
-                  <div className="flex flex-col items-center text-center px-5 pt-12 pb-4 gap-1">
+                  <div className="flex flex-col items-center text-center px-5 pt-16 pb-4 gap-1">
                     <h2 className="text-base font-bold text-white leading-tight">{DEMO_PROFILE.name}</h2>
                     <p className="text-[11px] text-white/60">{DEMO_PROFILE.nameEn}</p>
                     <p className="text-[12px] font-semibold text-primary mt-0.5">{DEMO_PROFILE.title}</p>
