@@ -49,8 +49,8 @@ export default function Dashboard() {
     const [copiedId, setCopiedId] = useState<number | null>(null);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com';
-    const token = Cookies.get('token');
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
+        const token = Cookies.get('token');
 
     useEffect(() => {
         if (!token) {
@@ -149,7 +149,7 @@ export default function Dashboard() {
         router.push('/login');
     };
 
-    const getCatalogUrl = (catalogId: number) => `${SITE_URL}/catalog/${catalogId}`;
+    const getCatalogUrl = (catalogId: number) => `${SITE_URL}/app/catalog/${catalogId}`;
 
     const copyLink = async (catalogId: number) => {
         try {
@@ -187,26 +187,26 @@ export default function Dashboard() {
                     <div className="font-bold text-xl tracking-tight">NAMECARD<span className="text-primary">.AI</span> <span className="text-foreground/40 font-normal text-sm ml-2 hidden sm:inline">/ Catalogs</span></div>
                     <div className="flex items-center gap-2 sm:gap-6">
                         <Link
-                            href="/manage/dashboard"
+                            href="/app/manage/dashboard"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <LayoutDashboard size={16} /> <span className="hidden md:inline">สถิติ</span>
                         </Link>
                         <Link
-                            href="/manage/profile"
+                            href="/app/manage/profile"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <User size={16} /> <span className="hidden md:inline">แก้ไขโปรไฟล์</span>
                         </Link>
                         <Link
-                            href={`/${Cookies.get('uid') || ''}`}
+                            href={Cookies.get('uid') ? `/app/p/${Cookies.get('uid')}` : '#'}
                             target="_blank"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <ExternalLink size={16} /> <span className="hidden md:inline">ดูเว็บ</span>
                         </Link>
                         <Link
-                            href="/manage/account"
+                            href="/app/manage/account"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <Settings size={16} /> <span className="hidden md:inline">ตั้งค่าบัญชี</span>

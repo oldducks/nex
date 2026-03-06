@@ -34,6 +34,15 @@ export class Lead {
     @Column({ type: 'timestamp' })
     consent_timestamp: Date;
 
+    @Column({ default: 'profile' })
+    source_type: string;
+
+    @Column({ nullable: true })
+    source_id: number;
+
+    @Column({ nullable: true })
+    source_url: string;
+
     @Column({ default: false })
     is_read: boolean;
 

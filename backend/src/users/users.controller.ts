@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException, NotFoundException, ParseIntPipe } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
@@ -71,13 +71,37 @@ export class UsersController {
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  @UseGuards(JwtAuthGuard)
+  async findOne(@Request() req, @Param('id', ParseIntPipe) targetUserId: number) {
+
+    // Users can view their own profile, admins can view any
+    if (req.user.role !== 'super_admin' && req.user.role !== 'group_admin' && req.user.sub !== targetUserId) {
+      throw new ForbiddenException('You can only view your own user profile');
+    }
+
+    const user = await this.usersService.findOne(targetUserId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
-    return this.usersService.update(+id, updateUserDto);
+  @UseGuards(JwtAuthGuard)
+  async update(@Request() req, @Param('id', ParseIntPipe) targetUserId: number, @Body() updateUserDto: UpdateUserDto) {
+
+    // Users can update their own profile, admins can update any
+    if (req.user.role !== 'super_admin' && req.user.role !== 'group_admin' && req.user.sub !== targetUserId) {
+      throw new ForbiddenException('You can only update your own user profile');
+    }
+
+    const user = await this.usersService.update(targetUserId, updateUserDto);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 
   @Patch(':id/toggle-active')

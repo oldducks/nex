@@ -1,8 +1,9 @@
-import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, Patch, UseGuards, Request, ForbiddenException, Res } from '@nestjs/common';
 import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
+import { Response } from 'express';
 
 @Controller()
 export class LeadsController {
@@ -41,6 +42,39 @@ export class LeadsController {
             throw new ForbiddenException('ฟีเจอร์ระบบรายชื่อลูกค้า (Leads) ยังไม่ถูกเปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบเพื่ออัพเกรด');
         }
         return this.leadsService.findAllByOwner(req.user.sub);
+    }
+
+    // Protected - export leads as CSV
+    @UseGuards(JwtAuthGuard)
+    @Get('leads/export')
+    async exportLeadsCsv(@Request() req, @Res() res: Response) {
+        const config = await this.usersService.getFeatureConfig(req.user.sub);
+        if (!config.leads) {
+            throw new ForbiddenException('ฟีเจอร์ระบบรายชื่อลูกค้า (Leads) ยังไม่ถูกเปิดใช้งาน กรุณาติดต่อผู้ดูแลระบบเพื่ออัพเกรด');
+        }
+        const leads = await this.leadsService.findAllByOwner(req.user.sub);
+
+        const header = ['id', 'name', 'email', 'phone', 'occupation', 'message', 'source_type', 'source_url', 'is_read', 'created_at'];
+        const rows = leads.map((l: any) => [
+            l.id,
+            `"${(l.name || '').replace(/"/g, '""')}"`,
+            `"${(l.email || '').replace(/"/g, '""')}"`,
+            `"${(l.phone || '').replace(/"/g, '""')}"`,
+            `"${(l.occupation || '').replace(/"/g, '""')}"`,
+            `"${(l.message || '').replace(/"/g, '""')}"`,
+            `"${(l.source_type || 'profile').replace(/"/g, '""')}"`,
+            `"${(l.source_url || '').replace(/"/g, '""')}"`,
+            l.is_read ? '1' : '0',
+            l.created_at ? new Date(l.created_at).toISOString() : '',
+        ].map(val => (val === null || val === undefined) ? '' : val).join(','));
+
+        // Add BOM for Excel UTF-8 support
+        const csv = '\uFEFF' + [header.join(','), ...rows].join('\n');
+
+        const filename = `leads_${new Date().toISOString().slice(0, 10)}.csv`;
+        res.setHeader('Content-Type', 'text/csv; charset=utf-8');
+        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.send(csv);
     }
 
     // Protected - mark lead as read

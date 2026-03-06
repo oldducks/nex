@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
 
-type Theme = 'dark' | 'light' | 'pastel' | 'midnight';
+export type Theme = 'dark' | 'light' | 'pastel' | 'midnight' | 'brand-cog';
 
 interface ThemeContextType {
     theme: Theme;
@@ -10,16 +10,26 @@ interface ThemeContextType {
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
+const variant = process.env.NEXT_PUBLIC_THEME_VARIANT;
+const defaultTheme: Theme = variant === 'cyan-orange-green' ? 'brand-cog' : 'dark';
+const supportedThemes: Theme[] = variant === 'cyan-orange-green'
+    ? ['dark', 'light', 'pastel', 'midnight', 'brand-cog']
+    : ['dark', 'light', 'pastel', 'midnight'];
+
+const normalizeTheme = (value: string | null): Theme => {
+    if (!value) return defaultTheme;
+    return (supportedThemes as string[]).includes(value) ? (value as Theme) : defaultTheme;
+};
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setThemeState] = useState<Theme>('dark');
+    const [theme, setThemeState] = useState<Theme>(defaultTheme);
     // Use mounted state to prevent hydration mismatch
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
         // Run once on mount
-        const savedTheme = localStorage.getItem('theme') as Theme;
-        const initialTheme = savedTheme || 'dark';
+        const savedTheme = localStorage.getItem('theme');
+        const initialTheme = normalizeTheme(savedTheme);
         
         setThemeState(initialTheme);
         document.documentElement.setAttribute('data-theme', initialTheme);
@@ -27,8 +37,8 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
         // Listen for storage events (cross-tab sync)
         const handleStorage = (e: StorageEvent) => {
-            if (e.key === 'theme' && e.newValue) {
-                const newTheme = e.newValue as Theme;
+            if (e.key === 'theme') {
+                const newTheme = normalizeTheme(e.newValue);
                 setThemeState(newTheme);
                 document.documentElement.setAttribute('data-theme', newTheme);
             }
@@ -39,9 +49,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     }, []);
 
     const setTheme = (newTheme: Theme) => {
-        setThemeState(newTheme);
-        localStorage.setItem('theme', newTheme);
-        document.documentElement.setAttribute('data-theme', newTheme);
+        const safeTheme = normalizeTheme(newTheme);
+        setThemeState(safeTheme);
+        localStorage.setItem('theme', safeTheme);
+        document.documentElement.setAttribute('data-theme', safeTheme);
     };
 
     return (

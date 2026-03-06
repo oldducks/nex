@@ -28,8 +28,10 @@ export default function LandingPagesListPage() {
     const [newPage, setNewPage] = useState({ title: '', slug: '' });
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com';
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const token = Cookies.get('token');
+
+    const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
 
     useEffect(() => {
         if (!token) {
@@ -45,7 +47,29 @@ export default function LandingPagesListPage() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.ok) {
-                setPages(await res.json());
+                const data: LandingPage[] = await res.json();
+                setPages(data);
+
+                // ดึง view count ต่อหน้าแบบขนาน
+                const results = await Promise.all(
+                    data.map(async (page) => {
+                        try {
+                            const r = await fetch(`${API_URL}/analytics/landing-pages/${page.id}/views`, {
+                                headers: { Authorization: `Bearer ${token}` },
+                            });
+                            if (!r.ok) return { id: page.id, views: 0 };
+                            const json = await r.json();
+                            return { id: page.id, views: json.views ?? 0 };
+                        } catch {
+                            return { id: page.id, views: 0 };
+                        }
+                    })
+                );
+                const map: Record<number, number> = {};
+                results.forEach((item) => {
+                    map[item.id] = item.views;
+                });
+                setViewCounts(map);
             }
         } catch (error) {
             console.error(error);
@@ -180,9 +204,14 @@ export default function LandingPagesListPage() {
                                             <Calendar size={14} className="text-primary/50" />
                                             {new Date(page.created_at).toLocaleDateString('th-TH')}
                                         </div>
-                                        <div className="p-4 bg-foreground/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/30 flex items-center gap-2 truncate">
-                                            <Globe size={14} className="text-primary/50 shrink-0" />
-                                            {page.slug}
+                                        <div className="p-4 bg-foreground/5 rounded-2xl text-[10px] font-black uppercase tracking-widest text-foreground/30 flex flex-col gap-1">
+                                            <div className="flex items-center gap-2 truncate">
+                                                <Globe size={14} className="text-primary/50 shrink-0" />
+                                                <span className="truncate">{page.slug}</span>
+                                            </div>
+                                            <div className="text-[9px] text-foreground/40">
+                                                {viewCounts[page.id] ?? 0} views
+                                            </div>
                                         </div>
                                     </div>
 

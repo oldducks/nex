@@ -19,6 +19,9 @@ interface Lead {
   message: string;
   is_read: boolean;
   created_at: string;
+  source_type?: string;
+  source_id?: number;
+  source_url?: string;
 }
 
 export default function LeadsPage() {
@@ -26,6 +29,7 @@ export default function LeadsPage() {
   const [leads, setLeads] = useState<Lead[]>([]);
   const [loading, setLoading] = useState(true);
   const token = Cookies.get('token');
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
   useEffect(() => {
     if (!token) {
@@ -78,6 +82,32 @@ export default function LeadsPage() {
             <div className="text-[10px] font-black uppercase tracking-widest text-foreground/30 bg-foreground/5 px-3 py-1.5 rounded-lg hidden md:block">
               ทั้งหมด {leads.length} รายชื่อ
             </div>
+            {leads.length > 0 && (
+              <button
+                onClick={async () => {
+                  try {
+                    const res = await fetch(`${API_URL}/leads/export`, {
+                      headers: { Authorization: `Bearer ${token}` },
+                    });
+                    if (!res.ok) return;
+                    const blob = await res.blob();
+                    const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `leads_${new Date().toISOString().slice(0, 10)}.csv`;
+                    document.body.appendChild(a);
+                    a.click();
+                    a.remove();
+                    window.URL.revokeObjectURL(url);
+                  } catch (e) {
+                    // ignore error for now
+                  }
+                }}
+                className="text-[10px] font-black uppercase tracking-widest text-foreground bg-foreground/10 px-3 py-1.5 rounded-lg hover:bg-foreground/20 transition-colors"
+              >
+                ดาวน์โหลด CSV
+              </button>
+            )}
             <div className="h-6 w-px bg-foreground/10 mx-1 hidden sm:block" />
             <ThemeToggle />
           </div>
@@ -142,6 +172,15 @@ export default function LeadsPage() {
                           day: 'numeric', month: 'long', year: 'numeric'
                         })}
                      </div>
+                     {lead.source_type === 'landing_page' ? (
+                       <div className="flex items-center gap-2 text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
+                         Landing: {lead.source_url || 'Unknown'}
+                       </div>
+                     ) : (
+                       <div className="flex items-center gap-2 text-[9px] font-black text-foreground/40 uppercase tracking-widest bg-foreground/5 px-3 py-1.5 rounded-lg border border-foreground/10">
+                         Source: Profile
+                       </div>
+                     )}
                   </div>
                 </div>
 

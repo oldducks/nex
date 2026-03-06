@@ -86,6 +86,8 @@ export function LeadForm({ targetUid }: LeadFormProps) {
         body: JSON.stringify({
           ...formData,
           pdpa_consent: true,
+          source_type: 'profile',
+          source_url: window.location.pathname,
         }),
       });
 

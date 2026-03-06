@@ -1,7 +1,8 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
+import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
-import { ConfigModule, ConfigService } from '@nestjs/config';
+import { ConfigModule } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { BullModule } from '@nestjs/bullmq';
 import { UsersModule } from './users/users.module';
@@ -25,6 +26,16 @@ import { LandingPagesModule } from './landing-pages/landing-pages.module';
 import { LandingPage } from './landing-pages/entities/landing-page.entity';
 import { ReferralsModule } from './referrals/referrals.module';
 import { Referral } from './referrals/entities/referral.entity';
+import { FormsModule } from './forms/forms.module';
+import { Form } from './forms/entities/form.entity';
+import { FormSubmission } from './forms/entities/form-submission.entity';
+import { QRCode } from './qr-codes/entities/qr-code.entity';
+import { QrCodesModule } from './qr-codes/qr-codes.module';
+import { RequestLoggingMiddleware } from './common/middleware/request-logging.middleware';
+import { AuditLoggingInterceptor } from './common/interceptors/audit-logging.interceptor';
+import { StructuredLogger } from './common/logging/structured-logger';
+import { CreateLiteModule } from './create-lite/create-lite.module';
+import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 @Module({
   imports: [
@@ -39,7 +50,7 @@ import { Referral } from './referrals/entities/referral.entity';
       useFactory: () => ({
         type: 'postgres',
         url: process.env.DATABASE_URL,
-        entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage, Referral],
+        entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage, Referral, Form, FormSubmission, QRCode],
         synchronize: true, // Dev only
       }),
     }),
@@ -63,8 +74,25 @@ import { Referral } from './referrals/entities/referral.entity';
     MailModule,
     LandingPagesModule,
     ReferralsModule,
+    FormsModule,
+    QrCodesModule,
+    CreateLiteModule,
   ],
   controllers: [],
-  providers: [],
+  providers: [
+    StructuredLogger,
+    {
+      provide: APP_INTERCEPTOR,
+      useClass: AuditLoggingInterceptor,
+    },
+    {
+      provide: APP_FILTER,
+      useClass: AllExceptionsFilter,
+    },
+  ],
 })
-export class AppModule { }
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer.apply(RequestLoggingMiddleware).forRoutes('*');
+  }
+}

@@ -10,7 +10,15 @@ export class LandingPagesController {
     // Public endpoint to view a landing page
     @Get('public/:slug')
     async findBySlug(@Param('slug') slug: string) {
-        return this.service.findBySlug(slug);
+        const page = await this.service.findBySlug(slug);
+
+        // ส่ง uid ของเจ้าของเพจออกไปด้วย เพื่อใช้กับ Analytics / Form Integration ฝั่ง frontend
+        const ownerUid = (page as any).user?.uid ?? null;
+
+        return {
+            ...page,
+            owner_uid: ownerUid,
+        };
     }
 
     // Protected endpoints for management
@@ -36,6 +44,15 @@ export class LandingPagesController {
     @Patch(':id')
     update(@Request() req, @Param('id') id: string, @Body() dto: UpdateLandingPageDto) {
         return this.service.update(+id, req.user.userId, dto);
+    }
+
+    // แยก endpoint สำหรับบันทึกแบบ Draft โดยไม่ยุ่งกับสถานะ publish
+    @UseGuards(JwtAuthGuard)
+    @Patch(':id/draft')
+    saveDraft(@Request() req, @Param('id') id: string, @Body() dto: UpdateLandingPageDto) {
+        // ป้องกันไม่ให้เปลี่ยน is_published ผ่าน draft endpoint
+        const { is_published, ...rest } = dto as any;
+        return this.service.update(+id, req.user.userId, rest as UpdateLandingPageDto);
     }
 
     @UseGuards(JwtAuthGuard)

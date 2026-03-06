@@ -136,6 +136,8 @@ function RegisterContent() {
                             ดำเนินการด้วย Google
                         </button>
 
+                        {/* ปิดการใช้งาน Facebook Login ชั่วคราว */}
+                        {/*
                         <button
                             onClick={() => handleSocialLogin('facebook')}
                             className="w-full py-3 px-4 bg-[#1877F2]/10 hover:bg-[#1877F2]/20 border border-[#1877F2]/20 rounded-xl font-medium flex items-center justify-center gap-3 transition-colors text-[#1877F2]"
@@ -145,6 +147,7 @@ function RegisterContent() {
                             </svg>
                             ดำเนินการด้วย Facebook
                         </button>
+                        */}
 
                         <button
                             onClick={() => handleSocialLogin('line')}

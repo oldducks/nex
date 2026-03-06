@@ -1,25 +1,38 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Prompt, Montserrat } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 
-const inter = Inter({ subsets: ["latin"] });
+const prompt = Prompt({
+  subsets: ["latin", "thai"],
+  weight: ["300", "400", "500", "600", "700", "800"],
+  variable: "--font-sans",
+  display: "swap",
+});
+
+const montserrat = Montserrat({
+  subsets: ["latin"],
+  weight: ["500", "600", "700", "800", "900"],
+  variable: "--font-display",
+  display: "swap",
+});
+const configuredTheme = process.env.NEXT_PUBLIC_THEME_VARIANT === "cyan-orange-green" ? "brand-cog" : "dark";
 
 export const metadata: Metadata = {
-  title: "NAMECARD.AI | Digital Business Card Platform",
+  title: "NEX Solution | Digital Business Card Platform",
   description:
-    "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI",
+    "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI ภายใต้แบรนด์ NEX Solution",
   icons: {
-    icon: "/logo-ai.jpg",
-    shortcut: "/logo-ai.jpg",
-    apple: "/logo-ai.jpg",
+    icon: "/app/nex_logo_nobg.png",
+    shortcut: "/app/nex_logo_nobg.png",
+    apple: "/app/nex_logo_nobg.png",
   },
 };
 
 const themeScript = `
 (function() {
   try {
-    const theme = localStorage.getItem('theme') || 'light';
+    const theme = localStorage.getItem('theme') || '${configuredTheme}';
     document.documentElement.setAttribute('data-theme', theme);
   } catch (e) {}
 })();
@@ -35,7 +48,7 @@ export default function RootLayout({
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
-      <body className={`${inter.className} antialiased min-h-screen relative bg-background text-foreground transition-colors duration-500`}>
+      <body className={`${prompt.variable} ${montserrat.variable} antialiased min-h-screen relative bg-background text-foreground transition-colors duration-500`}>
         <ThemeProvider>
           <div className="ambient-light" />
           {children}

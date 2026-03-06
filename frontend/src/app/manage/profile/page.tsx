@@ -960,16 +960,16 @@ export default function ProfileEditorV2() {
                 <Section title={t.qrCode} icon={<QrCode size={22} className="text-primary" />}>
                     <div className="flex flex-col md:flex-row items-center gap-10 bg-foreground/[0.02] p-8 rounded-[40px] border border-foreground/5 group">
                         <div className="bg-white p-4 rounded-[32px] shadow-2xl group-hover:rotate-6 transition-transform duration-500">
-                             <QrCodeImage url={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com'}/${profile.url_prefix || 'p'}/${uid}`} size={160} />
+                             <QrCodeImage url={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/${profile.url_prefix || 'p'}/${uid}`} size={160} />
                         </div>
                         <div className="space-y-6 flex-1 text-center md:text-left">
                             <h4 className="text-2xl font-black tracking-tight">{t.qrCodeDescription}</h4>
                             <div className="bg-foreground/5 p-4 rounded-2xl font-mono text-[11px] text-primary break-all border border-foreground/5">
-                                {`${process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com'}/${profile.url_prefix || 'p'}/${uid}`}
+                                {`${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/${profile.url_prefix || 'p'}/${uid}`}
                             </div>
                             <div className="flex flex-wrap justify-center md:justify-start gap-4">
                                 <button onClick={() => {
-                                    navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com'}/${profile.url_prefix || 'p'}/${uid}`);
+                                    navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/${profile.url_prefix || 'p'}/${uid}`);
                                     alert('คัดลอกลิงก์แล้ว!');
                                 }} className="px-6 py-2.5 bg-foreground text-background rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all">Copy Link</button>
                                 <p className="text-[10px] font-bold text-foreground/30 flex items-center gap-2">💡 {t.qrCodeHint}</p>

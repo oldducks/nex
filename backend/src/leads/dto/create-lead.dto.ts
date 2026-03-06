@@ -21,5 +21,17 @@ export class CreateLeadDto {
     message: string;
 
     @IsBoolean()
+    @IsNotEmpty()
     pdpa_consent: boolean;
+
+    @IsOptional()
+    @IsString()
+    source_type?: string;
+
+    @IsOptional()
+    source_id?: number;
+
+    @IsOptional()
+    @IsString()
+    source_url?: string;
 }

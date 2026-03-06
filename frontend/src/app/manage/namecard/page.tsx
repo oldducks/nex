@@ -46,7 +46,7 @@ export default function NamecardEditor() {
     });
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com';
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const token = Cookies.get('token');
     const uid = Cookies.get('uid');
 

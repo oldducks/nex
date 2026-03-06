@@ -7,7 +7,7 @@ import {
   LogOut, Globe, BookOpen, CreditCard, ArrowRight,
   Users, BarChart3, ShieldCheck, Mail,
   Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift,
-  CheckCircle, XCircle, Crown, Zap, Star, Copy, ExternalLink, Check, Eye
+  CheckCircle, XCircle, Crown, Zap, Star, Copy, ExternalLink, Check, Eye, Share2
 } from 'lucide-react';
 import { QrCodeImage } from '@/components/QrCode';
 import Link from 'next/link';
@@ -32,6 +32,7 @@ interface UserData {
   expiration_date: string;
   uid: string;
   url_prefix: string;
+  referral_code?: string;
   feature_config?: FeatureConfig;
 }
 
@@ -102,6 +103,24 @@ const FEATURE_LIST = [
     tags: ['ไฟล์ภาพ PNG', 'เลย์เอาท์']
   },
   {
+    id: 'qr-custom',
+    title: 'สร้าง QR แบบกำหนดเอง',
+    description: 'ทดลองเลือกสีพื้นหลัง/ลาย QR และวางโลโก้ตรงกลาง เพื่อใช้กับเพจและฟอร์มของคุณ',
+    icon: QrCode,
+    href: '/manage/qr',
+    gradient: 'from-sky-500 to-cyan-500',
+    tags: ['Custom QR', 'โลโก้กลาง']
+  },
+  {
+    id: 'create-lite',
+    title: 'NEX Create Lite',
+    description: 'เลือกเทมเพลตงานกราฟิกสำหรับโพสต์ขายสินค้า โปรโมชัน และกิจกรรม พร้อมใช้งานทันที',
+    icon: ImageIcon,
+    href: '/manage/create-lite',
+    gradient: 'from-violet-500 to-indigo-600',
+    tags: ['Templates', 'Creative']
+  },
+  {
     id: 'referrals',
     title: 'ระบบแนะนำสมาชิก',
     description: 'แชร์ลิงก์แนะนำเพื่อนและรับค่าคอมมิชชั่น 10% ต่อเนื่องสูงสุด 10 ชั้น',
@@ -120,12 +139,13 @@ export default function ControlCenterPage() {
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [copiedReferral, setCopiedReferral] = useState(false);
   const token = Cookies.get('token');
 
   // Generate profile URL
   const getProfileUrl = () => {
     if (!user?.url_prefix || !user?.uid) return '';
-    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://namecard.dpattown.com';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexsolution.cloud';
     return `${baseUrl}/${user.url_prefix}/${user.uid}`;
   };
 
@@ -135,6 +155,30 @@ export default function ControlCenterPage() {
       await navigator.clipboard.writeText(url);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
+    }
+  };
+
+  // Generate referral share URL
+  const getReferralShareUrl = () => {
+    if (!user?.referral_code) return '';
+    const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexsolution.cloud';
+    // Register page is served under /app basePath in this deployment
+    return `${baseUrl}/app/register?ref=${user.referral_code}`;
+  };
+
+  const handleCopyReferral = async () => {
+    const url = getReferralShareUrl();
+    if (url) {
+      await navigator.clipboard.writeText(url);
+      setCopiedReferral(true);
+      setTimeout(() => setCopiedReferral(false), 2000);
+    }
+  };
+
+  const handleOpenReferralLink = () => {
+    const url = getReferralShareUrl();
+    if (url) {
+      window.open(url, '_blank', 'noopener,noreferrer');
     }
   };
 
@@ -214,17 +258,17 @@ export default function ControlCenterPage() {
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
       {/* Background Glow */}
-      <div className="fixed top-0 left-1/4 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] -z-10 animate-pulse opacity-50" />
-      <div className="fixed bottom-0 right-1/4 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[120px] -z-10 opacity-50" />
+      <div className="fixed top-[-120px] left-[8%] w-[420px] h-[420px] bg-primary/12 rounded-full blur-[120px] -z-10 opacity-45" />
+      <div className="fixed bottom-[-160px] right-[6%] w-[460px] h-[460px] bg-secondary/12 rounded-full blur-[130px] -z-10 opacity-40" />
 
       {/* Navbar */}
-      <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+      <nav className="border-b border-foreground/10 bg-background/75 backdrop-blur-2xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <img
-              src="/logo-trimmed.png"
-              alt="NAMECARD.AI"
-              style={{ height: '42px', width: 'auto', display: 'block' }}
+              src="/app/nex_logo_nobg.png"
+              alt="NEX Solution"
+              style={{ height: '52px', width: 'auto', display: 'block' }}
             />
           </Link>
           
@@ -244,61 +288,67 @@ export default function ControlCenterPage() {
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-10 md:py-14">
+      <main className="max-w-7xl mx-auto px-6 py-8 md:py-12">
         
         {/* User Summary Header */}
-        <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8 mb-14 px-2">
-          <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
-                user?.subscription_tier === 'premium' 
-                ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20' 
-                : 'bg-primary/10 text-primary border border-primary/20'
-              }`}>
-                {user?.subscription_tier || 'Free'} Plan
-              </span>
-              <div className="w-1.5 h-1.5 rounded-full bg-foreground/10" />
-              <span className="text-foreground/40 text-sm font-medium">{user?.email}</span>
+        <div className="mb-12 rounded-[28px] border border-foreground/10 bg-card-bg/70 p-6 md:p-7 shadow-xl">
+          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                  user?.subscription_tier === 'premium'
+                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
+                    : 'bg-primary/10 text-primary border border-primary/20'
+                }`}>
+                  {user?.subscription_tier || 'Free'} Plan
+                </span>
+                <div className="w-1.5 h-1.5 rounded-full bg-foreground/10" />
+                <span className="text-foreground/45 text-sm font-medium">{user?.email}</span>
+              </div>
+              <div>
+                <h1 className="text-2xl md:text-3xl font-black tracking-tight">Control Center</h1>
+                <p className="text-sm text-foreground/55 mt-1">จัดการเครื่องมือขายดิจิทัลของคุณจากหน้าควบคุมเดียว</p>
+              </div>
             </div>
-          </div>
 
-          <div className="flex flex-col sm:flex-row gap-4 w-full md:w-auto">
-            <button
-              onClick={handleOpenProfile}
-              disabled={!user?.uid || !user?.url_prefix}
-              className="h-fit self-start bg-foreground/5 border border-foreground/10 text-foreground/70 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] min-h-[60px] hover:bg-foreground/10 active:bg-primary/10 active:border-primary/30 active:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <div className="w-10 h-10 rounded-xl bg-foreground/10 flex items-center justify-center">
-                <Eye size={20} />
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto">
+              <button
+                onClick={handleOpenProfile}
+                disabled={!user?.uid || !user?.url_prefix}
+                className="h-fit self-start bg-foreground/5 border border-foreground/10 text-foreground/70 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] min-h-[60px] hover:bg-foreground/10 active:bg-primary/10 active:border-primary/30 active:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <div className="w-10 h-10 rounded-xl bg-foreground/10 flex items-center justify-center">
+                  <Eye size={20} />
+                </div>
+                <div className="text-left">
+                  <div className="text-[9px] uppercase font-black tracking-widest opacity-70">โปรไฟล์</div>
+                  <div className="text-sm font-black leading-tight">โชว์นามบัตร</div>
+                </div>
+              </button>
+              <div className="h-fit self-start bg-foreground/5 border border-foreground/10 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] hover:border-primary/30 transition-colors group">
+                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Smartphone size={20} className="text-primary" />
+                </div>
+                <div>
+                  <div className="text-[9px] text-foreground/30 uppercase font-black tracking-widest">บัตรของฉัน</div>
+                  <div className="text-xl font-black tabular-nums leading-tight">1 / {user?.max_cards || 1}</div>
+                </div>
               </div>
-              <div className="text-left">
-                <div className="text-[9px] uppercase font-black tracking-widest opacity-70">โปรไฟล์</div>
-                <div className="text-sm font-black leading-tight">โชว์นามบัตร</div>
-              </div>
-            </button>
-            <div className="h-fit self-start bg-foreground/5 border border-foreground/10 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] hover:border-primary/30 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Smartphone size={20} className="text-primary" />
-              </div>
-              <div>
-                <div className="text-[9px] text-foreground/30 uppercase font-black tracking-widest">บัตรของฉัน</div>
-                <div className="text-xl font-black tabular-nums leading-tight">1 / {user?.max_cards || 1}</div>
-              </div>
-            </div>
-            <div className="h-fit self-start bg-foreground/5 border border-foreground/10 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] hover:border-secondary/30 transition-colors group">
-              <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                <Users size={20} className="text-secondary" />
-              </div>
-              <div>
-                <div className="text-[9px] text-foreground/30 uppercase font-black tracking-widest">รายชื่อลูกค้า</div>
-                <div className="text-xl font-black tabular-nums leading-tight">{leadCount > 0 ? leadCount : '--'}</div>
+              <div className="h-fit self-start bg-foreground/5 border border-foreground/10 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] hover:border-secondary/30 transition-colors group">
+                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Users size={20} className="text-secondary" />
+                </div>
+                <div>
+                  <div className="text-[9px] text-foreground/30 uppercase font-black tracking-widest">รายชื่อลูกค้า</div>
+                  <div className="text-xl font-black tabular-nums leading-tight">{leadCount > 0 ? leadCount : '--'}</div>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
         {/* Feature Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
           {FEATURE_LIST.map((feature) => {
             // Check if feature is enabled (default to true for backward compatibility)
             const configKey = FEATURE_CONFIG_MAP[feature.id];
@@ -449,6 +499,128 @@ export default function ControlCenterPage() {
               );
             }
 
+            // Special card for referrals with QR & share, similar to digital business card
+            if (feature.id === 'referrals') {
+              const referralUrl = getReferralShareUrl();
+              const hasCode = Boolean(user?.referral_code);
+              return (
+                <div
+                  key={feature.id}
+                  onClick={() => router.push(feature.href)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      router.push(feature.href);
+                    }
+                  }}
+                  role="button"
+                  tabIndex={0}
+                  className="group relative bg-card-bg border border-foreground/5 p-6 rounded-[28px] overflow-hidden shadow-2xl glass-card hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 hover:shadow-primary/5 active:scale-[0.99] cursor-pointer"
+                >
+                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-5">
+                    <div className="min-w-0">
+                      <div className="flex items-start gap-4 mb-4">
+                        <div className={`shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl
+                                          bg-gradient-to-br ${feature.gradient} shadow-xl`}>
+                          <feature.icon size={24} className="text-white" />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="flex gap-2 mb-2">
+                            {feature.tags.map(tag => (
+                              <span key={tag} className="px-2.5 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                                {tag}
+                              </span>
+                            ))}
+                          </div>
+                          <h2 className="text-2xl font-black mb-2 tracking-tight group-hover:text-primary transition-colors">
+                            {feature.title}
+                          </h2>
+                          <p className="text-foreground/55 text-sm leading-relaxed line-clamp-2 group-hover:text-foreground/70 transition-colors">
+                            {feature.description}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Referral code & link */}
+                      <div className="space-y-3">
+                        <div className="bg-foreground/5 rounded-xl p-3">
+                          <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">
+                            รหัสแนะนำของคุณ
+                          </p>
+                          <p className="text-base font-mono text-foreground/80 tracking-widest">
+                            {user?.referral_code || 'ยังไม่มีรหัสแนะนำ — กดจัดการเพื่อสร้าง'}
+                          </p>
+                        </div>
+                        <div className="bg-foreground/5 rounded-xl p-3">
+                          <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">
+                            ลิงก์สำหรับแชร์สมัครสมาชิก
+                          </p>
+                          <p className="text-xs text-foreground/70 truncate font-mono">
+                            {referralUrl || 'กำลังโหลด...'}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Action Buttons */}
+                      <div className="flex flex-wrap gap-2 mt-3">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyReferral();
+                          }}
+                          disabled={!hasCode}
+                          className="flex items-center gap-2 px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          {copiedReferral ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          {copiedReferral ? 'คัดลอกลิงก์แล้ว!' : 'คัดลอกลิงก์'}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleOpenReferralLink();
+                          }}
+                          disabled={!hasCode}
+                          className="flex items-center gap-2 px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <ExternalLink size={14} />
+                          เปิดหน้าลงทะเบียน
+                        </button>
+                        <Link
+                          href={feature.href}
+                          onClick={(e) => e.stopPropagation()}
+                          className="flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-bold transition-colors"
+                        >
+                          <ArrowRight size={14} />
+                          จัดการระบบแนะนำ
+                        </Link>
+                      </div>
+                    </div>
+
+                    {/* QR Code Section */}
+                    {referralUrl && (
+                      <div className="sm:justify-self-end flex flex-col items-center gap-2">
+                        <QrCodeImage url={referralUrl} size={112} />
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleCopyReferral();
+                          }}
+                          disabled={!hasCode}
+                          className="flex items-center gap-1 px-2 py-1.5 bg-foreground/5 hover:bg-foreground/10 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Share2 size={12} />
+                          แชร์ QR
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Decorative accent */}
+                  <div className={`absolute bottom-0 right-0 w-28 h-28 bg-gradient-to-br ${feature.gradient} opacity-10 group-hover:opacity-20 blur-[70px] transition-opacity`} />
+                </div>
+              );
+            }
+
             // Enabled feature card (other features)
             return (
               <Link
@@ -556,8 +728,8 @@ export default function ControlCenterPage() {
                   <div className="flex-grow space-y-3">
                     <div className="text-xs text-foreground/30 font-black uppercase tracking-widest ml-1">โปรไฟล์สาธารณะของคุณ</div>
                     <div className="p-3.5 rounded-2xl bg-foreground/5 border border-foreground/5 font-mono text-xs text-primary flex items-center justify-between group-hover:bg-foreground/10 transition-colors">
-                       <span className="truncate mr-4">{user ? `namecard.dpattown.com/${user.uid}` : 'กำลังโหลด...'}</span>
-                       <Link href={user ? `/p/${user.uid}` : '#'} className="text-[10px] font-black uppercase tracking-widest bg-foreground text-background whitespace-nowrap px-4 py-2 rounded-xl hover:opacity-90 transition-all active:scale-95">
+                       <span className="truncate mr-4">{user ? `nexsolution.cloud/app/${user.url_prefix || 'p'}/${user.uid}` : 'กำลังโหลด...'}</span>
+                       <Link href={user ? `/${user.url_prefix || 'p'}/${user.uid}` : '#'} className="text-[10px] font-black uppercase tracking-widest bg-foreground text-background whitespace-nowrap px-4 py-2 rounded-xl hover:opacity-90 transition-all active:scale-95">
                          Go Public
                        </Link>
                     </div>
@@ -589,7 +761,7 @@ export default function ControlCenterPage() {
         </div>
 
         {/* Feature Status Section */}
-        <div className="mt-16 p-10 rounded-[40px] bg-foreground/5 border border-foreground/10">
+        <div className="mt-16 p-8 md:p-10 rounded-[32px] bg-card-bg/70 border border-foreground/10 shadow-xl">
           <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-tight">
             <Star size={24} className="text-amber-500" /> สถานะฟีเจอร์ของคุณ
           </h3>

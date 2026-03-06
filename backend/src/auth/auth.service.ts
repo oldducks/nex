@@ -61,7 +61,15 @@ export class AuthService {
         // Create user
         const user = await this.usersService.createSelfRegisteredUser(email, password, referralCode);
 
-        // Process referral if code provided
+        // Always ensure new user has their own referral code for sharing
+        try {
+            await this.referralsService.getOrCreateReferralCode(user.id);
+        } catch (error) {
+            console.error('Failed to generate referral code for new user:', error);
+            // ไม่ให้ registration ล้มแม้จะสร้างโค้ดแนะนำไม่สำเร็จ
+        }
+
+        // Process referral if code provided (เชื่อมสาย ref ถ้ามี)
         if (referralCode) {
             try {
                 await this.referralsService.processReferral(user.id, referralCode, 0); // 0 = no registration fee yet

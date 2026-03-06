@@ -1,0 +1,688 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { QrCodeImage } from "@/components/QrCode";
+import {
+  ArrowLeft,
+  Loader2,
+  Upload,
+  Droplets,
+  Eye,
+  Link as LinkIcon,
+  Globe,
+  Calendar,
+  Trash2,
+  Download,
+  Copy,
+} from "lucide-react";
+import Link from "next/link";
+
+type QrTargetType = "landing_page" | "form" | "external_url";
+
+interface QrFormState {
+  name: string;
+  targetType: QrTargetType;
+  targetUrl: string;
+  foregroundColor: string;
+  backgroundColor: string;
+  logoDataUrl?: string;
+}
+
+interface SavedQrItem {
+  id: number;
+  name: string;
+  qr_type: string;
+  target_url: string;
+  size: string;
+  scan_count: number;
+  qr_data: string;
+  created_at: string;
+}
+
+interface LandingPageOption {
+  id: number;
+  title: string;
+  slug: string;
+  is_published: boolean;
+}
+
+interface FormOption {
+  id: number;
+  name: string;
+  is_active: boolean;
+}
+
+export default function ManageQrPage() {
+  const router = useRouter();
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
+  const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://nexsolution.cloud";
+  const token = Cookies.get("token");
+  const [form, setForm] = useState<QrFormState>({
+    name: "",
+    targetType: "external_url",
+    targetUrl: "",
+    foregroundColor: "#000000",
+    backgroundColor: "#FFFFFF",
+  });
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+  const [qrList, setQrList] = useState<SavedQrItem[]>([]);
+  const [listLoading, setListLoading] = useState(false);
+
+  const [landingPages, setLandingPages] = useState<LandingPageOption[]>([]);
+  const [forms, setForms] = useState<FormOption[]>([]);
+  const [loadingTargets, setLoadingTargets] = useState(false);
+  const [selectedLandingId, setSelectedLandingId] = useState<number | null>(null);
+  const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    setCheckingAuth(false);
+    loadQrList();
+    loadTargets();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router, token]);
+
+  const loadQrList = async () => {
+    try {
+      setListLoading(true);
+      const res = await fetch(`${API_URL}/qr-codes`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) return;
+      const data = await res.json();
+      setQrList(data);
+    } catch (e) {
+      console.error("โหลดรายการ QR ไม่สำเร็จ", e);
+    } finally {
+      setListLoading(false);
+    }
+  };
+
+  const loadTargets = async () => {
+    if (!token) return;
+    try {
+      setLoadingTargets(true);
+      const [lpRes, formRes] = await Promise.all([
+        fetch(`${API_URL}/landing-pages`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+        fetch(`${API_URL}/forms`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }),
+      ]);
+
+      if (lpRes.ok) {
+        const pages = await lpRes.json();
+        setLandingPages(pages);
+      }
+      if (formRes.ok) {
+        const fs = await formRes.json();
+        setForms(fs);
+      }
+    } catch (e) {
+      console.error("โหลดรายการ Landing Page / Form ไม่สำเร็จ", e);
+    } finally {
+      setLoadingTargets(false);
+    }
+  };
+
+  const updateForm = (patch: Partial<QrFormState>) => {
+    setForm((prev) => ({
+      ...prev,
+      ...patch,
+    }));
+  };
+
+  const setTargetType = (type: QrTargetType) => {
+    setError(null);
+    updateForm({ targetType: type });
+    if (type === "external_url") {
+      setSelectedLandingId(null);
+      setSelectedFormId(null);
+    }
+  };
+
+  const handleLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingLogo(true);
+    try {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const result = reader.result as string;
+        updateForm({ logoDataUrl: result });
+        setUploadingLogo(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (err) {
+      console.error("Failed to read logo file", err);
+      setUploadingLogo(false);
+    }
+  };
+
+  const getFinalUrl = () => {
+    return form.targetUrl.trim();
+  };
+
+  const handleSaveQr = async () => {
+    setError(null);
+    setSuccess(null);
+    if (form.targetType === "landing_page" && !selectedLandingId) {
+      setError("กรุณาเลือก Landing Page ที่ต้องการใช้กับ QR นี้");
+      return;
+    }
+    if (form.targetType === "form" && !selectedFormId) {
+      setError("กรุณาเลือกฟอร์มที่ต้องการใช้กับ QR นี้");
+      return;
+    }
+
+    const finalUrl = getFinalUrl();
+    if (!form.name.trim()) {
+      setError("กรุณากรอกชื่อ QR เพื่อใช้อ้างอิงในระบบ");
+      return;
+    }
+    if (!finalUrl) {
+      setError("กรุณาระบุ URL ปลายทางก่อนบันทึก QR");
+      return;
+    }
+    try {
+      setSaving(true);
+      const targetId =
+        form.targetType === "landing_page"
+          ? selectedLandingId || undefined
+          : form.targetType === "form"
+          ? selectedFormId || undefined
+          : undefined;
+      const res = await fetch(`${API_URL}/qr-codes`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: form.name.trim(),
+          qr_type: form.targetType,
+          target_url: finalUrl,
+          target_id: targetId,
+          size: "medium",
+        }),
+      });
+      if (!res.ok) {
+        throw new Error("บันทึก QR ไม่สำเร็จ");
+      }
+      setSuccess("บันทึก QR สำเร็จแล้ว");
+      await loadQrList();
+    } catch (e: any) {
+      console.error(e);
+      setError(e?.message || "เกิดข้อผิดพลาดระหว่างบันทึก QR");
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteQr = async (id: number) => {
+    if (!window.confirm("ต้องการลบ QR นี้หรือไม่?")) return;
+    try {
+      await fetch(`${API_URL}/qr-codes/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      await loadQrList();
+    } catch (e) {
+      console.error("ลบ QR ไม่สำเร็จ", e);
+    }
+  };
+
+  const handleCopyDownloadLink = async (id: number, format: "png" | "svg" = "png") => {
+    try {
+      const siteUrl =
+        typeof window !== "undefined"
+          ? window.location.origin.replace(/\/app$/, "")
+          : "https://nexsolution.cloud";
+      const url = `${siteUrl}/api/public/qr-codes/${id}/download?format=${format}`;
+      await navigator.clipboard.writeText(url);
+      setSuccess(`คัดลอกลิงก์ดาวน์โหลด QR (${format.toUpperCase()}) แล้ว`);
+    } catch (e) {
+      console.error("คัดลอกลิงก์ไม่สำเร็จ", e);
+    }
+  };
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+        <Loader2 className="animate-spin text-primary" size={32} />
+      </div>
+    );
+  }
+
+  const finalUrl = getFinalUrl();
+
+  return (
+    <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
+      <header className="border-b border-foreground/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Link
+              href="/manage/control-center"
+              className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group"
+            >
+              <ArrowLeft
+                size={18}
+                className="text-foreground/40 group-hover:text-foreground transition-colors"
+              />
+            </Link>
+            <h1 className="font-bold text-xl tracking-tight flex items-center gap-2">
+              <Eye size={20} className="text-primary" /> สร้าง QR แบบกำหนดเอง
+              <span className="text-foreground/20 font-normal hidden sm:inline">
+                (Custom QR Preview)
+              </span>
+            </h1>
+          </div>
+          <ThemeToggle />
+        </div>
+      </header>
+
+      <main className="max-w-6xl mx-auto px-6 py-10 space-y-10">
+        <section className="grid grid-cols-1 lg:grid-cols-[1.2fr_1fr] gap-10 items-start">
+          <div className="p-8 rounded-[32px] border border-foreground/5 bg-foreground/5/40 glass-card space-y-8">
+            <div>
+              <h2 className="text-2xl font-black tracking-tight mb-1">
+                ตั้งค่า QR Code ของคุณ
+              </h2>
+              <p className="text-sm text-foreground/50">
+                เลือกประเภทลิงก์ สี และอัปโหลดโลโก้ เพื่อดูตัวอย่าง QR
+                ก่อนนำไปใช้งานจริง
+              </p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                ชื่อ QR ในระบบ (เพื่อให้คุณจำได้)
+              </label>
+              <input
+                className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="เช่น QR หน้าโปรโมชันเดือนนี้"
+                value={form.name}
+                onChange={(e) => updateForm({ name: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-3">
+              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                ประเภทลิงก์ (Target Type)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setTargetType("external_url")}
+                  className={`px-4 py-3 rounded-2xl text-sm border text-left flex items-center gap-3 transition-all ${
+                    form.targetType === "external_url"
+                      ? "border-primary/60 bg-primary/10 text-primary-foreground"
+                      : "border-foreground/10 hover:border-primary/30"
+                  }`}
+                >
+                  <LinkIcon size={16} />
+                  <div>
+                    <div className="font-semibold">ลิงก์ภายนอก</div>
+                    <div className="text-[11px] text-foreground/50">
+                      วาง URL เอง เช่น เว็บไซต์ หรือหน้าโปรโมชัน
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetType("landing_page")}
+                  className={`px-4 py-3 rounded-2xl text-sm border text-left flex items-center gap-3 transition-all ${
+                    form.targetType === "landing_page"
+                      ? "border-primary/60 bg-primary/10 text-primary-foreground"
+                      : "border-foreground/10 hover:border-primary/30"
+                  }`}
+                >
+                  <Globe size={16} />
+                  <div>
+                    <div className="font-semibold">หน้า Landing Page</div>
+                    <div className="text-[11px] text-foreground/50">
+                      ในเวอร์ชันถัดไปจะเลือกจากรายชื่อเพจได้
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetType("form")}
+                  className={`px-4 py-3 rounded-2xl text-sm border text-left flex items-center gap-3 transition-all ${
+                    form.targetType === "form"
+                      ? "border-primary/60 bg-primary/10 text-primary-foreground"
+                      : "border-foreground/10 hover:border-primary/30"
+                  }`}
+                >
+                  <Droplets size={16} />
+                  <div>
+                    <div className="font-semibold">ฟอร์มเก็บลีด</div>
+                    <div className="text-[11px] text-foreground/50">
+                      ในเวอร์ชันถัดไปจะเลือกจากรายชื่อฟอร์มได้
+                    </div>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            {form.targetType === "landing_page" && (
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                  เลือก Landing Page ในระบบ
+                </label>
+                {loadingTargets ? (
+                  <div className="flex items-center gap-2 text-xs text-foreground/50 ml-1">
+                    <Loader2 className="animate-spin" size={14} />
+                    <span>กำลังโหลดรายการเพจ...</span>
+                  </div>
+                ) : landingPages.length === 0 ? (
+                  <p className="text-[11px] text-foreground/40 ml-1">
+                    ยังไม่มี Landing Page ในระบบ ไปสร้างได้ที่เมนู{" "}
+                    <span className="font-semibold">จัดการ Landing Page</span>{" "}
+                    ก่อน แล้วกลับมาสร้าง QR อีกครั้ง
+                  </p>
+                ) : (
+                  <select
+                    className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={selectedLandingId ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const id = value ? Number(value) : null;
+                      setSelectedLandingId(id);
+                      if (id) {
+                        const page = landingPages.find((p) => p.id === id);
+                        if (page) {
+                          updateForm({
+                            targetUrl: `${SITE_URL}/lp/${page.slug}`,
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <option value="">-- เลือกหน้า Landing Page --</option>
+                    {landingPages.map((page) => (
+                      <option key={page.id} value={page.id}>
+                        {page.title} {page.is_published ? "" : "(ยังไม่เผยแพร่)"}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            {form.targetType === "form" && (
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                  เลือกฟอร์มในระบบ
+                </label>
+                {loadingTargets ? (
+                  <div className="flex items-center gap-2 text-xs text-foreground/50 ml-1">
+                    <Loader2 className="animate-spin" size={14} />
+                    <span>กำลังโหลดรายการฟอร์ม...</span>
+                  </div>
+                ) : forms.length === 0 ? (
+                  <p className="text-[11px] text-foreground/40 ml-1">
+                    ยังไม่มีฟอร์มในระบบ ไปสร้างได้ที่เมนู{" "}
+                    <span className="font-semibold">จัดการแบบฟอร์ม</span> ก่อน
+                    แล้วกลับมาสร้าง QR อีกครั้ง
+                  </p>
+                ) : (
+                  <select
+                    className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={selectedFormId ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const id = value ? Number(value) : null;
+                      setSelectedFormId(id);
+                      if (id) {
+                        updateForm({
+                          targetUrl: `${SITE_URL}/forms/${id}`,
+                        });
+                      }
+                    }}
+                  >
+                    <option value="">-- เลือกฟอร์มที่ต้องการ --</option>
+                    {forms.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.name} {f.is_active ? "" : "(ปิดการใช้งานอยู่)"}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                URL ปลายทางที่จะฝังใน QR
+              </label>
+              <input
+                className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                placeholder="เช่น https://nexsolution.cloud/lp/your-campaign"
+                value={form.targetUrl}
+                onChange={(e) => updateForm({ targetUrl: e.target.value })}
+              />
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                  สีลาย QR (Foreground)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={form.foregroundColor}
+                    onChange={(e) =>
+                      updateForm({ foregroundColor: e.target.value })
+                    }
+                    className="w-12 h-10 rounded-xl border border-foreground/10 bg-transparent cursor-pointer"
+                  />
+                  <input
+                    className="flex-1 bg-background border border-foreground/10 rounded-2xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={form.foregroundColor}
+                    onChange={(e) =>
+                      updateForm({ foregroundColor: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                  สีพื้นหลัง (Background)
+                </label>
+                <div className="flex items-center gap-3">
+                  <input
+                    type="color"
+                    value={form.backgroundColor}
+                    onChange={(e) =>
+                      updateForm({ backgroundColor: e.target.value })
+                    }
+                    className="w-12 h-10 rounded-xl border border-foreground/10 bg-transparent cursor-pointer"
+                  />
+                  <input
+                    className="flex-1 bg-background border border-foreground/10 rounded-2xl px-3 py-2 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                    value={form.backgroundColor}
+                    onChange={(e) =>
+                      updateForm({ backgroundColor: e.target.value })
+                    }
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black text-foreground/40 uppercase tracking-[0.2em] ml-1">
+                โลโก้ตรงกลาง QR (ไม่บังคับ)
+              </label>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl border border-dashed border-foreground/20 text-xs text-foreground/70 cursor-pointer hover:border-primary/50 hover:text-primary transition-all">
+                  <Upload size={14} />
+                  {uploadingLogo
+                    ? "กำลังอัปโหลด..."
+                    : form.logoDataUrl
+                    ? "เปลี่ยนโลโก้"
+                    : "อัปโหลดโลโก้ (PNG โปร่งใสจะดีที่สุด)"}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleLogoUpload}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {(error || success) && (
+              <div className="text-xs mt-2 ml-1">
+                {error && <p className="text-red-400">{error}</p>}
+                {success && <p className="text-emerald-400">{success}</p>}
+              </div>
+            )}
+
+            <div className="pt-4">
+              <button
+                type="button"
+                onClick={handleSaveQr}
+                disabled={saving}
+                className="inline-flex items-center gap-2 bg-primary hover:bg-primary/90 disabled:opacity-60 text-white px-6 py-2.5 rounded-2xl font-black text-xs uppercase tracking-[0.2em] shadow-lg shadow-primary/30 active:scale-95 transition-all"
+              >
+                {saving ? <Loader2 className="animate-spin" size={16} /> : null}
+                บันทึก QR นี้
+              </button>
+            </div>
+          </div>
+
+          <div className="p-8 rounded-[32px] border border-foreground/5 bg-foreground/5/30 glass-card flex flex-col items-center gap-6">
+            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-foreground/40">
+              ตัวอย่าง QR Code
+            </h3>
+
+            <div
+              className="relative inline-flex items-center justify-center rounded-3xl p-4 shadow-2xl"
+              style={{ backgroundColor: form.backgroundColor || "#FFFFFF" }}
+            >
+              {finalUrl ? (
+                <QrCodeImage url={finalUrl} size={220} />
+              ) : (
+                <div className="w-[220px] h-[220px] rounded-2xl border-2 border-dashed border-foreground/20 flex items-center justify-center text-xs text-foreground/40 text-center px-6">
+                  วาง URL ปลายทางเพื่อดูตัวอย่าง QR ที่นี่
+                </div>
+              )}
+            </div>
+          </div>
+        </section>
+
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-black uppercase tracking-[0.2em] text-foreground/40">
+              รายการ QR ที่บันทึกไว้
+            </h2>
+          </div>
+          {listLoading ? (
+            <div className="flex items-center justify-center py-10">
+              <Loader2 className="animate-spin text-primary" size={24} />
+            </div>
+          ) : qrList.length === 0 ? (
+            <div className="border border-dashed border-foreground/10 rounded-2xl py-8 px-6 text-center text-xs text-foreground/40">
+              ยังไม่มี QR ที่ถูกบันทึกไว้ ลองตั้งค่าแล้วกด “บันทึก QR นี้” ดูนะครับ
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {qrList.map((qr) => (
+                <div
+                  key={qr.id}
+                  className="border border-foreground/10 rounded-2xl p-4 flex gap-4 items-center bg-foreground/5/30"
+                >
+                  <div className="hidden sm:block">
+                    <QrCodeImage url={qr.target_url} size={96} />
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="font-semibold text-sm truncate">
+                        {qr.name}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteQr(qr.id)}
+                        className="text-foreground/40 hover:text-red-400 transition-colors"
+                        title="ลบ QR นี้"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                    <div className="text-[11px] text-foreground/40 flex items-center gap-2">
+                      <span className="uppercase tracking-[0.16em]">
+                        {qr.qr_type}
+                      </span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1">
+                        <Calendar size={10} />
+                        {new Date(qr.created_at).toLocaleDateString("th-TH", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}
+                      </span>
+                      <span>•</span>
+                      <span>สแกน {qr.scan_count} ครั้ง</span>
+                    </div>
+                    <div className="text-[11px] text-foreground/60 truncate">
+                      {qr.target_url}
+                    </div>
+                    <div className="flex items-center gap-2 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => handleCopyDownloadLink(qr.id, "png")}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border border-foreground/15 text-[10px] text-foreground/60 hover:border-primary/40 hover:text-primary transition-all"
+                      >
+                        <Copy size={10} />
+                        คัดลอกลิงก์ PNG
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyDownloadLink(qr.id, "svg")}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border border-foreground/15 text-[10px] text-foreground/60 hover:border-primary/40 hover:text-primary transition-all"
+                      >
+                        <Copy size={10} />
+                        คัดลอกลิงก์ SVG
+                      </button>
+                      <a
+                        href={`/api/public/qr-codes/${qr.id}/download?inline=1&format=png`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border border-foreground/15 text-[10px] text-foreground/60 hover:border-primary/40 hover:text-primary transition-all"
+                      >
+                        <Download size={10} />
+                        เปิดดูภาพ QR
+                      </a>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </main>
+    </div>
+  );
+}

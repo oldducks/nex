@@ -1,19 +1,21 @@
 "use client";
 
-import { useTheme } from "@/components/ThemeProvider";
+import { useTheme, type Theme } from "@/components/ThemeProvider";
 import { Moon, Sun, Sparkles, Cloud, Check } from "lucide-react";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 export function ThemeToggle() {
     const { theme, setTheme } = useTheme();
     const [isOpen, setIsOpen] = useState(false);
+    const isCogVariantEnabled = process.env.NEXT_PUBLIC_THEME_VARIANT === 'cyan-orange-green';
 
-    const themes = [
+    const themes: Array<{ id: Theme; name: string; icon: ReactNode; color: string }> = [
         { id: 'light', name: 'Apple Light', icon: <Sun size={16} />, color: 'bg-[#fbfbfd]' },
         { id: 'dark', name: 'Dark Mode', icon: <Moon size={16} />, color: 'bg-[#050505]' },
         { id: 'pastel', name: 'Kids Pastel', icon: <Cloud size={16} />, color: 'bg-[#fff9f2]' },
         { id: 'midnight', name: 'Midnight Berry', icon: <Sparkles size={16} />, color: 'bg-[#0f172a]' },
-    ] as const;
+        ...(isCogVariantEnabled ? [{ id: 'brand-cog' as Theme, name: 'Cyan Orange Green', icon: <Sparkles size={16} />, color: 'bg-[#12b8c8]' }] : []),
+    ];
 
     return (
         <div className="relative">

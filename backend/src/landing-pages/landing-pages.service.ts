@@ -36,7 +36,10 @@ export class LandingPagesService {
     }
 
     async findBySlug(slug: string) {
-        const page = await this.repository.findOne({ where: { slug, is_published: true } });
+        const page = await this.repository.findOne({
+            where: { slug, is_published: true },
+            relations: ['user'],
+        });
         if (!page) throw new NotFoundException('Landing Page not found');
         return page;
     }

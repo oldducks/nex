@@ -6,6 +6,7 @@ import { AuthService } from './auth.service';
 import { LoginDto, ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto, RegisterDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { LineAuthService } from './strategies/line.strategy';
+import { ReferralsService } from '../referrals/referrals.service';
 
 @Controller('auth')
 export class AuthController {
@@ -15,6 +16,7 @@ export class AuthController {
         private readonly authService: AuthService,
         private readonly configService: ConfigService,
         private readonly lineAuthService: LineAuthService,
+        private readonly referralsService: ReferralsService,
     ) {
         this.frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
     }
@@ -66,6 +68,14 @@ export class AuthController {
     @UseGuards(AuthGuard('google'))
     async googleAuthCallback(@Request() req, @Res() res: Response) {
         const user = await this.authService.validateOAuthUser(req.user);
+        if (user) {
+            // Ensure OAuth users also get a referral code for sharing (idempotent)
+            try {
+                await this.referralsService.getOrCreateReferralCode(user.id);
+            } catch (error) {
+                console.error('Failed to generate referral code for Google OAuth user:', error);
+            }
+        }
         const result = await this.authService.oauthLogin(user);
         // Redirect to frontend with token
         res.redirect(`${this.frontendUrl}/oauth-callback?token=${result.access_token}&uid=${result.uid}`);
@@ -82,6 +92,13 @@ export class AuthController {
     @UseGuards(AuthGuard('facebook'))
     async facebookAuthCallback(@Request() req, @Res() res: Response) {
         const user = await this.authService.validateOAuthUser(req.user);
+        if (user) {
+            try {
+                await this.referralsService.getOrCreateReferralCode(user.id);
+            } catch (error) {
+                console.error('Failed to generate referral code for Facebook OAuth user:', error);
+            }
+        }
         const result = await this.authService.oauthLogin(user);
         res.redirect(`${this.frontendUrl}/oauth-callback?token=${result.access_token}&uid=${result.uid}`);
     }
@@ -116,6 +133,16 @@ export class AuthController {
             };
 
             const user = await this.authService.validateOAuthUser(oauthData);
+
+            // Ensure LINE OAuth users also get a referral code
+            if (user) {
+                try {
+                    await this.referralsService.getOrCreateReferralCode(user.id);
+                } catch (error) {
+                    console.error('Failed to generate referral code for LINE OAuth user:', error);
+                }
+            }
+
             const result = await this.authService.oauthLogin(user);
             res.redirect(`${this.frontendUrl}/oauth-callback?token=${result.access_token}&uid=${result.uid}`);
         } catch (error) {

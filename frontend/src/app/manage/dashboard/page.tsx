@@ -3,8 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
-import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, LayoutDashboard, Database, Loader2 } from 'lucide-react';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart as ReLineChart, Line } from 'recharts';
+import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, LayoutDashboard, Database, Loader2, LineChart, QrCode } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -16,6 +16,10 @@ export default function AnalyticsDashboard() {
     const [loading, setLoading] = useState(true);
     const [period, setPeriod] = useState('30days');
     const [profile, setProfile] = useState<any>(null);
+    const [landingPages, setLandingPages] = useState<any[]>([]);
+    const [landingViews, setLandingViews] = useState<Record<number, number>>({});
+    const [landingLoading, setLandingLoading] = useState(false);
+    const [dailyStats, setDailyStats] = useState<any[]>([]);
 
     const token = Cookies.get('token');
 
@@ -47,10 +51,47 @@ export default function AnalyticsDashboard() {
                     setProfile(await profileRes.json());
                 }
             }
+
+            // Fetch Daily Stats
+            const dailyRes = await fetch(`${API_URL}/analytics/stats/daily?period=${period === '7days' ? '7days' : '30days'}`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (dailyRes.ok) {
+                setDailyStats(await dailyRes.json());
+            }
+
+            // Fetch landing pages + views (for owner dashboard)
+            setLandingLoading(true);
+            const lpRes = await fetch(`${API_URL}/landing-pages`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (lpRes.ok) {
+                const pages = await lpRes.json();
+                setLandingPages(pages || []);
+
+                const viewMap: Record<number, number> = {};
+                await Promise.all(
+                    (pages || []).slice(0, 5).map(async (page: any) => {
+                        try {
+                            const viewRes = await fetch(`${API_URL}/analytics/landing-pages/${page.id}/views`, {
+                                headers: { Authorization: `Bearer ${token}` }
+                            });
+                            if (viewRes.ok) {
+                                const data = await viewRes.json();
+                                viewMap[page.id] = data.views ?? 0;
+                            }
+                        } catch {
+                            // ignore single-page error
+                        }
+                    })
+                );
+                setLandingViews(viewMap);
+            }
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
         } finally {
             setLoading(false);
+            setLandingLoading(false);
         }
     };
 
@@ -74,6 +115,9 @@ export default function AnalyticsDashboard() {
         { name: 'บันทึก VCF', value: stats.DOWNLOAD_VCF, color: '#10B981' },
         { name: 'ยอดดูแคตตาล็อก', value: stats.VIEW_CATALOG, color: '#F59E0B' },
         { name: 'ดาวน์โหลด PDF', value: stats.DOWNLOAD_PDF, color: '#EC4899' },
+        { name: 'ดู Landing Page', value: stats.VIEW_LANDING_PAGE, color: '#22C55E' },
+        { name: 'ส่งฟอร์ม Landing', value: stats.SUBMIT_LANDING_FORM, color: '#0EA5E9' },
+        { name: 'สแกน QR', value: stats.SCAN_QR, color: '#A855F7' },
     ] : [];
 
     const remainingDays = getRemainingDays();
@@ -180,57 +224,202 @@ export default function AnalyticsDashboard() {
                             />
                         </div>
 
-                        {/* Chart */}
-                        <div className="bg-foreground/5 border border-foreground/10 rounded-[32px] p-8 glass-card">
-                            <div className="flex items-center justify-between mb-8">
-                                <h3 className="text-xl font-bold tracking-tight">กราฟแสดงการใช้งาน</h3>
-                                <div className="flex gap-4">
-                                    {chartData.map((item, i) => (
-                                        <div key={i} className="flex items-center gap-1.5">
-                                            <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                            <span className="text-xs text-foreground/40 font-medium">{item.name}</span>
-                                        </div>
-                                    ))}
+                        {/* Funnel Stats Grid */}
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                            <StatCard
+                                title="ยอดดู Landing Page"
+                                value={stats?.VIEW_LANDING_PAGE || 0}
+                                icon={<LineChart size={24} className="text-emerald-500" />}
+                                color="bg-emerald-500/10 border-emerald-500/20"
+                            />
+                            <StatCard
+                                title="ส่งฟอร์ม Landing"
+                                value={stats?.SUBMIT_LANDING_FORM || 0}
+                                icon={<Download size={24} className="text-sky-500" />}
+                                color="bg-sky-500/10 border-sky-500/20"
+                            />
+                            <StatCard
+                                title="สแกน QR ทั้งหมด"
+                                value={stats?.SCAN_QR || 0}
+                                icon={<QrCode size={24} className="text-violet-500" />}
+                                color="bg-violet-500/10 border-violet-500/20"
+                            />
+                        </div>
+
+                        {/* Charts Section */}
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+                            {/* Bar Chart */}
+                            <div className="bg-foreground/5 border border-foreground/10 rounded-[40px] p-8 glass-card overflow-hidden relative group">
+                                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                <div className="flex items-center justify-between mb-8 relative z-10">
+                                    <h3 className="text-xl font-bold tracking-tight">แยกตามประเภทการใช้งาน</h3>
+                                    <div className="hidden sm:flex gap-4">
+                                        {chartData.slice(0, 3).map((item, i) => (
+                                            <div key={i} className="flex items-center gap-1.5">
+                                                <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                                                <span className="text-[10px] text-foreground/40 font-medium">{item.name}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="h-80 w-full relative z-10">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                            <defs>
+                                                {chartData.map((item, i) => (
+                                                    <linearGradient key={`grad-${i}`} id={`colorBar-${i}`} x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor={item.color} stopOpacity={0.8}/>
+                                                        <stop offset="95%" stopColor={item.color} stopOpacity={0.2}/>
+                                                    </linearGradient>
+                                                ))}
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" vertical={false} opacity={0.03} />
+                                            <XAxis 
+                                                dataKey="name" 
+                                                stroke="currentColor" 
+                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                dy={10}
+                                            />
+                                            <YAxis 
+                                                stroke="currentColor" 
+                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                            />
+                                            <Tooltip
+                                                contentStyle={{ 
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                                                    borderColor: 'rgba(255, 255, 255, 0.1)', 
+                                                    borderRadius: '20px',
+                                                    backdropFilter: 'blur(30px)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                                }}
+                                                itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: '800' }}
+                                                cursor={{ fill: 'currentColor', opacity: 0.05 }}
+                                            />
+                                            <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={32} animationDuration={1500} animationEasing="ease-out">
+                                                {chartData.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={`url(#colorBar-${index})`} />
+                                                ))}
+                                            </Bar>
+                                        </BarChart>
+                                    </ResponsiveContainer>
                                 </div>
                             </div>
-                            <div className="h-80 w-full">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
-                                        <CartesianGrid strokeDasharray="3 3" stroke="currentColor" vertical={false} opacity={0.05} />
-                                        <XAxis 
-                                            dataKey="name" 
-                                            stroke="currentColor" 
-                                            tick={{ fill: 'currentColor', fontSize: 12, opacity: 0.5 }} 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                            dy={10}
-                                        />
-                                        <YAxis 
-                                            stroke="currentColor" 
-                                            tick={{ fill: 'currentColor', fontSize: 12, opacity: 0.5 }} 
-                                            axisLine={false} 
-                                            tickLine={false} 
-                                        />
-                                        <Tooltip
-                                            contentStyle={{ 
-                                                backgroundColor: 'var(--card-bg)', 
-                                                borderColor: 'var(--glass-border)', 
-                                                borderRadius: '16px',
-                                                backdropFilter: 'blur(20px)',
-                                                border: '1px solid var(--glass-border)',
-                                                boxShadow: '0 20px 50px rgba(0,0,0,0.1)'
-                                            }}
-                                            itemStyle={{ fontWeight: 'bold' }}
-                                            cursor={{ fill: 'currentColor', opacity: 0.05 }}
-                                        />
-                                        <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={50}>
-                                            {chartData.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={entry.color} />
-                                            ))}
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
+
+                            {/* Line Chart */}
+                            <div className="bg-foreground/5 border border-foreground/10 rounded-[40px] p-8 glass-card overflow-hidden relative group">
+                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                                <div className="mb-8 relative z-10">
+                                    <h3 className="text-xl font-bold tracking-tight">การเติบโตของผู้เข้าชม (Engagement)</h3>
+                                    <p className="text-xs text-foreground/40 mt-1">จำนวนการใช้งานรวมในแต่ละวัน</p>
+                                </div>
+                                <div className="h-80 w-full relative z-10">
+                                    <ResponsiveContainer width="100%" height="100%">
+                                        <ReLineChart data={dailyStats} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                            <defs>
+                                                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                                                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
+                                                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                                                </linearGradient>
+                                            </defs>
+                                            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" vertical={false} opacity={0.03} />
+                                            <XAxis 
+                                                dataKey="date" 
+                                                stroke="currentColor" 
+                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                                dy={10}
+                                                tickFormatter={(str) => {
+                                                    const d = new Date(str);
+                                                    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                                                }}
+                                            />
+                                            <YAxis 
+                                                stroke="currentColor" 
+                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                axisLine={false} 
+                                                tickLine={false} 
+                                            />
+                                            <Tooltip
+                                                labelFormatter={(label) => new Date(label).toLocaleDateString('th-TH', { dateStyle: 'long' })}
+                                                contentStyle={{ 
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
+                                                    borderColor: 'rgba(255, 255, 255, 0.1)', 
+                                                    borderRadius: '20px',
+                                                    backdropFilter: 'blur(30px)',
+                                                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                                                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                                }}
+                                            />
+                                            <Line 
+                                                type="monotone" 
+                                                dataKey="count" 
+                                                stroke="#8B5CF6" 
+                                                strokeWidth={5} 
+                                                dot={{ r: 6, fill: '#8B5CF6', strokeWidth: 3, stroke: 'var(--background)' }}
+                                                activeDot={{ r: 8, strokeWidth: 4, stroke: 'var(--background)' }}
+                                                animationDuration={2000}
+                                            />
+                                        </ReLineChart>
+                                    </ResponsiveContainer>
+                                </div>
                             </div>
+                        </div>
+
+                        {/* Landing pages performance */}
+                        <div className="bg-foreground/5 border border-foreground/10 rounded-[32px] p-8 glass-card">
+                            <div className="flex items-center justify-between mb-6">
+                                <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
+                                    <LineChart size={20} className="text-primary" />
+                                    สถิติ Landing Page (สูงสุด 5 หน้าแรก)
+                                </h3>
+                                {landingLoading && (
+                                    <span className="flex items-center gap-2 text-xs text-foreground/50">
+                                        <Loader2 className="animate-spin" size={14} />
+                                        กำลังโหลดสถิติหน้าเพจ...
+                                    </span>
+                                )}
+                            </div>
+                            {landingPages.length === 0 ? (
+                                <p className="text-sm text-foreground/50">
+                                    ยังไม่มี Landing Page ในระบบ คุณสามารถเริ่มสร้างได้จากเมนู Landing Pages
+                                </p>
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {landingPages.slice(0, 5).map((page: any) => {
+                                        const views = landingViews[page.id] ?? 0;
+                                        return (
+                                            <div
+                                                key={page.id}
+                                                className="p-4 rounded-2xl border border-foreground/10 bg-background/40 flex items-center justify-between gap-4"
+                                            >
+                                                <div className="min-w-0">
+                                                    <p className="text-xs text-foreground/40 uppercase font-black tracking-widest mb-1">
+                                                        Landing Page
+                                                    </p>
+                                                    <p className="text-sm font-semibold truncate mb-1">
+                                                        {page.title || '(ไม่มีชื่อเพจ)'}
+                                                    </p>
+                                                    <p className="text-xs text-foreground/40 truncate">
+                                                        /lp/{page.slug}
+                                                    </p>
+                                                </div>
+                                                <div className="text-right">
+                                                    <div className="text-2xl font-black">{views.toLocaleString()}</div>
+                                                    <div className="text-[10px] text-foreground/40 uppercase tracking-widest">
+                                                        Views รวม
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     </>
                 )}

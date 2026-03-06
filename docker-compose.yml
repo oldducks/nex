@@ -41,17 +41,18 @@ services:
       JWT_SECRET: super_secret_jwt_key
       ConfigModule_isGlobal: "true"
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
-      FrontendUrl: https://namecard.dpattown.com
+      FrontendUrl: https://nexsolution.cloud
       PORT: 4000
       # SMTP Configuration for Password Reset Emails
       SMTP_HOST: ${SMTP_HOST:-smtp.gmail.com}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USER: ${SMTP_USER:-dpattown.ai@gmail.com}
       SMTP_PASS: ${SMTP_PASS:-qmmfnljjtukzigrj}
-      SMTP_FROM: ${SMTP_FROM:-noreply@namecard.dpattown.com}
+      SMTP_FROM: ${SMTP_FROM:-noreply@nexsolution.cloud}
       SMTP_SECURE: ${SMTP_SECURE:-false}
-      FRONTEND_URL: https://namecard.dpattown.com
-      API_URL: https://namecard.dpattown.com/api
+      FRONTEND_URL: https://nexsolution.cloud
+      CORS_ALLOWED_ORIGINS: https://nexsolution.cloud,https://www.nexsolution.cloud,http://localhost:3000,http://localhost:3001
+      API_URL: https://nexsolution.cloud/api
       # OAuth Configuration
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
@@ -64,6 +65,8 @@ services:
       - redis
     volumes:
       - ./uploads:/app/uploads  # Persist uploaded files
+    ports:
+      - "4001:4000"
     networks:
       - default
       - n8n_default
@@ -71,13 +74,13 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=n8n_default"
-      - "traefik.http.routers.namecard-api.rule=Host(`namecard.dpattown.com`) && PathPrefix(`/api`)"
-      - "traefik.http.routers.namecard-api.entrypoints=websecure"
-      - "traefik.http.routers.namecard-api.tls.certresolver=mytlschallenge"
-      - "traefik.http.services.namecard-api.loadbalancer.server.port=4000"
-      - "traefik.http.routers.namecard-api.priority=100"
+      - "traefik.http.routers.nex-api.rule=Host(`nexsolution.cloud`) && PathPrefix(`/api`)"
+      - "traefik.http.routers.nex-api.entrypoints=websecure"
+      - "traefik.http.routers.nex-api.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.nex-api.loadbalancer.server.port=4000"
+      - "traefik.http.routers.nex-api.priority=100"
       # Disable response buffering for streaming uploads
-      - "traefik.http.services.namecard-api.loadbalancer.responseforwarding.flushinterval=100ms"
+      - "traefik.http.services.nex-api.loadbalancer.responseforwarding.flushinterval=100ms"
 
   web:
     container_name: namecard_web
@@ -85,21 +88,26 @@ services:
       context: ./frontend
       args:
         NEXT_PUBLIC_API_URL: /api
+        NEXT_PUBLIC_THEME_VARIANT: ${NEXT_PUBLIC_THEME_VARIANT:-default}
     restart: always
     environment:
       NEXT_PUBLIC_API_URL: /api
+      NEXT_PUBLIC_THEME_VARIANT: ${NEXT_PUBLIC_THEME_VARIANT:-default}
     depends_on:
       - api
+    ports:
+      - "3001:3000"
     networks:
       - default
       - n8n_default
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=n8n_default"
-      - "traefik.http.routers.namecard-web.rule=Host(`namecard.dpattown.com`)"
-      - "traefik.http.routers.namecard-web.entrypoints=websecure"
-      - "traefik.http.routers.namecard-web.tls.certresolver=mytlschallenge"
-      - "traefik.http.services.namecard-web.loadbalancer.server.port=3000"
+      - "traefik.http.routers.nex-web.rule=Host(`nexsolution.cloud`)"
+      - "traefik.http.routers.nex-web.entrypoints=websecure"
+      - "traefik.http.routers.nex-web.tls.certresolver=mytlschallenge"
+      - "traefik.http.services.nex-web.loadbalancer.server.port=3000"
+
 
 networks:
   default:

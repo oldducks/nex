@@ -110,7 +110,7 @@ export default function PublicCatalog() {
       </div>
     );
 
-    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://namecard.dpattown.com';
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const shareUrl = `${SITE_URL}/catalog/${slug}`;
 
     return (

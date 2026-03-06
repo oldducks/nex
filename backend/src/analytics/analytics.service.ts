@@ -25,6 +25,19 @@ export class AnalyticsService {
         return this.analyticsRepository.save(log);
     }
 
+    /**
+     * Log analytics event when we already know userId (ใช้ในกรณี internal service เช่น QR scan)
+     */
+    async logEventByUserId(userId: number, action: AnalyticsAction, visitorId: string, metadata?: any) {
+        const log = this.analyticsRepository.create({
+            user_id: userId,
+            action,
+            visitor_id: visitorId,
+            metadata,
+        });
+        return this.analyticsRepository.save(log);
+    }
+
     async getStats(userId: number, period: 'today' | 'yesterday' | '7days' | '30days' | '1year' | 'all') {
         const now = new Date();
         let startDate = new Date();
@@ -65,11 +78,14 @@ export class AnalyticsService {
             .getRawMany();
 
         // Format as object
-        const result = {
+        const result: Record<string, number> = {
             [AnalyticsAction.VIEW_PROFILE]: 0,
             [AnalyticsAction.DOWNLOAD_VCF]: 0,
             [AnalyticsAction.VIEW_CATALOG]: 0,
             [AnalyticsAction.DOWNLOAD_PDF]: 0,
+            [AnalyticsAction.VIEW_LANDING_PAGE]: 0,
+            [AnalyticsAction.SUBMIT_LANDING_FORM]: 0,
+            [AnalyticsAction.SCAN_QR]: 0,
         };
 
         stats.forEach(item => {
@@ -77,6 +93,57 @@ export class AnalyticsService {
         });
 
         return result;
+    }
+
+    async getDailyStats(userId: number, period: '7days' | '30days' = '30days') {
+        const now = new Date();
+        const startDate = new Date();
+        
+        if (period === '7days') {
+            startDate.setDate(now.getDate() - 7);
+        } else {
+            startDate.setDate(now.getDate() - 30);
+        }
+        startDate.setHours(0, 0, 0, 0);
+
+        const stats = await this.analyticsRepository
+            .createQueryBuilder('log')
+            .select("DATE_TRUNC('day', log.created_at)", 'date')
+            .addSelect('COUNT(log.id)', 'count')
+            .where('log.user_id = :userId', { userId })
+            .andWhere('log.created_at >= :startDate', { startDate })
+            .groupBy("DATE_TRUNC('day', log.created_at)")
+            .orderBy("DATE_TRUNC('day', log.created_at)", 'ASC')
+            .getRawMany();
+
+        // Fill missing dates with 0
+        const result: { date: string; count: number }[] = [];
+        const current = new Date(startDate);
+        while (current <= now) {
+            const dateStr = current.toISOString().split('T')[0];
+            const found = stats.find(s => {
+                const sDate = new Date(s.date).toISOString().split('T')[0];
+                return sDate === dateStr;
+            });
+            result.push({
+                date: dateStr,
+                count: found ? parseInt(found.count, 10) : 0
+            });
+            current.setDate(current.getDate() + 1);
+        }
+
+        return result;
+    }
+
+    async getLandingPageViews(userId: number, pageId: number) {
+        const count = await this.analyticsRepository
+            .createQueryBuilder('log')
+            .where('log.user_id = :userId', { userId })
+            .andWhere('log.action = :action', { action: AnalyticsAction.VIEW_LANDING_PAGE })
+            .andWhere("log.metadata->>'pageId' = :pageId", { pageId: String(pageId) })
+            .getCount();
+
+        return { pageId, views: count };
     }
 
     async getAllUsersStats() {
@@ -119,6 +186,7 @@ export class AnalyticsService {
             case AnalyticsAction.DOWNLOAD_VCF: return 'downloadVcf';
             case AnalyticsAction.VIEW_CATALOG: return 'viewCatalog';
             case AnalyticsAction.DOWNLOAD_PDF: return 'downloadPdf';
+            case AnalyticsAction.SCAN_QR: return 'scanQr';
             default: return 'viewCount';
         }
     }

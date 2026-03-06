@@ -1,0 +1,236 @@
+🎯 Phase 1 (MVP – เวอร์ชันเริ่มต้นใช้งานได้จริง)
+
+MVP (Minimum Viable Product – เวอร์ชันผลิตภัณฑ์ที่เล็กที่สุดแต่ใช้งานได้จริง)
+
+เป้าหมายคือสร้าง Flow ให้ครบ:
+
+Ad (โฆษณา) / QR → NEX Page (หน้าแลนดิ้ง) → NEX Form (ฟอร์มเก็บข้อมูล) → Lead (ข้อมูลลูกค้า)
+
+🧱 Team Structure (โครงสร้างทีม)
+Lean Team (ทีมขนาดเล็ก)
+
+Tech Lead (หัวหน้าทีมเทคนิค)
+
+System Architecture (ออกแบบโครงสร้างระบบ)
+
+Database Design (ออกแบบฐานข้อมูล)
+
+Backend Core (พัฒนาแกนหลักฝั่งเซิร์ฟเวอร์)
+
+Frontend Developer (นักพัฒนาฝั่งหน้าบ้าน)
+
+Dashboard (หน้าแดชบอร์ด)
+
+Page Builder UI (หน้าสร้างแลนดิ้งเพจ)
+
+Backend Developer (นักพัฒนาฝั่งเซิร์ฟเวอร์)
+
+API (ระบบเชื่อมต่อข้อมูล)
+
+Data Handling (จัดการข้อมูล)
+
+UI/UX Designer (นักออกแบบประสบการณ์ผู้ใช้)
+
+🗺 Development Roadmap (แผนพัฒนา)
+12 Weeks Timeline (ไทม์ไลน์ 12 สัปดาห์)
+🟦 Phase 0: Planning & System Design (วางแผนและออกแบบระบบ) – Week 1–2
+Week 1 – Product Lock (ล็อกขอบเขตผลิตภัณฑ์)
+
+Finalize MVP Scope (สรุปขอบเขต MVP ให้ชัด)
+
+Define User Flow (กำหนดเส้นทางการใช้งานผู้ใช้)
+
+Permission Model (โมเดลสิทธิ์การใช้งาน)
+
+Pricing Draft (ร่างโมเดลราคา)
+
+Week 2 – Technical Design (ออกแบบเชิงเทคนิค)
+
+Tech Stack Selection (เลือกเทคโนโลยี)
+
+Database Schema (โครงสร้างฐานข้อมูล)
+
+API Structure (โครงสร้าง API)
+
+Hosting Plan (แผนโฮสติ้ง)
+
+AI Integration Plan (แผนเชื่อม AI)
+
+🟦 Phase 1: Core Infrastructure (โครงสร้างพื้นฐานหลัก) – Week 3–4
+Backend (ระบบหลังบ้าน)
+
+Authentication System (ระบบเข้าสู่ระบบ)
+
+User Management (จัดการผู้ใช้)
+
+Workspace Model (โครงสร้างโปรเจกต์)
+
+Asset Storage (ระบบเก็บไฟล์)
+
+Logging System (ระบบบันทึกเหตุการณ์)
+
+Frontend (ระบบหน้าบ้าน)
+
+Login/Register Page (หน้าเข้าสู่ระบบ/สมัครสมาชิก)
+
+Dashboard Layout (โครงแดชบอร์ด)
+
+Navigation System (ระบบเมนู)
+
+DevOps (การจัดการระบบ)
+
+Staging Environment (ระบบทดสอบก่อนใช้งานจริง)
+
+CI/CD Pipeline (ระบบปล่อยอัปเดตอัตโนมัติ)
+
+Backup Policy (นโยบายสำรองข้อมูล)
+
+🟦 Phase 2: NEX Page (Landing Page Builder – ระบบสร้างแลนดิ้งเพจ) – Week 5–7
+Week 5 – Page Builder v1 (ระบบสร้างหน้าเวอร์ชันแรก)
+
+Create New Page (สร้างหน้าใหม่)
+
+Basic Sections (ส่วนประกอบพื้นฐาน)
+
+Hero Section (ส่วนหัวหลัก)
+
+Text Block (กล่องข้อความ)
+
+Image Block (กล่องรูปภาพ)
+
+CTA Button (ปุ่มเรียกให้ทำการ)
+
+Reorder Block (สลับลำดับบล็อก)
+
+Save Draft (บันทึกแบบร่าง)
+
+Week 6 – Publish System (ระบบเผยแพร่)
+
+Publish/Unpublish Toggle (เปิด-ปิดหน้า)
+
+Public URL Generation (สร้างลิงก์สาธารณะ)
+
+SEO Basic (ตั้งค่า SEO พื้นฐาน)
+
+Responsive Design (รองรับมือถือ)
+
+Preview Mode (โหมดดูตัวอย่าง)
+
+Week 7 – Form Integration (เชื่อมต่อฟอร์ม)
+
+Embed Form (ฝังฟอร์มในหน้า)
+
+Submission Save (บันทึกข้อมูลที่ส่งมา)
+
+Thank You Message (ข้อความขอบคุณ)
+
+Export CSV (ดาวน์โหลดข้อมูล CSV)
+
+View Tracking (เก็บสถิติเข้าชมพื้นฐาน)
+
+🟦 Phase 3: NEX Form (Lead Form Builder – ระบบสร้างฟอร์มเก็บลูกค้า) – Week 8
+MVP Scope (ขอบเขตเวอร์ชันเริ่มต้น)
+
+Create Form (สร้างฟอร์ม)
+
+Field Types (ประเภทช่องข้อมูล)
+
+Text (ข้อความ)
+
+Email (อีเมล)
+
+Phone (เบอร์โทร)
+
+Dropdown (ตัวเลือกแบบเลื่อนลง)
+
+Textarea (ข้อความยาว)
+
+Required Validation (ตรวจสอบช่องบังคับ)
+
+Submission List (รายการข้อมูลที่ส่งมา)
+
+Export CSV (ดาวน์โหลดข้อมูล)
+
+Auto Tag Source (ติดแท็กแหล่งที่มาอัตโนมัติ)
+
+🟦 Phase 4: NEX Code (QR Generator – ระบบสร้างคิวอาร์โค้ด) – Week 9
+MVP Scope
+
+Generate Static QR (สร้าง QR แบบลิงก์ตายตัว)
+
+QR for Page (QR สำหรับหน้าแลนดิ้ง)
+
+QR for Form (QR สำหรับฟอร์ม)
+
+QR for External Link (QR สำหรับลิงก์ภายนอก)
+
+Download PNG/SVG (ดาวน์โหลดไฟล์ภาพ)
+
+Save to Dashboard (บันทึกในระบบ)
+
+🟦 Phase 5: NEX Create Lite (Creative Builder – ระบบสร้างสื่อเบื้องต้น) – Week 10
+MVP Scope
+
+5–10 Templates (แม่แบบ 5–10 แบบ)
+
+Replace Text/Image (แก้ไขข้อความและรูป)
+
+Export Image (ดาวน์โหลดภาพ)
+
+AI Copy Suggestion (AI แนะนำข้อความ/หัวข้อ)
+
+🟦 Phase 6: Polish & Beta Launch (ปรับปรุงและเปิดทดสอบ) – Week 11–12
+Week 11 – UX Polish (ปรับปรุงประสบการณ์ผู้ใช้)
+
+Improve Loading Speed (ปรับความเร็วโหลด)
+
+Error Handling (จัดการข้อผิดพลาด)
+
+UX Improvement (ลดจุดติดขัดการใช้งาน)
+
+Basic Analytics Dashboard (แดชบอร์ดสถิติพื้นฐาน)
+
+Week 12 – Closed Beta (เปิดทดลองใช้แบบจำกัดกลุ่ม)
+
+Invite 10–20 SME (เชิญลูกค้าทดลองใช้)
+
+Collect Feedback (เก็บความคิดเห็น)
+
+Measure KPI (วัดตัวชี้วัดสำคัญ)
+
+📊 Key Metrics (ตัวชี้วัดสำคัญ)
+Product Metrics (ตัวชี้วัดด้านผลิตภัณฑ์)
+
+Time to Create Page (เวลาสร้างหน้า)
+
+Page Publish Count (จำนวนหน้าที่เผยแพร่)
+
+Form Submission Count (จำนวนข้อมูลลูกค้า)
+
+Business Metrics (ตัวชี้วัดด้านธุรกิจ)
+
+Lead Conversion Rate (อัตราเปลี่ยนผู้ชมเป็นลูกค้า)
+
+Cost per Lead (ต้นทุนต่อลูกค้า)
+
+Paying Customers (จำนวนลูกค้าจ่ายเงินจริง)
+
+🚨 Technical Risk (ความเสี่ยงทางเทคนิค)
+
+Over Engineering (ออกแบบระบบซับซ้อนเกินไป)
+
+Feature Creep (ฟีเจอร์เพิ่มไม่หยุด)
+
+Performance Issue (ปัญหาความเร็ว)
+
+Security Gap (ช่องโหว่ความปลอดภัย)
+
+🎯 Developer KPI (ตัวชี้วัดทีมพัฒนา)
+
+MVP Launch in 12 Weeks (เปิดใช้งานใน 12 สัปดาห์)
+
+Critical Bug < 5% (บั๊กสำคัญไม่เกิน 5%)
+
+Page Load < 3 Seconds (โหลดไม่เกิน 3 วินาที)
+
+Create Page < 10 Minutes (สร้างหน้าไม่เกิน 10 นาที)
