@@ -1,4 +1,5 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { FormsService } from './forms.service';
 import { CreateFormSubmissionDto } from './dto/create-form-submission.dto';
 import type { Request } from 'express';
@@ -8,12 +9,14 @@ export class FormsPublicController {
   constructor(private readonly formsService: FormsService) {}
 
   // Public endpoint to fetch form definition for rendering (no auth)
+  @Throttle({ default: { limit: 60, ttl: 60_000 } })
   @Get(':id')
   getPublic(@Param('id') id: string) {
     return this.formsService.getPublicForm(+id);
   }
 
   // Public endpoint for submitting form data by form id
+  @Throttle({ default: { limit: 20, ttl: 60_000 } })
   @Post(':id/submit')
   submit(@Param('id') id: string, @Body() dto: CreateFormSubmissionDto, @Req() req: Request) {
     // 从 HTTP Referer 自动解析 UTM 参数，实现自动打标签（Auto Tagging）逻辑

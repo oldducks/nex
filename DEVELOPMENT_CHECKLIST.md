@@ -13,7 +13,7 @@
 - [x] OAuth (Google / LINE / Facebook)
 - [x] JWT Token Management
 - [x] Password Reset Flow (email)
-- [x] Session Management (JWT-based)
+- [x] Session Management (httpOnly cookie + JWT fallback)
 - [x] Tests (AuthService unit tests)
 
 #### 1.2 User Management
@@ -43,6 +43,11 @@
 - [x] Audit logging interceptor (state-changing methods)
 - [x] Log aggregation baseline (structured logs ready)
 - [x] Tests (StructuredLogger unit tests)
+
+#### 1.6 API Protection Baseline
+- [x] Global rate limiting (`@nestjs/throttler`) enabled
+- [x] Public forms endpoint throttled (read + submit)
+- [x] Public QR download endpoint throttled
 
 #### 3.x DevOps (Phase 1 Baseline)
 - [x] Staging Environment plan + runbook

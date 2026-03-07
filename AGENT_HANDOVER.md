@@ -971,3 +971,68 @@
   - เพิ่ม `CORS_ALLOWED_ORIGINS` ให้ service `api`
 
 *Updated by Codex on 2026-03-05*
+
+### 2026-03-07: P0 Security/Auth Hardening – Cookie Session Baseline
+**Goal**: ลดความเสี่ยง token leakage โดยย้าย auth flow หลักไปใช้ httpOnly cookie และยืนยัน build ผ่านทั้ง backend/frontend
+
+**What changed**:
+1. Backend Auth Cookie
+   - `backend/src/auth/auth.controller.ts`
+   - Login/Register/OAuth callback ตั้ง `token` เป็น httpOnly cookie
+   - เพิ่ม `POST /auth/logout` สำหรับ clear cookie (`token`, `uid`)
+   - OAuth callback redirect เป็น `.../oauth-callback?status=success` (ไม่แนบ token ใน query)
+
+2. JWT Strategy
+   - `backend/src/auth/jwt.strategy.ts`
+   - เพิ่ม extractor อ่าน token จาก cookie (`token=...`)
+   - ยังรองรับ Bearer token เป็น fallback เพื่อ backward compatibility
+
+3. Frontend Auth Flow
+   - `frontend/src/app/oauth-callback/page.tsx` อ่านสถานะจาก `status=success`
+   - Login/Register/Home modal ใช้ `credentials: 'include'`
+   - ลบการ set token ผ่าน js-cookie ใน flow หลัก
+
+4. Build Verification
+   - Backend build ผ่าน
+   - Frontend build ผ่านบน Node 20 LTS
+
+**Notes**:
+- Next.js แจ้งเตือนว่า file convention `middleware` deprecated → ควร migrate เป็น `proxy` ในรอบถัดไป
+- npm audit ยังมี vulnerability รายงานบางส่วน (ยังไม่แก้ในรอบนี้)
+
+*Updated by Codex on 2026-03-07*
+
+### 2026-03-07: P0 API Protection + Cookie Auth Flow Cleanup
+**Goal**: ปิดงาน hardening รอบใหม่ให้ครบทั้ง auth flow ฝั่ง frontend และ baseline rate-limit ฝั่ง backend
+
+**What changed**:
+1. Cookie auth flow cleanup (frontend)
+   - `frontend/src/app/page.tsx`
+     - ลบการพยายาม set token/uid ผ่าน js-cookie ในหน้า landing login modal
+     - คงเฉพาะ `credentials: 'include'` เพื่อให้ browser แนบ cookie session ที่ backend set ให้
+   - `frontend/src/app/login/page.tsx` และ `frontend/src/app/register/page.tsx`
+     - ยืนยันว่าใช้ `credentials: 'include'` ใน login/register request
+
+2. Global Rate Limiting (backend)
+   - เพิ่ม dependency `@nestjs/throttler` ใน `backend/package.json`
+   - `backend/src/app.module.ts`
+     - register `ThrottlerModule.forRoot([{ ttl: 60000, limit: 120 }])`
+     - ผูก global guard ด้วย `APP_GUARD -> ThrottlerGuard`
+
+3. Public endpoint throttling (backend)
+   - `backend/src/forms/forms.public.controller.ts`
+     - `GET /public/forms/:id` จำกัด 60 req/min
+     - `POST /public/forms/:id/submit` จำกัด 20 req/min
+   - `backend/src/qr-codes/qr-codes.controller.ts`
+     - `GET /public/qr-codes/:id/download` จำกัด 120 req/min
+
+4. Checklist sync
+   - `DEVELOPMENT_CHECKLIST.md`
+     - ปรับคำอธิบาย Session Management เป็น `httpOnly cookie + JWT fallback`
+     - เพิ่มหมวด `1.6 API Protection Baseline` (global throttle + public endpoint throttle)
+
+**Notes**:
+- Build backend/frontend ผ่านบน Node 20 แล้วใน session นี้
+- warning เรื่อง Next.js `middleware` deprecation ยังเป็นงาน follow-up (แนะนำย้ายเป็น `proxy`)
+
+*Updated by Codex on 2026-03-07*
