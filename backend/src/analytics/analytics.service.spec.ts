@@ -109,5 +109,4 @@ describe('AnalyticsService', () => {
       expect(result).toEqual({ pageId: 101, views: 12 });
     });
   });
-}
-
+});

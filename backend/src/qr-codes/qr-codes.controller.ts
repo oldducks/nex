@@ -73,7 +73,7 @@ export class QrCodesPublicController {
       throw new BadRequestException('size must be small, medium or large');
     }
 
-    const visitorId = (req?.headers['x-visitor-id'] as string) || req?.ip || 'unknown';
+    const visitorId = (req?.headers?.['x-visitor-id'] as string) || req?.ip || 'unknown';
 
     const qr = await this.qrCodesService.getPublicQrData(+id, visitorId);
     const downloadSize = size || qr.size || 'medium';
