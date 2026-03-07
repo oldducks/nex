@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
-import Cookies from 'js-cookie';
 import { Eye, EyeOff, Loader2, X } from 'lucide-react';
 
 const quickActions = [
@@ -46,14 +45,13 @@ export default function LandingPage() {
       const res = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
         body: JSON.stringify(loginData),
       });
 
       const data = await res.json();
       if (!res.ok) throw new Error(data?.message || 'เข้าสู่ระบบไม่สำเร็จ');
 
-      Cookies.set('token', data.access_token, { expires: 1 });
-      Cookies.set('uid', data.uid || 'admin_01', { expires: 1 });
 
       if (data.must_change_password) {
         window.location.href = '/force-change-password';

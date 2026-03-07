@@ -1,5 +1,6 @@
 import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
-import { APP_INTERCEPTOR, APP_FILTER } from '@nestjs/core';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+import { APP_INTERCEPTOR, APP_FILTER, APP_GUARD } from '@nestjs/core';
 import { join } from 'path';
 import { ServeStaticModule } from '@nestjs/serve-static';
 import { ConfigModule } from '@nestjs/config';
@@ -64,6 +65,12 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
         },
       }),
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60_000,
+        limit: 120,
+      },
+    ]),
     UsersModule,
     AuthModule,
     ProfilesModule,
@@ -84,6 +91,10 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
   controllers: [],
   providers: [
     StructuredLogger,
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
+    },
     {
       provide: APP_INTERCEPTOR,
       useClass: AuditLoggingInterceptor,

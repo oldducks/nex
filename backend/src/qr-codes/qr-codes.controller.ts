@@ -13,6 +13,7 @@ import {
   Req,
   BadRequestException,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { QrCodesService } from './qr-codes.service';
 import { CreateQrCodeDto } from './dto/create-qr-code.dto';
 import { UpdateQrCodeDto } from './dto/update-qr-code.dto';
@@ -54,6 +55,7 @@ export class QrCodesController {
 export class QrCodesPublicController {
   constructor(private readonly qrCodesService: QrCodesService) {}
 
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
   @Get(':id/download')
   async download(
     @Param('id') id: string,
