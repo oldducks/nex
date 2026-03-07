@@ -49,6 +49,10 @@
 - [x] Public forms endpoint throttled (read + submit)
 - [x] Public QR download endpoint throttled
 
+#### 2.4 Frontend Runtime Conventions
+- [x] Next.js middleware convention migrated to `proxy.ts`
+- [x] Build warning for deprecated middleware resolved
+
 #### 3.x DevOps (Phase 1 Baseline)
 - [x] Staging Environment plan + runbook
 - [x] CI/CD pipeline (lint/build + deploy gate)

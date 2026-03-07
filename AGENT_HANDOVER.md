@@ -1033,6 +1033,25 @@
 
 **Notes**:
 - Build backend/frontend ผ่านบน Node 20 แล้วใน session นี้
-- warning เรื่อง Next.js `middleware` deprecation ยังเป็นงาน follow-up (แนะนำย้ายเป็น `proxy`)
+- เดิมมี warning เรื่อง Next.js `middleware` deprecation
+
+*Updated by Codex on 2026-03-07*
+
+### 2026-03-07: Next.js Middleware → Proxy Migration Completed
+**Goal**: ปิด warning deprecation ของ Next.js 16 และทำให้ route guard convention เป็นปัจจุบัน
+
+**What changed**:
+1. ย้ายไฟล์ route guard
+   - rename `frontend/src/middleware.ts` -> `frontend/src/proxy.ts`
+   - ย้ายฟังก์ชันจาก `middleware()` เป็น `proxy()` โดยคง logic เดิม
+2. Matcher เดิมยังคงเดิม
+   - `/manage/:path*`
+   - `/admin/:path*`
+3. Verification
+   - รัน `npm run build` ที่ frontend แล้วผ่าน
+   - warning deprecation เรื่อง middleware ไม่ปรากฏแล้ว
+
+**Files updated**:
+- `frontend/src/proxy.ts` (renamed from `frontend/src/middleware.ts`)
 
 *Updated by Codex on 2026-03-07*
