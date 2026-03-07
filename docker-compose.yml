@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   # 1. Database
   postgres:
@@ -62,6 +60,9 @@ services:
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on:
       - postgres # Changed from 'db' to 'postgres' to match existing service name
       - redis

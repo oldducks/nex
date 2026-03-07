@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 
 export interface CreateLiteTemplate {
   id: string;
@@ -30,6 +30,8 @@ export interface CreateLiteCopyResult {
 
 @Injectable()
 export class CreateLiteService {
+  private readonly logger = new Logger(CreateLiteService.name);
+
   // Template storage baseline (Phase 5.1): เก็บเป็น in-app library ก่อน
   private readonly templates: CreateLiteTemplate[] = [
     {
@@ -129,8 +131,158 @@ export class CreateLiteService {
     return template;
   }
 
-  generateCopySuggestion(input: CreateLiteCopyInput): CreateLiteCopyResult {
-    const template = input.templateId ? this.templates.find(t => t.id === input.templateId) : null;
+  async generateCopySuggestion(input: CreateLiteCopyInput): Promise<CreateLiteCopyResult> {
+    const fallback = this.generateLocalCopySuggestion(input);
+
+    try {
+      const ai = await this.generateWithAiProvider(input, fallback);
+      if (ai) return ai;
+    } catch (error) {
+      this.logger.warn(`AI provider failed, fallback to local suggestion: ${error instanceof Error ? error.message : 'unknown'}`);
+    }
+
+    return fallback;
+  }
+
+  private async generateWithAiProvider(
+    input: CreateLiteCopyInput,
+    fallback: CreateLiteCopyResult,
+  ): Promise<CreateLiteCopyResult | null> {
+    if (process.env.OPENAI_API_KEY) {
+      const result = await this.generateWithOpenAi(input, fallback);
+      if (result) return result;
+    }
+
+    if (process.env.GOOGLE_API_KEY) {
+      const result = await this.generateWithGemini(input, fallback);
+      if (result) return result;
+    }
+
+    if (process.env.ANTHROPIC_API_KEY) {
+      const result = await this.generateWithAnthropic(input, fallback);
+      if (result) return result;
+    }
+
+    return null;
+  }
+
+  private buildPrompt(input: CreateLiteCopyInput, fallback: CreateLiteCopyResult) {
+    return [
+      'You are a Thai marketing copywriter for social media creative posts.',
+      'Generate concise Thai copy in JSON format only with keys: title, subtitle, cta.',
+      'Keep tone premium, direct, conversion-focused, no markdown.',
+      `Context templateId: ${input.templateId || 'n/a'}`,
+      `Input title: ${input.title || ''}`,
+      `Input subtitle: ${input.subtitle || ''}`,
+      `Input cta: ${input.cta || ''}`,
+      `Fallback title: ${fallback.title}`,
+      `Fallback subtitle: ${fallback.subtitle}`,
+      `Fallback cta: ${fallback.cta}`,
+      'Return valid JSON only.',
+    ].join('\n');
+  }
+
+  private async generateWithOpenAi(input: CreateLiteCopyInput, fallback: CreateLiteCopyResult) {
+    const model = process.env.OPENAI_MODEL || 'gpt-4o-mini';
+    const prompt = this.buildPrompt(input, fallback);
+
+    const response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        temperature: 0.7,
+        messages: [
+          { role: 'system', content: 'Return JSON only.' },
+          { role: 'user', content: prompt },
+        ],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`OpenAI error ${response.status}`);
+    }
+
+    const data: any = await response.json();
+    const text = data?.choices?.[0]?.message?.content;
+    return this.parseAiResult(text);
+  }
+
+  private async generateWithGemini(input: CreateLiteCopyInput, fallback: CreateLiteCopyResult) {
+    const model = process.env.GOOGLE_MODEL || 'gemini-1.5-flash';
+    const prompt = this.buildPrompt(input, fallback);
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GOOGLE_API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{ role: 'user', parts: [{ text: prompt }] }],
+          generationConfig: { temperature: 0.7 },
+        }),
+      },
+    );
+
+    if (!response.ok) {
+      throw new Error(`Gemini error ${response.status}`);
+    }
+
+    const data: any = await response.json();
+    const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+    return this.parseAiResult(text);
+  }
+
+  private async generateWithAnthropic(input: CreateLiteCopyInput, fallback: CreateLiteCopyResult) {
+    const model = process.env.ANTHROPIC_MODEL || 'claude-3-5-sonnet-20241022';
+    const prompt = this.buildPrompt(input, fallback);
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': process.env.ANTHROPIC_API_KEY || '',
+        'anthropic-version': '2023-06-01',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model,
+        max_tokens: 300,
+        temperature: 0.7,
+        messages: [{ role: 'user', content: prompt }],
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Anthropic error ${response.status}`);
+    }
+
+    const data: any = await response.json();
+    const text = data?.content?.[0]?.text;
+    return this.parseAiResult(text);
+  }
+
+  private parseAiResult(raw: string | undefined): CreateLiteCopyResult | null {
+    if (!raw) return null;
+
+    try {
+      const cleaned = raw.replace(/```json|```/g, '').trim();
+      const parsed = JSON.parse(cleaned);
+      if (!parsed?.title || !parsed?.subtitle) return null;
+      return {
+        title: String(parsed.title).trim(),
+        subtitle: String(parsed.subtitle).trim(),
+        cta: String(parsed.cta || '').trim(),
+      };
+    } catch {
+      return null;
+    }
+  }
+
+  private generateLocalCopySuggestion(input: CreateLiteCopyInput): CreateLiteCopyResult {
+    const template = input.templateId ? this.templates.find((t) => t.id === input.templateId) : null;
     const category = template?.category || 'social';
 
     const baseTitle = (input.title || '').trim();
@@ -149,11 +301,6 @@ export class CreateLiteService {
           subtitle: `ลดสูงสุด 70% ${baseSubtitle || 'เฉพาะวันนี้เท่านั้น'}`,
           cta: baseCta || 'รับสิทธิ์ด่วน',
         },
-        {
-          title: `ดีลลับ! ${baseTitle || 'ห้ามพลาด'}`,
-          subtitle: `${baseSubtitle || 'สิทธิพิเศษสำหรับสมาชิก'} NEX Solution`,
-          cta: baseCta || 'ดูดีลลับ',
-        },
       ],
       product: [
         {
@@ -166,27 +313,12 @@ export class CreateLiteService {
           subtitle: `${baseSubtitle || 'การันตีด้วยยอดขาย'} และรีวิว 5 ดาว`,
           cta: baseCta || 'ซื้อซ้ำที่นี่',
         },
-        {
-          title: `ยกระดับภาพลักษณ์ด้วย ${baseTitle || 'ผลิตภัณฑ์ของเรา'}`,
-          subtitle: `ดีไซน์มินิมอล ${baseSubtitle || 'ตอบโจทย์ทุกไลฟ์สไตล์'}`,
-          cta: baseCta || 'จองตอนนี้',
-        },
       ],
       event: [
         {
           title: `เตรียมตัวพบกับ ${baseTitle || 'อีเวนต์สุดพิเศษ'}`,
           subtitle: `สอนสดโดยผู้เชี่ยวชาญ ${baseSubtitle || 'เน้นลงมือทำจริง'}`,
           cta: baseCta || 'ลงทะเบียนฟรี',
-        },
-        {
-          title: `Networking Day: ${baseTitle || 'พบปะนักธุรกิจ'}`,
-          subtitle: `ขยายโอกาสทางธุรกิจ ${baseSubtitle || 'และสร้างพาร์ทเนอร์'}`,
-          cta: baseCta || 'เข้าร่วมกลุ่ม',
-        },
-        {
-          title: `โอกาสสุดท้าย! ${baseTitle || 'จองบัตรด่วน'}`,
-          subtitle: `${baseSubtitle || 'ก่อนที่นั่งจะเต็ม'} (เหลือเพียง 5 ที่สุดท้าย)`,
-          cta: baseCta || 'จองเลย',
         },
       ],
       social: [
@@ -195,22 +327,11 @@ export class CreateLiteService {
           subtitle: baseSubtitle || 'ความสำเร็จเริ่มต้นจากความกล้าที่จะแตกต่าง',
           cta: baseCta || 'อ่านต่อ',
         },
-        {
-          title: baseTitle || 'แชร์เทคนิคทำธุรกิจ',
-          subtitle: baseSubtitle || 'สรุป 5 ขั้นตอนสู่เป้าหมายที่วัดผลได้จริง',
-          cta: baseCta || 'บันทึกโพสต์',
-        },
-        {
-          title: baseTitle || 'Lifestyle of NEX',
-          subtitle: baseSubtitle || 'เบื้องหลังการทำงานและแรงบันดาลใจรายวัน',
-          cta: baseCta || 'ติดตามเรา',
-        },
       ],
     };
 
     const categoryOptions = options[category] || options.social;
     const randomIndex = Math.floor(Math.random() * categoryOptions.length);
-    
     return categoryOptions[randomIndex];
   }
 }

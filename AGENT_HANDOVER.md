@@ -1002,6 +1002,83 @@
 
 *Updated by Codex on 2026-03-07*
 
+### 2026-03-07: Go-live Finalization + AI Runtime Wiring + Ops Validation
+**Goal**: ปิดงานก่อน go-live ให้ครบทั้ง test/build/deploy verification, runtime stabilization, และตรวจความพร้อม AI integration จริงใน production stack
+
+**What changed**:
+1. Test/Build/Release verification รอบสุดท้าย
+   - Backend:
+     - รัน `npm test -- --runInBand` ผ่านครบทุก suite (9/9)
+     - รัน `npm run build` ผ่าน
+   - Frontend:
+     - ยืนยัน build ผ่านบน Node 20 (`nvm use 20 && npm run build`)
+   - สรุปว่า codebase ณ commit ล่าสุดพร้อมปล่อยใช้งาน
+
+2. Fix test/runtime regressions ระหว่าง audit
+   - ปรับ test ให้ตรง implementation ปัจจุบัน:
+     - `backend/src/uploads/uploads.service.spec.ts` ใช้ flow queue (`enqueueImage`, `enqueueVideo`, `getJobStatus`)
+   - แก้ null-safe access ใน public QR download:
+     - `backend/src/qr-codes/qr-codes.controller.ts`
+     - เปลี่ยนเป็น `req?.headers?.['x-visitor-id']` เพื่อลดโอกาส throw ใน unit test/edge request
+   - ผล: backend test suite กลับมาผ่านทั้งหมด
+
+3. Git/Deploy status
+   - commit ที่ใช้ปิดรอบนี้: `94539d5`
+   - push ขึ้น `main` สำเร็จ (`origin/main` อัปเดตแล้ว)
+
+4. Docker runtime stabilization หลัง deploy
+   - ตรวจพบ web log เคส `Failed to find Server Action` (state ต่าง deployment)
+   - แก้โดย recreate service:
+     - `docker compose up -d --force-recreate api web`
+   - ตรวจ `docker compose ps` แล้วทุก service หลักขึ้นครบ (`api`, `web`, `postgres`, `redis`)
+
+5. Compose hygiene
+   - ลบ `version: '3.8'` ออกจาก `docker-compose.yml` เพื่อตัด warning obsolete
+   - ตรวจ compose config แล้วใช้งานได้ปกติ
+
+6. AI env wiring เข้าสู่ runtime
+   - เพิ่ม env ใน service `api` ของ `docker-compose.yml`:
+     - `OPENAI_API_KEY`
+     - `GOOGLE_API_KEY`
+     - `ANTHROPIC_API_KEY`
+   - recreate `api` และยืนยันใน container ว่า env ถูก set แล้ว
+
+7. AI implementation upgrade (Create Lite)
+   - อัปเดต `backend/src/create-lite/create-lite.service.ts` ให้รองรับ provider จริงแบบลำดับ:
+     - OpenAI -> Gemini -> Anthropic
+   - มี fallback local suggestion เหมือนเดิมหาก provider ใดล้มเหลว
+   - endpoint ที่เกี่ยวข้อง: `POST /api/create-lite/ai-copy`
+
+8. AI runtime test (production stack)
+   - ทดสอบ end-to-end โดยสมัคร test user และเรียก `/api/create-lite/ai-copy`
+   - endpoint ตอบสำเร็จ (201) และได้ copy output
+   - จาก log ล่าสุด พบว่า provider ฝั่ง Gemini ตอบ `404` จึง fallback local ทำงานถูกต้อง
+   - สรุป: AI path พร้อม, endpoint ใช้งานได้, แต่ provider config/model ของ Gemini ยังต้องปรับถ้าต้องการผลจาก LLM จริง 100%
+
+9. Infra capacity check
+   - ตรวจ HDD:
+     - `/dev/sda1` ขนาด 193G
+     - ใช้ 49G
+     - เหลือ 145G
+     - ใช้งาน 26%
+   - พื้นที่เพียงพอสำหรับ run production ต่อ
+
+**Current status**:
+- ระบบพร้อม go-live และ online แล้ว
+- CI-level verification ผ่าน + runtime services ปกติ
+- AI endpoint ใช้งานได้พร้อม fallback
+- หากต้องการบังคับใช้ provider จริงทันที ให้ปรับ model/permission ของคีย์ Gemini หรือสลับใช้ OpenAI/Anthropic key ที่สิทธิ์พร้อม
+
+**Files updated in this round**:
+- `backend/src/analytics/analytics.service.spec.ts`
+- `backend/src/qr-codes/qr-codes.controller.ts`
+- `backend/src/create-lite/create-lite.service.ts`
+- `backend/package-lock.json`
+- `docker-compose.yml`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-07*
+
 ### 2026-03-07: P0 API Protection + Cookie Auth Flow Cleanup
 **Goal**: ปิดงาน hardening รอบใหม่ให้ครบทั้ง auth flow ฝั่ง frontend และ baseline rate-limit ฝั่ง backend
 
