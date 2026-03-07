@@ -35,6 +35,8 @@ import { RequestLoggingMiddleware } from './common/middleware/request-logging.mi
 import { AuditLoggingInterceptor } from './common/interceptors/audit-logging.interceptor';
 import { StructuredLogger } from './common/logging/structured-logger';
 import { CreateLiteModule } from './create-lite/create-lite.module';
+import { PdpaModule } from './pdpa/pdpa.module';
+import { ConsentLog } from './pdpa/entities/consent-log.entity';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 
 @Module({
@@ -50,7 +52,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       useFactory: () => ({
         type: 'postgres',
         url: process.env.DATABASE_URL,
-        entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage, Referral, Form, FormSubmission, QRCode],
+        entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage, Referral, Form, FormSubmission, QRCode, ConsentLog],
         synchronize: true, // Dev only
       }),
     }),
@@ -77,6 +79,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     FormsModule,
     QrCodesModule,
     CreateLiteModule,
+    PdpaModule,
   ],
   controllers: [],
   providers: [

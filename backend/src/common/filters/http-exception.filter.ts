@@ -5,7 +5,7 @@ import {
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
-import { Request, Response } from 'express';
+import type { Request, Response } from 'express';
 import { StructuredLogger } from '../logging/structured-logger';
 
 @Catch()
@@ -36,13 +36,13 @@ export class AllExceptionsFilter implements ExceptionFilter {
     };
 
     // Log the error using our structured logger
-    this.logger.error(`Exception at ${request.method} ${request.url}`, {
+    const stack = exception instanceof Error ? exception.stack : undefined;
+    this.logger.error(`Exception at ${request.method} ${request.url}`, stack, {
       context: 'ExceptionFilter',
       statusCode: status,
       path: request.url,
       method: request.method,
       error: exception instanceof Error ? exception.message : String(exception),
-      stack: exception instanceof Error ? exception.stack : undefined,
     });
 
     response.status(status).json(errorResponse);

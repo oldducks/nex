@@ -6,10 +6,10 @@ import Cookies from 'js-cookie';
 import { Eye, EyeOff, Loader2, X } from 'lucide-react';
 
 const quickActions = [
-  { label: 'เข้าสู่ระบบ', href: '/app/login', primary: true, isLoginModal: true },
-  { label: 'NEX คืออะไร', href: 'https://nexsolution.cloud/app/what-is-nex' },
-  { label: 'สมัครสมาชิกเป็น NEX Digital Agent', href: 'https://nexsolution.cloud/app/register' },
-  { label: 'โซลูชันสำหรับองค์กร', href: 'https://nexsolution.cloud/app/manage' },
+  { label: 'เข้าสู่ระบบ', href: '/login', primary: true, isLoginModal: true },
+  { label: 'NEX คืออะไร', href: 'https://nexsolution.cloud/what-is-nex' },
+  { label: 'สมัครสมาชิกเป็น NEX Digital Agent', href: 'https://nexsolution.cloud/register' },
+  { label: 'โซลูชันสำหรับองค์กร', href: 'https://nexsolution.cloud/manage' },
 ];
 
 
@@ -56,10 +56,10 @@ export default function LandingPage() {
       Cookies.set('uid', data.uid || 'admin_01', { expires: 1 });
 
       if (data.must_change_password) {
-        window.location.href = '/app/force-change-password';
+        window.location.href = '/force-change-password';
         return;
       }
-      window.location.href = '/app/manage/control-center';
+      window.location.href = '/manage/control-center';
     } catch (error: any) {
       setLoginError(error?.message || 'เข้าสู่ระบบไม่สำเร็จ');
       setIsSubmitting(false);
@@ -80,7 +80,7 @@ export default function LandingPage() {
         <header className="mb-4 flex justify-center sm:mb-5">
           <div className="relative h-[448px] w-full max-w-[1280px] sm:h-[640px]">
             <Image
-              src="/app/nex_logo_nobg.png"
+              src="/nex_logo_nobg.png"
               alt="NEX Solution"
               fill
               className="object-contain drop-shadow-[0_20px_50px_rgba(0,210,255,0.3)]"
@@ -235,7 +235,7 @@ export default function LandingPage() {
             </form>
 
             <div className="mt-4 text-center text-sm">
-              <a href="/app/forgot-password" className="text-cyan-200 hover:text-cyan-100">
+              <a href="/forgot-password" className="text-cyan-200 hover:text-cyan-100">
                 ลืมรหัสผ่านใช่หรือไม่?
               </a>
             </div>

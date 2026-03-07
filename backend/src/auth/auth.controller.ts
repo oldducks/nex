@@ -21,18 +21,58 @@ export class AuthController {
         this.frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
     }
 
+    private setAuthCookies(res: Response, payload: { access_token: string; uid?: string }) {
+        const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+        const secure = isProd;
+        const sameSite: 'lax' | 'none' = isProd ? 'none' : 'lax';
+
+        res.cookie('token', payload.access_token, {
+            httpOnly: true,
+            secure,
+            sameSite,
+            path: '/',
+            maxAge: 24 * 60 * 60 * 1000,
+        });
+
+        if (payload.uid) {
+            res.cookie('uid', payload.uid, {
+                httpOnly: false,
+                secure,
+                sameSite,
+                path: '/',
+                maxAge: 24 * 60 * 60 * 1000,
+            });
+        }
+    }
+
     @Post('login')
-    async login(@Body() loginDto: LoginDto) {
+    async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
         const user = await this.authService.validateUser(loginDto.email, loginDto.password);
         if (!user) {
             throw new UnauthorizedException('Invalid email or password');
         }
-        return this.authService.login(user);
+        const result = await this.authService.login(user);
+        this.setAuthCookies(res, result);
+        return result;
     }
 
     @Post('register')
-    async register(@Body() registerDto: RegisterDto) {
-        return this.authService.register(registerDto.email, registerDto.password, registerDto.referralCode);
+    async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) res: Response) {
+        const result = await this.authService.register(registerDto.email, registerDto.password, registerDto.referralCode);
+        this.setAuthCookies(res, result);
+        return result;
+    }
+
+    @Post('logout')
+    async logout(@Res({ passthrough: true }) res: Response) {
+        const isProd = (process.env.NODE_ENV || '').toLowerCase() === 'production';
+        const secure = isProd;
+        const sameSite: 'lax' | 'none' = isProd ? 'none' : 'lax';
+
+        res.clearCookie('token', { path: '/', secure, sameSite });
+        res.clearCookie('uid', { path: '/', secure, sameSite });
+
+        return { success: true };
     }
 
     @Post('forgot-password')
@@ -69,7 +109,6 @@ export class AuthController {
     async googleAuthCallback(@Request() req, @Res() res: Response) {
         const user = await this.authService.validateOAuthUser(req.user);
         if (user) {
-            // Ensure OAuth users also get a referral code for sharing (idempotent)
             try {
                 await this.referralsService.getOrCreateReferralCode(user.id);
             } catch (error) {
@@ -77,8 +116,8 @@ export class AuthController {
             }
         }
         const result = await this.authService.oauthLogin(user);
-        // Redirect to frontend with token
-        res.redirect(`${this.frontendUrl}/oauth-callback?token=${result.access_token}&uid=${result.uid}`);
+        this.setAuthCookies(res, result);
+        res.redirect(`${this.frontendUrl}/oauth-callback?status=success`);
     }
 
     // Facebook OAuth
@@ -100,7 +139,8 @@ export class AuthController {
             }
         }
         const result = await this.authService.oauthLogin(user);
-        res.redirect(`${this.frontendUrl}/oauth-callback?token=${result.access_token}&uid=${result.uid}`);
+        this.setAuthCookies(res, result);
+        res.redirect(`${this.frontendUrl}/oauth-callback?status=success`);
     }
 
     // LINE OAuth (custom implementation)
@@ -117,7 +157,6 @@ export class AuthController {
             const { access_token, id_token } = await this.lineAuthService.getAccessToken(code);
             const profile = await this.lineAuthService.getProfile(access_token);
 
-            // Get email from id_token if available
             let email: string | undefined;
             if (id_token) {
                 const emailData = await this.lineAuthService.verifyAndDecode(id_token);
@@ -134,7 +173,6 @@ export class AuthController {
 
             const user = await this.authService.validateOAuthUser(oauthData);
 
-            // Ensure LINE OAuth users also get a referral code
             if (user) {
                 try {
                     await this.referralsService.getOrCreateReferralCode(user.id);
@@ -144,7 +182,8 @@ export class AuthController {
             }
 
             const result = await this.authService.oauthLogin(user);
-            res.redirect(`${this.frontendUrl}/oauth-callback?token=${result.access_token}&uid=${result.uid}`);
+            this.setAuthCookies(res, result);
+            res.redirect(`${this.frontendUrl}/oauth-callback?status=success`);
         } catch (error) {
             console.error('LINE auth error:', error);
             res.redirect(`${this.frontendUrl}/login?error=line_auth_failed`);

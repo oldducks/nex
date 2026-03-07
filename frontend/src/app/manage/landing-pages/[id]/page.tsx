@@ -705,6 +705,7 @@ interface FormSummary {
 
 function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest }: { block: Block, theme: any, isEditing: boolean, aiLoading: boolean, onUpdate: (content: any) => void, onAiSuggest: () => void }) {
     const [uploadingImage, setUploadingImage] = useState(false);
+    const [imageProgress, setImageProgress] = useState(0);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -747,9 +748,41 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [block.type, block.content?.mode]);
 
+    const pollImageStatus = async (jobId: string) => {
+        const token = Cookies.get('token');
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_URL}/uploads/job/${jobId}`, {
+                    headers: token ? { Authorization: `Bearer ${token}` } : undefined,
+                });
+                if (!res.ok) return;
+                const status = await res.json();
+                
+                if (status.state === 'completed' && status.result) {
+                    clearInterval(interval);
+                    setUploadingImage(false);
+                    setImageProgress(100);
+                    onUpdate({
+                        ...(block.content || {}),
+                        url: status.result.url,
+                    });
+                } else if (status.state === 'failed') {
+                    clearInterval(interval);
+                    setUploadingImage(false);
+                    alert(`ประมวลผลรูปภาพไม่สำเร็จ: ${status.failedReason || 'Unknown error'}`);
+                } else {
+                    setImageProgress(status.progress || 0);
+                }
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }, 1000);
+    };
+
     const handleImageUpload = async (file: File) => {
         if (!file) return;
         setUploadingImage(true);
+        setImageProgress(0);
         try {
             const token = Cookies.get('token');
             const formData = new FormData();
@@ -761,17 +794,22 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
             });
             if (!res.ok) {
                 alert('อัปโหลดรูปภาพไม่สำเร็จ กรุณาลองใหม่อีกครั้ง');
+                setUploadingImage(false);
                 return;
             }
             const data = await res.json();
-            onUpdate({
-                ...(block.content || {}),
-                url: data.url,
-            });
+            if (data.jobId) {
+                pollImageStatus(data.jobId);
+            } else {
+                setUploadingImage(false);
+                onUpdate({
+                    ...(block.content || {}),
+                    url: data.url,
+                });
+            }
         } catch (e) {
             console.error(e);
             alert('เกิดข้อผิดพลาดระหว่างอัปโหลดรูปภาพ');
-        } finally {
             setUploadingImage(false);
         }
     };
@@ -912,9 +950,18 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                             }}
                                         />
                                         {uploadingImage ? (
-                                            <>
-                                                <Loader2 size={14} className="animate-spin" /> กำลังอัปโหลด...
-                                            </>
+                                            <div className="flex flex-col items-center gap-2">
+                                                <div className="flex items-center gap-2">
+                                                    <Loader2 size={14} className="animate-spin" /> 
+                                                    <span className="text-[10px] font-black">{imageProgress}%</span>
+                                                </div>
+                                                <div className="w-20 bg-foreground/10 h-1 rounded-full overflow-hidden">
+                                                    <div 
+                                                        className="h-full bg-primary transition-all duration-300"
+                                                        style={{ width: `${imageProgress}%` }}
+                                                    />
+                                                </div>
+                                            </div>
                                         ) : (
                                             <>
                                                 <ImageIcon size={14} /> เลือกรูปจากเครื่อง

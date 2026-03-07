@@ -149,7 +149,7 @@ export default function Dashboard() {
         router.push('/login');
     };
 
-    const getCatalogUrl = (catalogId: number) => `${SITE_URL}/app/catalog/${catalogId}`;
+    const getCatalogUrl = (catalogId: number) => `${SITE_URL}/catalog/${catalogId}`;
 
     const copyLink = async (catalogId: number) => {
         try {
@@ -187,26 +187,26 @@ export default function Dashboard() {
                     <div className="font-bold text-xl tracking-tight">NAMECARD<span className="text-primary">.AI</span> <span className="text-foreground/40 font-normal text-sm ml-2 hidden sm:inline">/ Catalogs</span></div>
                     <div className="flex items-center gap-2 sm:gap-6">
                         <Link
-                            href="/app/manage/dashboard"
+                            href="/manage/dashboard"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <LayoutDashboard size={16} /> <span className="hidden md:inline">สถิติ</span>
                         </Link>
                         <Link
-                            href="/app/manage/profile"
+                            href="/manage/profile"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <User size={16} /> <span className="hidden md:inline">แก้ไขโปรไฟล์</span>
                         </Link>
                         <Link
-                            href={Cookies.get('uid') ? `/app/p/${Cookies.get('uid')}` : '#'}
+                            href={Cookies.get('uid') ? `/p/${Cookies.get('uid')}` : '#'}
                             target="_blank"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <ExternalLink size={16} /> <span className="hidden md:inline">ดูเว็บ</span>
                         </Link>
                         <Link
-                            href="/app/manage/account"
+                            href="/manage/account"
                             className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
                         >
                             <Settings size={16} /> <span className="hidden md:inline">ตั้งค่าบัญชี</span>

@@ -45,7 +45,7 @@ export default function WhatIsNexPage() {
       <div className="relative mx-auto w-full max-w-6xl px-6 py-10 sm:py-14">
         <div className="mb-8 flex justify-center">
           <div className="relative h-24 w-full max-w-[280px] sm:h-28 sm:max-w-[340px]">
-            <Image src="/app/nex_logo_nobg.png" alt="NEX Solution" fill className="object-contain" priority unoptimized />
+            <Image src="/nex_logo_nobg.png" alt="NEX Solution" fill className="object-contain" priority unoptimized />
           </div>
         </div>
 
@@ -84,7 +84,7 @@ export default function WhatIsNexPage() {
           </p>
           <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
             <a
-              href="https://nexsolution.cloud/app/login"
+              href="https://nexsolution.cloud/login"
               className="rounded-full border border-cyan-200/70 bg-[linear-gradient(90deg,rgba(0,210,255,0.45)_0%,rgba(253,187,45,0.42)_55%,rgba(0,210,255,0.4)_100%)] px-6 py-3 text-sm font-extrabold text-white shadow-[0_10px_28px_rgba(0,210,255,0.35)] transition hover:brightness-110"
             >
               เข้าสู่ระบบ

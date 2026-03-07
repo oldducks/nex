@@ -20,10 +20,44 @@ interface VideoUploadProps {
 
 export function VideoUpload({ value, onChange, className = '' }: VideoUploadProps) {
     const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
     const [showSettings, setShowSettings] = useState(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
+
+    const pollJobStatus = async (jobId: string) => {
+        const interval = setInterval(async () => {
+            try {
+                const res = await fetch(`${API_URL}/uploads/job/${jobId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (!res.ok) return;
+                const status = await res.json();
+                
+                if (status.state === 'completed' && status.result) {
+                    clearInterval(interval);
+                    setUploading(false);
+                    setProgress(100);
+                    onChange({
+                        url: status.result.url,
+                        autoplay: value?.autoplay ?? false,
+                        link_url: value?.link_url ?? '',
+                        link_enabled: value?.link_enabled ?? false,
+                        enabled: true
+                    });
+                } else if (status.state === 'failed') {
+                    clearInterval(interval);
+                    setUploading(false);
+                    alert(`ประมวลผลวิดีโอไม่สำเร็จ: ${status.failedReason || 'Unknown error'}`);
+                } else {
+                    setProgress(status.progress || 0);
+                }
+            } catch (err) {
+                console.error('Polling error:', err);
+            }
+        }, 1500);
+    };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
@@ -36,13 +70,14 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
             return;
         }
 
-        // Validate file size (100MB)
-        if (file.size > 100 * 1024 * 1024) {
-            alert('ไฟล์วิดีโอต้องมีขนาดไม่เกิน 100MB');
+        // Validate file size (200MB)
+        if (file.size > 200 * 1024 * 1024) {
+            alert('ไฟล์วิดีโอต้องมีขนาดไม่เกิน 200MB');
             return;
         }
 
         setUploading(true);
+        setProgress(0);
         console.log(`Uploading video: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
 
         try {
@@ -59,25 +94,27 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
 
             if (!res.ok) {
                 const errorText = await res.text();
-                console.error(`Upload failed with status ${res.status}:`, errorText);
-                throw new Error(`Upload failed: ${res.status} ${res.statusText} - ${errorText}`);
+                throw new Error(`Upload failed: ${res.statusText}`);
             }
 
             const data = await res.json();
-            console.log('Video upload success:', data);
-            
-            onChange({
-                url: data.url,
-                autoplay: value?.autoplay ?? false,
-                link_url: value?.link_url ?? '',
-                link_enabled: value?.link_enabled ?? false,
-                enabled: true
-            });
+            if (data.jobId) {
+                pollJobStatus(data.jobId);
+            } else {
+                setUploading(false);
+                onChange({
+                    url: data.url,
+                    autoplay: value?.autoplay ?? false,
+                    link_url: value?.link_url ?? '',
+                    link_enabled: value?.link_enabled ?? false,
+                    enabled: true
+                });
+            }
         } catch (error: any) {
             console.error('Upload error:', error);
             alert(`อัพโหลดวิดีโอไม่สำเร็จ: ${error.message || 'กรุณาลองใหม่'}`);
-        } finally {
             setUploading(false);
+        } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
@@ -105,13 +142,26 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
             {/* Upload Area */}
             {!value?.url ? (
                 <div
-                    onClick={() => fileInputRef.current?.click()}
-                    className="border-2 border-dashed border-foreground/20 rounded-2xl p-8 text-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all"
+                    onClick={() => !uploading && fileInputRef.current?.click()}
+                    className={`border-2 border-dashed border-foreground/20 rounded-2xl p-8 text-center transition-all ${uploading ? 'cursor-default opacity-80' : 'cursor-pointer hover:border-primary/50 hover:bg-primary/5'}`}
                 >
                     {uploading ? (
-                        <div className="flex flex-col items-center gap-3">
-                            <Loader2 className="animate-spin text-primary" size={32} />
-                            <p className="text-foreground/60">กำลังอัพโหลดวิดีโอ...</p>
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="relative w-16 h-16">
+                                <Loader2 className="animate-spin text-primary absolute inset-0" size={64} />
+                                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black">
+                                    {progress}%
+                                </div>
+                            </div>
+                            <div className="w-full max-w-[200px] bg-foreground/10 h-1.5 rounded-full overflow-hidden">
+                                <div 
+                                    className="h-full bg-primary transition-all duration-300"
+                                    style={{ width: `${progress}%` }}
+                                />
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 italic">
+                                กำลังประมวลผลและบีบอัดวิดีโอ...
+                            </p>
                         </div>
                     ) : (
                         <div className="flex flex-col items-center gap-3">

@@ -3,7 +3,7 @@ import { LeadsService } from './leads.service';
 import { CreateLeadDto } from './dto/create-lead.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
-import { Response } from 'express';
+import type { Response } from 'express';
 
 @Controller()
 export class LeadsController {

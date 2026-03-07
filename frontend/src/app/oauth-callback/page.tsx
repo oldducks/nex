@@ -2,7 +2,6 @@
 
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Cookies from 'js-cookie';
 import { Loader2, CheckCircle, XCircle } from 'lucide-react';
 
 function OAuthCallbackContent() {
@@ -12,9 +11,8 @@ function OAuthCallbackContent() {
     const [message, setMessage] = useState('');
 
     useEffect(() => {
-        const token = searchParams.get('token');
-        const uid = searchParams.get('uid');
         const error = searchParams.get('error');
+        const oauthStatus = searchParams.get('status');
 
         if (error) {
             setStatus('error');
@@ -23,21 +21,16 @@ function OAuthCallbackContent() {
             return;
         }
 
-        if (token && uid) {
-            // Save token and uid to cookies
-            Cookies.set('token', token, { expires: 1 }); // 1 day
-            Cookies.set('uid', uid, { expires: 1 });
-
+        if (oauthStatus === 'success') {
             setStatus('success');
             setMessage('เข้าสู่ระบบสำเร็จ! กำลังนำคุณไปยังหน้าหลัก...');
-
-            // Redirect to control center
-            setTimeout(() => router.push('/manage/control-center'), 1500);
-        } else {
-            setStatus('error');
-            setMessage('ไม่พบข้อมูลการเข้าสู่ระบบ');
-            setTimeout(() => router.push('/login'), 3000);
+            setTimeout(() => router.push('/manage/control-center'), 1200);
+            return;
         }
+
+        setStatus('error');
+        setMessage('ไม่พบสถานะการเข้าสู่ระบบ');
+        setTimeout(() => router.push('/login'), 3000);
     }, [searchParams, router]);
 
     return (

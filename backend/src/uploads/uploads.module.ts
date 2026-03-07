@@ -1,3 +1,5 @@
+import { Module } from '@nestjs/common';
+import { MulterModule } from '@nestjs/platform-express';
 import { BullModule } from '@nestjs/bullmq';
 import { ScheduleModule } from '@nestjs/schedule';
 import { UploadsController } from './uploads.controller';

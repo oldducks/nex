@@ -4,7 +4,6 @@ import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Lock, Mail, ArrowRight, AlertCircle, Loader2, X } from 'lucide-react';
 import Link from 'next/link';
-import Cookies from 'js-cookie';
 
 function LoginContent() {
     const router = useRouter();
@@ -24,11 +23,7 @@ function LoginContent() {
             setError('การเข้าสู่ระบบผ่านโซเชียลล้มเหลว กรุณาลองใหม่');
         }
 
-        // Check if already logged in
-        const token = Cookies.get('token');
-        if (token) {
-            router.push('/manage/control-center');
-        }
+        // middleware จะจัดการ redirect หาก login แล้ว
     }, [searchParams, router]);
 
     useEffect(() => {
@@ -71,9 +66,7 @@ function LoginContent() {
                 throw new Error(data.message || 'Login failed');
             }
 
-            // Store token
-            Cookies.set('token', data.access_token, { expires: 1 }); // 1 day
-            Cookies.set('uid', data.uid || 'admin_01', { expires: 1 });
+            // session cookie ถูก set โดย backend (httpOnly)
 
             // Check if user must change password
             if (data.must_change_password) {

@@ -163,7 +163,7 @@ export default function ControlCenterPage() {
     if (!user?.referral_code) return '';
     const baseUrl = typeof window !== 'undefined' ? window.location.origin : 'https://nexsolution.cloud';
     // Register page is served under /app basePath in this deployment
-    return `${baseUrl}/app/register?ref=${user.referral_code}`;
+    return `${baseUrl}/register?ref=${user.referral_code}`;
   };
 
   const handleCopyReferral = async () => {
@@ -266,7 +266,7 @@ export default function ControlCenterPage() {
         <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
           <Link href="/" className="flex items-center">
             <img
-              src="/app/nex_logo_nobg.png"
+              src="/nex_logo_nobg.png"
               alt="NEX Solution"
               style={{ height: '52px', width: 'auto', display: 'block' }}
             />
@@ -728,7 +728,7 @@ export default function ControlCenterPage() {
                   <div className="flex-grow space-y-3">
                     <div className="text-xs text-foreground/30 font-black uppercase tracking-widest ml-1">โปรไฟล์สาธารณะของคุณ</div>
                     <div className="p-3.5 rounded-2xl bg-foreground/5 border border-foreground/5 font-mono text-xs text-primary flex items-center justify-between group-hover:bg-foreground/10 transition-colors">
-                       <span className="truncate mr-4">{user ? `nexsolution.cloud/app/${user.url_prefix || 'p'}/${user.uid}` : 'กำลังโหลด...'}</span>
+                       <span className="truncate mr-4">{user ? `nexsolution.cloud/${user.url_prefix || 'p'}/${user.uid}` : 'กำลังโหลด...'}</span>
                        <Link href={user ? `/${user.url_prefix || 'p'}/${user.uid}` : '#'} className="text-[10px] font-black uppercase tracking-widest bg-foreground text-background whitespace-nowrap px-4 py-2 rounded-xl hover:opacity-90 transition-all active:scale-95">
                          Go Public
                        </Link>

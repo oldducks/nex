@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Prompt, Montserrat } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
+import { CookieConsent } from "@/components/CookieConsent";
 
 const prompt = Prompt({
   subsets: ["latin", "thai"],
@@ -23,9 +24,9 @@ export const metadata: Metadata = {
   description:
     "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI ภายใต้แบรนด์ NEX Solution",
   icons: {
-    icon: "/app/nex_logo_nobg.png",
-    shortcut: "/app/nex_logo_nobg.png",
-    apple: "/app/nex_logo_nobg.png",
+    icon: "/nex_logo_nobg.png",
+    shortcut: "/nex_logo_nobg.png",
+    apple: "/nex_logo_nobg.png",
   },
 };
 
@@ -52,6 +53,7 @@ export default function RootLayout({
         <ThemeProvider>
           <div className="ambient-light" />
           {children}
+          <CookieConsent />
         </ThemeProvider>
       </body>
     </html>

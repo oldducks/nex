@@ -1,7 +1,7 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common';
 import { FormsService } from './forms.service';
 import { CreateFormSubmissionDto } from './dto/create-form-submission.dto';
-import { Request } from 'express';
+import type { Request } from 'express';
 
 @Controller('public/forms')
 export class FormsPublicController {

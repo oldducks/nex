@@ -31,11 +31,11 @@
 
 #### 1.4 Asset Storage (Local baseline)
 - [x] File Upload Endpoint (image/video)
-- [x] Image Upload & Processing (thumbnail)
-- [x] Video Upload & Processing (thumbnail)
+- [x] Background Image Processing (WebP compression + progress tracking)
+- [x] Background Video Processing (720p H.264 + progress tracking)
 - [x] File Storage (local)
-- [x] File Access Control (JWT + userId binding)
-- [x] Tests (UploadsService unit tests with mocks)
+- [x] Auto-Cleanup Job (Midnight cron) with Telegram notifications
+- [x] Tests (UploadsService + UploadsProcessor worker)
 
 #### 1.5 Logging System
 - [x] Request logging middleware (duration/status/level)
@@ -60,6 +60,7 @@
 - [x] Basic sections via `content_blocks`
 - [x] Hero/Text/Image/CTA blocks baseline
 - [x] Reorder blocks (drag & drop / UI)
+- [x] Live upload progress UI for images & videos
 - [x] Save draft (autosave debounce)
 
 #### 6.x Publish System
@@ -114,3 +115,6 @@
 - [x] Error handling polish (Implemented premium Toast system and better save feedback)
 - [x] UX improvement pass (Completed for Analytics Dashboard and Landing Page Editor)
 - [x] Basic analytics dashboard polish (Completed with gradients & premium cards)
+- [x] PDPA Consent Management (Backend entities + Frontend Cookie Banner)
+- [x] Secret Management (Moved Telegram tokens to .env)
+- [x] URL Infrastructure Clean-up (Removed /app prefix for better SEO and shorter links)
