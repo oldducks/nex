@@ -187,7 +187,7 @@ export function NamecardDownloadButton({
             <button
                 onClick={handleDownload}
                 disabled={downloading}
-                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 px-8 rounded-2xl transition-all shadow-lg shadow-purple-900/30 flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-black py-4 px-8 rounded-2xl transition-all shadow-lg shadow-purple-900/30 flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed"
             >
                 {downloading ? (
                     <>
@@ -197,7 +197,7 @@ export function NamecardDownloadButton({
                 ) : (
                     <>
                         <Download size={24} />
-                        ดาวน์โหลดนามบัตร PNG
+                        ดาวน์โหลดนามบัตรเป็นรูปภาพ
                     </>
                 )}
             </button>

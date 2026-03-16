@@ -7,7 +7,7 @@ import {
   Plus, ArrowLeft, Trash2, GripVertical, Image as ImageIcon,
   Package, Settings, Globe, ShoppingCart, Facebook,
   Palette, Type, RefreshCw, Eye, Save, QrCode as QrIcon,
-  ExternalLink, Download, FileJson, Layers, Sparkles, Loader2, X, Pencil
+  ExternalLink, Download, FileJson, Layers, Sparkles, Loader2, X, Pencil, User, LayoutDashboard
 } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
@@ -53,6 +53,7 @@ export default function CatalogDetail() {
     const [catalog, setCatalog] = useState<Catalog | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
     const [loading, setLoading] = useState(true);
+    const [generating, setGenerating] = useState(false);
     const [showProductModal, setShowProductModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -121,6 +122,26 @@ export default function CatalogDetail() {
         } finally {
             setLoading(false);
         }
+    };
+
+    const getImageUrl = (url: string) => {
+        if (!url) return '';
+        if (url.startsWith('http')) {
+            // Fix locally saved hardcoded wrong API_URL during dev
+            if (url.includes('localhost:') && SITE_URL.includes('https://nexsolution.cloud')) {
+                try {
+                    const parsedUrl = new URL(url);
+                    if (parsedUrl.pathname.startsWith('/uploads')) {
+                        return `${API_URL}${parsedUrl.pathname}`;
+                    }
+                } catch (e) {
+                    // Ignore URL parsing errors
+                }
+            }
+            return url;
+        }
+        if (url.startsWith('/uploads')) return `${API_URL}${url}`;
+        return url;
     };
 
     const saveSettings = async () => {
@@ -269,13 +290,29 @@ export default function CatalogDetail() {
     };
 
     const generatePdf = async () => {
+        setGenerating(true);
         try {
             await fetch(`${API_URL}/catalogs/${id}/generate-pdf`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert('ระบบได้รับคำสั่งสร้างไฟล์ PDF แล้ว... กรุณารอสักครู่ (ประมาณ 30-60 วินาที) ลิงก์ดาวน์โหลดจะปรากฏที่หน้าหลักของแคตตาล็อกนี้');
-        } catch (error) {}
+            alert('ระบบได้รับคำสั่งสร้างไฟล์ PDF แล้ว... กรุณารอสักครู่ (ประมาณ 30-60 วินาที) ลิงก์ดาวน์โหลดจะปรากฏขึ้นเมื่อไฟล์สร้างเสร็จ');
+            // Poll for updates every 5 seconds for a bit
+            const interval = setInterval(async () => {
+               const res = await fetch(`${API_URL}/catalogs/user/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+               if (res.ok) {
+                   const data = await res.json();
+                   if (data.pdf_url) {
+                       setCatalog(prev => ({ ...prev!, pdf_url: data.pdf_url }));
+                       setGenerating(false);
+                       clearInterval(interval);
+                   }
+               }
+            }, 5000);
+            setTimeout(() => { clearInterval(interval); setGenerating(false); }, 60000);
+        } catch (error) {
+            setGenerating(false);
+        }
     };
 
     if (loading) return (
@@ -408,7 +445,7 @@ export default function CatalogDetail() {
                                 </div>
                                 <div className="w-24 h-24 bg-background rounded-[24px] flex items-center justify-center overflow-hidden border border-foreground/5 shadow-inner">
                                     {product.images_json?.[0] ? (
-                                        <img src={product.images_json[0]} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                        <img src={getImageUrl(product.images_json[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                     ) : (
                                         <ImageIcon size={40} className="text-foreground/5" />
                                     )}
@@ -458,12 +495,28 @@ export default function CatalogDetail() {
                             สร้างไฟล์แคตตาล็อกรูปแบบทางการ เพื่อให้ลูกค้าสามารถเปิดดูได้ทุกที่แม้ไม่มีอินเทอร์เน็ต ระบบรองรับปุ่มกดใน PDF อย่างสมบูรณ์
                         </p>
                     </div>
-                    <button 
-                        onClick={generatePdf}
-                        className="relative z-10 bg-foreground text-background px-10 py-5 rounded-[24px] font-black flex items-center gap-4 hover:opacity-90 transition-all shadow-3xl shadow-foreground/5 active:scale-95 uppercase tracking-widest text-sm"
-                    >
-                        Generate Digital Catalog (PDF)
-                    </button>
+                    <div className="flex flex-col sm:flex-row gap-4 relative z-10">
+                        <button 
+                            onClick={generatePdf}
+                            disabled={generating}
+                            className="bg-foreground text-background px-10 py-5 rounded-[24px] font-black flex items-center gap-4 hover:opacity-90 transition-all shadow-3xl shadow-foreground/5 active:scale-95 uppercase tracking-widest text-sm disabled:opacity-50"
+                        >
+                            <RefreshCw size={20} className={generating ? "animate-spin" : ""} />
+                            {generating ? 'Processing...' : (catalog?.pdf_url ? 'Regenerate PDF' : 'Generate Digital Catalog (PDF)')}
+                        </button>
+                        
+                        {catalog?.pdf_url && (
+                            <a 
+                                href={getImageUrl(catalog.pdf_url)} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="bg-primary text-white px-10 py-5 rounded-[24px] font-black flex items-center gap-4 hover:opacity-90 transition-all shadow-3xl shadow-primary/20 active:scale-95 uppercase tracking-widest text-sm"
+                            >
+                                <Download size={20} />
+                                Download PDF
+                            </a>
+                        )}
+                    </div>
                 </div>
             </main>
 

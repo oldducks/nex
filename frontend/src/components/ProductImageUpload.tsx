@@ -34,18 +34,20 @@ export default function ProductImageUpload({
         const filesToUpload = Array.from(files).slice(0, remainingSlots);
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 
-        for (const file of filesToUpload) {
-            if (!allowedTypes.includes(file.type)) {
-                alert(`ไฟล์ ${file.name} ไม่ใช่รูปภาพที่รองรับ (jpg, png, gif, webp)`);
-                continue;
-            }
-            if (file.size > 5 * 1024 * 1024) {
-                alert(`ไฟล์ ${file.name} มีขนาดเกิน 5MB`);
-                continue;
-            }
+        setUploading(true);
+        const newUrls: string[] = [];
 
-            setUploading(true);
-            try {
+        try {
+            for (const file of filesToUpload) {
+                if (!allowedTypes.includes(file.type)) {
+                    alert(`ไฟล์ ${file.name} ไม่ใช่รูปภาพที่รองรับ (jpg, png, gif, webp)`);
+                    continue;
+                }
+                if (file.size > 5 * 1024 * 1024) {
+                    alert(`ไฟล์ ${file.name} มีขนาดเกิน 5MB`);
+                    continue;
+                }
+
                 const formData = new FormData();
                 formData.append('file', file);
 
@@ -58,14 +60,45 @@ export default function ProductImageUpload({
                 if (!res.ok) throw new Error('Upload failed');
 
                 const data = await res.json();
-                const imageUrl = `${API_URL}${data.url}`;
-                onChange([...images, imageUrl]);
-            } catch (error) {
-                console.error('Upload error:', error);
-                alert('อัพโหลดรูปไม่สำเร็จ กรุณาลองใหม่');
-            } finally {
-                setUploading(false);
+                let imageUrl = data.url;
+
+                if (data.jobId) {
+                    imageUrl = await new Promise((resolve, reject) => {
+                        const interval = setInterval(async () => {
+                            try {
+                                const jobRes = await fetch(`${API_URL}/uploads/job/${data.jobId}`, {
+                                    headers: { Authorization: `Bearer ${token}` }
+                                });
+                                if (!jobRes.ok) return;
+                                const status = await jobRes.json();
+                                if (status.state === 'completed' && status.result) {
+                                    clearInterval(interval);
+                                    resolve(status.result.url);
+                                } else if (status.state === 'failed') {
+                                    clearInterval(interval);
+                                    reject(new Error(status.failedReason || 'Image processing failed'));
+                                }
+                            } catch (err) {
+                                console.error('Polling error:', err);
+                            }
+                        }, 1000);
+                    });
+                }
+                
+                if (imageUrl) {
+                    newUrls.push(imageUrl);
+                }
             }
+
+            if (newUrls.length > 0) {
+                onChange([...images, ...newUrls]);
+            }
+        } catch (error) {
+            console.error('Upload error:', error);
+            alert('อัพโหลดรูปไม่สำเร็จ กรุณาลองใหม่');
+        } finally {
+            setUploading(false);
+            if (fileInputRef.current) fileInputRef.current.value = '';
         }
     };
 
@@ -101,11 +134,17 @@ export default function ProductImageUpload({
                 <div className="grid grid-cols-3 gap-2">
                     {images.map((img, index) => (
                         <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border group">
-                            <img
-                                src={img}
-                                alt={`Product ${index + 1}`}
-                                className="w-full h-full object-cover"
-                            />
+                            {img ? (
+                                <img
+                                    src={typeof img === 'string' && img.startsWith('http') ? img : `${API_URL}${img}`}
+                                    alt={`Product ${index + 1}`}
+                                    className="w-full h-full object-cover"
+                                />
+                            ) : (
+                                <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
+                                    <ImageIcon className="text-foreground/20" />
+                                </div>
+                            )}
                             <button
                                 type="button"
                                 onClick={() => removeImage(index)}

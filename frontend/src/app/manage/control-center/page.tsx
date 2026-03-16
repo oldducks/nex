@@ -7,7 +7,7 @@ import {
   LogOut, Globe, BookOpen, CreditCard, ArrowRight,
   Users, BarChart3, ShieldCheck, Mail,
   Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift,
-  CheckCircle, XCircle, Crown, Zap, Star, Copy, ExternalLink, Check, Eye, Share2
+  CheckCircle, XCircle, Crown, Zap, Star, Copy, ExternalLink, Check, Eye, Share2, Settings
 } from 'lucide-react';
 import { QrCodeImage } from '@/components/QrCode';
 import Link from 'next/link';
@@ -140,6 +140,7 @@ export default function ControlCenterPage() {
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [copied, setCopied] = useState(false);
   const [copiedReferral, setCopiedReferral] = useState(false);
+  const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const token = Cookies.get('token');
 
   // Generate profile URL
@@ -212,6 +213,30 @@ export default function ControlCenterPage() {
   };
 
   useEffect(() => {
+    // Intercept browser back button using hash strategy
+    if (typeof window !== 'undefined') {
+      if (window.location.hash !== '#app') {
+        window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        window.history.pushState(null, '', window.location.pathname + window.location.search + '#app');
+      }
+
+      const handlePopState = (e: PopStateEvent) => {
+        if (window.location.hash !== '#app') {
+          // User pressed back button
+          setShowLogoutConfirm(true);
+          // Push hash back so they stay trapped inside Control Center
+          window.history.pushState(null, '', window.location.pathname + window.location.search + '#app');
+        }
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, []);
+
+  useEffect(() => {
     if (!token) {
       router.push('/login');
       return;
@@ -252,9 +277,33 @@ export default function ControlCenterPage() {
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground transition-colors duration-500 selection:bg-primary/30"
+      className="min-h-screen bg-background text-foreground transition-colors duration-500 selection:bg-primary/30 relative"
       style={{ fontFamily: "'Plus Jakarta Sans', 'Sarabun', sans-serif" }}
     >
+      {/* Logout Confirmation Modal */}
+      {showLogoutConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
+          <div className="bg-background border border-foreground/10 rounded-2xl p-6 max-w-sm w-full relative animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="text-xl font-bold mb-4 text-center">ยืนยันการออกจากระบบ</h3>
+            <p className="text-foreground/70 text-center text-sm mb-6">คุณได้กดปุ่มย้อนกลับ ต้องการออกจากระบบหรือไม่?</p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowLogoutConfirm(false)}
+                className="flex-1 py-3 rounded-xl bg-foreground/10 hover:bg-foreground/20 text-foreground font-bold transition-colors text-sm"
+              >
+                ยกเลิก
+              </button>
+              <button
+                onClick={handleLogout}
+                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors text-sm flex items-center justify-center gap-2"
+              >
+                <LogOut size={16} /> ออกจากระบบ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
       {/* Background Glow */}
@@ -280,7 +329,7 @@ export default function ControlCenterPage() {
              )}
              <div className="h-6 w-px bg-foreground/10 mx-2 hidden md:block" />
              <ThemeToggle />
-             <button onClick={handleLogout} className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-red-500/10 flex items-center justify-center transition-all group">
+             <button onClick={() => setShowLogoutConfirm(true)} className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-red-500/10 flex items-center justify-center transition-all group">
                <LogOut size={18} className="text-foreground/40 group-hover:text-red-500 transition-colors" />
              </button>
           </div>
@@ -814,19 +863,26 @@ export default function ControlCenterPage() {
 
       {/* Upgrade Modal */}
       {showUpgradeModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-background border border-foreground/10 rounded-[32px] p-8 max-w-lg w-full shadow-2xl">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
+          <div className="bg-background border border-foreground/10 rounded-[32px] p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-300 relative">
+            <button 
+              onClick={() => setShowUpgradeModal(false)}
+              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-colors"
+            >
+              <XCircle size={20} className="text-foreground/40" />
+            </button>
+
             {/* Header */}
             <div className="text-center mb-8">
               <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-500/30">
                 <Crown size={40} className="text-white" />
               </div>
-              <h3 className="text-2xl font-black mb-2">อัพเกรดเป็น Premium</h3>
-              <p className="text-foreground/50">ปลดล็อคทุกฟีเจอร์และใช้งานได้เต็มที่</p>
+              <h3 className="text-2xl font-black mb-2 tracking-tight">อัพเกรดเป็น Premium</h3>
+              <p className="text-foreground/50 text-sm">ปลดล็อคทุกฟีเจอร์และใช้งานได้เต็มที่ไม่มีข้อจำกัด</p>
             </div>
 
             {/* Features List */}
-            <div className="space-y-3 mb-8">
+            <div className="space-y-2 mb-8">
               {[
                 'ปลดล็อคทุกฟีเจอร์ทันที',
                 'สร้างแคตตาล็อกได้ไม่จำกัด',
@@ -835,32 +891,32 @@ export default function ControlCenterPage() {
                 'ระบบ Landing Pages แบบลากวาง',
                 'ระบบแนะนำสมาชิกและคอมมิชชั่น',
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/5">
+                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/5 border border-foreground/5">
                   <CheckCircle size={18} className="text-green-500 shrink-0" />
-                  <span className="text-sm font-medium">{item}</span>
+                  <span className="text-sm font-bold opacity-80">{item}</span>
                 </div>
               ))}
             </div>
 
             {/* Pricing */}
-            <div className="text-center mb-8 p-6 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20">
-              <div className="text-[10px] uppercase tracking-widest text-foreground/50 mb-2">ราคาพิเศษ</div>
-              <div className="text-4xl font-black text-amber-500">฿299<span className="text-lg text-foreground/40">/เดือน</span></div>
-              <div className="text-xs text-foreground/50 mt-2">หรือ ฿2,499/ปี (ประหยัด 30%)</div>
+            <div className="text-center mb-8 p-6 rounded-3xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 shadow-inner">
+              <div className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-600 dark:text-amber-400 mb-2">ราคาพิเศษช่วงแนะนำ</div>
+              <div className="text-4xl font-black text-amber-500">฿299<span className="text-lg font-bold text-foreground/40 ml-1">/เดือน</span></div>
+              <div className="text-[10px] font-black uppercase text-foreground/30 mt-2 tracking-widest">หรือ ฿2,499/ปี (ประหยัดกว่า 30%)</div>
             </div>
 
             {/* Actions */}
             <div className="flex gap-4">
               <button
                 onClick={() => setShowUpgradeModal(false)}
-                className="flex-1 py-4 bg-foreground/10 rounded-2xl font-bold hover:bg-foreground/20 transition-colors"
+                className="flex-1 py-4 bg-foreground/5 hover:bg-foreground/10 rounded-2xl font-black text-sm uppercase tracking-widest transition-all"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleUpgradeRequest}
                 disabled={upgradeLoading}
-                className="flex-1 py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-bold hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex-[2] py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 {upgradeLoading ? (
                   <Loader2 size={20} className="animate-spin" />
@@ -875,16 +931,67 @@ export default function ControlCenterPage() {
 
             {/* Contact Admin Option */}
             <div className="mt-6 text-center">
-              <p className="text-foreground/40 text-xs">
-                หรือติดต่อผู้ดูแลระบบเพื่อขอปลดล็อคฟีเจอร์เฉพาะ
+              <p className="text-foreground/40 text-[10px] font-black uppercase tracking-widest mb-1">
+                มีคำถามเพิ่มเติม?
               </p>
-              <a href="mailto:support@dpattown.com" className="text-primary text-sm font-medium hover:underline">
-                support@dpattown.com
+              <a href="mailto:support@dpattown.com" className="text-primary text-sm font-black hover:underline tracking-tight">
+                   support@dpattown.com
               </a>
             </div>
           </div>
         </div>
       )}
+
+      {/* Quick Access Control Menu (Moved as requested) */}
+      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-48px)] max-w-lg animate-in slide-in-from-bottom-5 duration-500">
+        <div id="app" className="bg-[#fdfcf9]/95 dark:bg-[#1a1614]/95 backdrop-blur-xl border border-[#e5e0d8] dark:border-[#2d2825] rounded-[32px] p-3 shadow-2xl overflow-hidden ring-1 ring-black/5">
+          <div className="flex items-center justify-around px-2">
+            <Link 
+              href="/manage/dashboard" 
+              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                <BarChart3 size={20} />
+              </div>
+              <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">สถิติ</span>
+            </Link>
+
+            <Link 
+              href="/manage/profile" 
+              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                <UserCircle size={20} />
+              </div>
+              <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">แก้ไขโปรไฟล์</span>
+            </Link>
+
+            <Link 
+              href={getProfileUrl()} 
+              target="_blank"
+              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                <ExternalLink size={20} />
+              </div>
+              <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">ดูเว็บ</span>
+            </Link>
+
+            <Link 
+              href="/manage/account" 
+              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+            >
+              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                <Settings size={20} />
+              </div>
+              <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">บัญชี</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Spacer for bottom menu on mobile */}
+      <div className="h-24 md:hidden" />
     </div>
   );
 }

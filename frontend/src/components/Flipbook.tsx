@@ -391,6 +391,25 @@ export function FlipbookProductPage({ product }: { product: any }) {
     const linkUrl = product.interactive_links?.order_form || product.interactive_links?.website;
     const hasLink = !!linkUrl;
 
+    const getImageUrl = (url: string | undefined) => {
+        if (!url) return 'https://via.placeholder.com/400x500';
+        const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        if (url.startsWith('http')) {
+            if (url.includes('localhost:') && SITE_URL.includes('https://nexsolution.cloud')) {
+                try {
+                    const parsedUrl = new URL(url);
+                    if (parsedUrl.pathname.startsWith('/uploads')) {
+                        return `${API_URL}${parsedUrl.pathname}`;
+                    }
+                } catch (e) {}
+            }
+            return url;
+        }
+        if (url.startsWith('/uploads')) return `${API_URL}${url}`;
+        return url;
+    };
+
     return (
         <div className="w-full h-full bg-[#faf8f5] text-gray-900 p-4 md:p-6 flex flex-col relative z-10">
             {/* Product Image - Clickable if has link */}
@@ -403,7 +422,7 @@ export function FlipbookProductPage({ product }: { product: any }) {
                         className="block w-full h-full relative"
                     >
                         <img
-                            src={product.images_json?.[0] || 'https://via.placeholder.com/400x500'}
+                            src={getImageUrl(product.images_json?.[0])}
                             alt={product.name}
                             className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                         />
@@ -424,7 +443,7 @@ export function FlipbookProductPage({ product }: { product: any }) {
                     </a>
                 ) : (
                     <img
-                        src={product.images_json?.[0] || 'https://via.placeholder.com/400x500'}
+                        src={getImageUrl(product.images_json?.[0])}
                         alt={product.name}
                         className="w-full h-full object-cover"
                     />

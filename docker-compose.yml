@@ -37,6 +37,7 @@ services:
       REDIS_HOST: namecard_redis
       REDIS_PORT: 6379
       JWT_SECRET: super_secret_jwt_key
+      TYPEORM_SYNCHRONIZE: ${TYPEORM_SYNCHRONIZE:-false}
       ConfigModule_isGlobal: "true"
       PUPPETEER_EXECUTABLE_PATH: /usr/bin/chromium-browser
       FrontendUrl: https://nexsolution.cloud

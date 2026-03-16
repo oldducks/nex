@@ -20,7 +20,7 @@ export function LiveStyleInjector() {
         }
 
         // Apply theme mode
-        const lightMode = editedConfig.display_theme === 'light';
+        const lightMode = editedConfig.display_theme !== 'dark';
         root.style.setProperty('--background', lightMode ? '#f4f4f5' : '#050505');
         root.style.setProperty('--foreground', lightMode ? '#18181b' : '#ffffff');
         root.style.setProperty('--glass', lightMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 15, 15, 0.7)');

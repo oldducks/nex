@@ -372,7 +372,7 @@ function LayoutEditorToolbar({ saving }: { saving: boolean }) {
                                     <div className="grid grid-cols-2 gap-2">
                                         <button
                                             onClick={() => editor.setDisplayTheme('dark')}
-                                            className={`py-3 rounded-lg flex items-center justify-center gap-2 transition-all ${editor.editedConfig.display_theme !== 'light'
+                                            className={`py-3 rounded-lg flex items-center justify-center gap-2 transition-all ${editor.editedConfig.display_theme === 'dark'
                                                 ? 'bg-purple-600 text-white'
                                                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
                                                 }`}
@@ -381,7 +381,7 @@ function LayoutEditorToolbar({ saving }: { saving: boolean }) {
                                         </button>
                                         <button
                                             onClick={() => editor.setDisplayTheme('light')}
-                                            className={`py-3 rounded-lg flex items-center justify-center gap-2 transition-all ${editor.editedConfig.display_theme === 'light'
+                                            className={`py-3 rounded-lg flex items-center justify-center gap-2 transition-all ${editor.editedConfig.display_theme !== 'dark'
                                                 ? 'bg-purple-600 text-white'
                                                 : 'bg-white/5 text-gray-400 hover:bg-white/10'
                                                 }`}

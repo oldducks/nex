@@ -127,3 +127,12 @@
 - [x] PDPA Consent Management (Backend entities + Frontend Cookie Banner)
 - [x] Secret Management (Moved Telegram tokens to .env)
 - [x] URL Infrastructure Clean-up (Removed /app prefix for better SEO and shorter links)
+
+---
+
+### Phase 7 — Navigation & UX Refinement (Week 13)
+
+- [x] Consolidate management menus into Control Center (Single source of truth)
+- [x] Implement sticky bottom quick-access navigation for mobile-first experience
+- [x] Standardize "Back to Control Center" navigation across all management modules
+- [x] Refined Navbar UI to remove redundant links and improve focus

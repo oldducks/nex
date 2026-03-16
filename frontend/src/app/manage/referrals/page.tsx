@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import {
-  LogOut, Globe, BookOpen, CreditCard, ArrowRight,
+  LogOut, Globe, BookOpen, CreditCard, ArrowRight, ArrowLeft,
   Users, BarChart3, ShieldCheck, Mail,
   Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift,
   CheckCircle, XCircle, Crown, Zap, Star, Copy, ExternalLink, Check, Eye, Share2
@@ -246,13 +246,12 @@ export default function ControlCenterPage() {
       {/* Navbar */}
       <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <Link href="/" className="flex items-center">
-            <img
-              src="/nex_logo_nobg.png"
-              alt="NEX Solution"
-              style={{ height: '42px', width: 'auto', display: 'block' }}
-            />
-          </Link>
+          <div className="flex items-center gap-4">
+            <Link href="/manage/control-center" className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group">
+              <ArrowLeft size={18} className="text-foreground/40 group-hover:text-foreground transition-colors" />
+            </Link>
+            <h1 className="font-bold text-lg tracking-tight">ระบบแนะนำสมาชิก</h1>
+          </div>
           
           <div className="flex items-center gap-4">
              {user?.role === 'super_admin' && (

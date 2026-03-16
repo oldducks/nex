@@ -10,10 +10,10 @@ interface QrCodeProps {
 export function QrCodeImage({ url, size = 200, className = '' }: QrCodeProps) {
     // Encode URL properly
     const encodedUrl = encodeURIComponent(url);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedUrl}&format=png&margin=10`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedUrl}&format=png&margin=0`;
 
     return (
-        <div className={`inline-block bg-white p-3 rounded-xl shadow-lg ${className}`}>
+        <div className={`inline-block bg-white p-2 rounded-2xl shadow-xl drop-shadow-md border border-foreground/5 hover:scale-105 transition-transform duration-300 ${className}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
                 src={qrUrl}
@@ -31,13 +31,13 @@ export function QrCodeWithFallback({ url, size = 200, className = '' }: QrCodePr
     const encodedUrl = encodeURIComponent(url);
 
     // Primary: qrserver.com (free, no API key needed)
-    const primaryUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedUrl}&format=png&margin=10`;
+    const primaryUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedUrl}&format=png&margin=0`;
 
     // Fallback: Google Charts (being deprecated but still works)
-    const fallbackUrl = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodedUrl}&chld=M|2`;
+    const fallbackUrl = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodedUrl}&chld=M|0`;
 
     return (
-        <div className={`inline-block bg-white p-3 rounded-xl shadow-lg ${className}`}>
+        <div className={`inline-block bg-white p-2 rounded-2xl shadow-xl drop-shadow-md border border-foreground/5 hover:scale-105 transition-transform duration-300 ${className}`}>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
                 src={primaryUrl}

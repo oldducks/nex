@@ -17,6 +17,13 @@
 - [AI Integration](./PHASE0_WEEK2_AI_INTEGRATION.md) - กำหนดแผนเชื่อม AI
 - [Summary](./PHASE0_WEEK2_SUMMARY.md) - สรุป Week 2
 
+### Brand & UI Standards
+- [NEX Brand Guideline v1](./NEX_BRAND_GUIDELINE_V1.md) - แนวทางแบรนด์, tone of voice, messaging และ CTA hierarchy
+- [NEX Color Standard v1](./NEX_COLOR_STANDARD_V1.md) - มาตรฐานสีของแบรนด์และการใช้งานใน UI
+- [NEX Color System v1](./NEX_COLOR_SYSTEM_V1.md) - ระบบสี, usage rules, pairings และ accessibility notes
+- [NEX Tailwind Tokens v1](./NEX_TAILWIND_TOKENS_V1.md) - token naming, usage mapping และตัวอย่างการ extend theme
+- [NEX UI Rules v1](./NEX_UI_RULES_V1.md) - กติกาโครงสร้างหน้า, headings, buttons, cards, forms และ sections
+
 ---
 
 ## 📖 How to Read

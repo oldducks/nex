@@ -60,6 +60,17 @@ interface BannerImage {
 interface WebsiteLink { label: string; url: string; position?: string; }
 interface VideoConfig { url: string; autoplay: boolean; link_url?: string; link_enabled: boolean; enabled: boolean; }
 
+interface FeatureConfig {
+    catalog?: boolean;
+    leads?: boolean;
+    namecard?: boolean;
+    'landing-pages'?: boolean;
+    analytics?: boolean;
+    profile?: boolean;
+    referrals?: boolean;
+    video?: boolean;
+}
+
 interface Profile {
     // Multi-language
     names_i18n: I18nField[];
@@ -83,6 +94,8 @@ interface Profile {
     interests: string[];
     // Video
     video_config: VideoConfig | null;
+    subscription_tier?: string;
+    feature_config?: FeatureConfig;
     // Layout
     layout_config: {
         sections: string[];
@@ -116,11 +129,13 @@ const defaultProfile: Profile = {
     about_me: '',
     interests: [],
     video_config: null,
+    subscription_tier: 'free',
+    feature_config: {},
     layout_config: {
         sections: ['banner', 'profile', 'info', 'about', 'social', 'contact'],
         profile_position: 'center',
-        theme: 'dark',
-        display_theme: 'dark',
+        theme: 'light',
+        display_theme: 'light',
         primary_color: '#6366F1',
         background_color: '#09090b',
         font_family: 'Inter',
@@ -165,7 +180,7 @@ const UI_TEXT = {
         uploadLogo: 'อัปโหลดโลโก้',
         backgroundImages: 'ภาพพื้นหลัง',
         max10Images: 'สูงสุด 10 รูป',
-        banners: 'แบนเนอร์',
+        banners: 'โคเวอร์',
         websiteLinks: 'ลิงก์เว็บไซต์',
         aboutMePlaceholder: 'แนะนำตัวเอง...',
         interests: 'ความสนใจ / งานอดิเรก',
@@ -233,6 +248,7 @@ export default function ProfileEditorV2() {
     const router = useRouter();
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+    const [loadError, setLoadError] = useState('');
     const [uploadingSection, setUploadingSection] = useState<string | null>(null);
     const [uploading, setUploading] = useState(false);
     const [uid, setUid] = useState('');
@@ -242,6 +258,17 @@ export default function ProfileEditorV2() {
     const [uploadTarget, setUploadTarget] = useState<string>('profile');
     const [lang, setLang] = useState<'th' | 'en'>('th');
     const t = UI_TEXT[lang];
+    const hasPremiumVideo = profile.subscription_tier === 'premium' || profile.feature_config?.video === true;
+    const initialProfileSnapshotRef = useRef('');
+    const [isDirty, setIsDirty] = useState(false);
+
+    const quickSections = [
+        { id: 'sec-basic', label: lang === 'th' ? 'ข้อมูลหลัก' : 'Basic' },
+        { id: 'sec-media', label: lang === 'th' ? 'รูป/วิดีโอ' : 'Media' },
+        { id: 'sec-links', label: lang === 'th' ? 'ลิงก์' : 'Links' },
+        { id: 'sec-theme', label: lang === 'th' ? 'ธีม' : 'Theme' },
+        { id: 'sec-contact', label: lang === 'th' ? 'การติดต่อ' : 'Contact' },
+    ];
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
@@ -254,6 +281,7 @@ export default function ProfileEditorV2() {
 
     const fetchProfile = async () => {
         try {
+            setLoadError('');
             const res = await fetch(`${API_URL}/profile/me`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -265,7 +293,7 @@ export default function ProfileEditorV2() {
                     Cookies.set('uid', data.uid);
                     if (data.url_prefix) Cookies.set('url_prefix', data.url_prefix);
                 }
-                setProfile({
+                const nextProfile = {
                     url_prefix: data.url_prefix || '',
                     names_i18n: data.names_i18n?.length ? data.names_i18n : (data.full_name ? [{ lang: 'th', value: data.full_name }, { lang: 'en', value: '' }] : defaultProfile.names_i18n),
                     positions_i18n: data.positions_i18n?.length ? data.positions_i18n : (data.position ? [{ lang: 'th', value: data.position }, { lang: 'en', value: '' }] : defaultProfile.positions_i18n),
@@ -282,23 +310,62 @@ export default function ProfileEditorV2() {
                     about_me: data.about_me || '',
                     interests: data.interests || [],
                     video_config: data.video_config || null,
+                    subscription_tier: data.subscription_tier || 'free',
+                    feature_config: data.feature_config || {},
                     layout_config: data.layout_config || defaultProfile.layout_config,
-                });
+                };
+                setProfile(nextProfile);
+                initialProfileSnapshotRef.current = JSON.stringify(nextProfile);
+                setIsDirty(false);
+            } else {
+                const text = await res.text();
+                setLoadError(`โหลดข้อมูลไม่สำเร็จ (${res.status})`);
+                console.error('Failed to fetch profile:', text);
             }
-        } catch (error) { console.error('Failed to fetch profile:', error); }
+        } catch (error) {
+            console.error('Failed to fetch profile:', error);
+            setLoadError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่');
+        }
         finally { setLoading(false); }
+    };
+
+    useEffect(() => {
+        if (!initialProfileSnapshotRef.current) return;
+        setIsDirty(JSON.stringify(profile) !== initialProfileSnapshotRef.current);
+    }, [profile]);
+
+    const scrollToSection = (id: string) => {
+        const target = document.getElementById(id);
+        if (target) {
+            target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     };
 
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         setSaving(true);
         try {
+            const { url_prefix, subscription_tier, feature_config, ...savePayload } = profile;
+            savePayload.layout_config = {
+                ...(savePayload.layout_config || {}),
+                profile_position: 'center',
+            };
+            savePayload.backgrounds = Array.isArray(savePayload.backgrounds) && savePayload.backgrounds.length > 0
+                ? [savePayload.backgrounds[0]]
+                : [];
+            const normalizedBanners = Array.isArray(savePayload.banners) ? savePayload.banners : [];
+            const topBanner = normalizedBanners.find((b: any) => (b.display_position || 'top') === 'top');
+            const bottomBanner = normalizedBanners.find((b: any) => b.display_position === 'bottom');
+            savePayload.banners = [topBanner, bottomBanner].filter((b): b is BannerImage => Boolean(b));
             const res = await fetch(`${API_URL}/profile/me`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-                body: JSON.stringify(profile)
+                body: JSON.stringify(savePayload)
             });
-            if (res.ok) { alert('บันทึกสำเร็จ!'); }
+            if (res.ok) {
+                alert('บันทึกสำเร็จ!');
+                await fetchProfile();
+            }
             else { 
                 const error = await res.json();
                 alert('บันทึกไม่สำเร็จ: ' + (error.message || 'Error saving profile')); 
@@ -312,53 +379,89 @@ export default function ProfileEditorV2() {
         setUploadingSection(target);
         const formData = new FormData();
         formData.append('file', file);
+
+        const resolveImageUrlFromJob = async (jobId: string): Promise<string> => {
+            const maxAttempts = 40;
+            for (let attempt = 0; attempt < maxAttempts; attempt++) {
+                const statusRes = await fetch(`${API_URL}/uploads/job/${jobId}`, {
+                    headers: { Authorization: `Bearer ${token}` },
+                });
+
+                if (!statusRes.ok) {
+                    throw new Error('Failed to check upload status');
+                }
+
+                const status = await statusRes.json();
+                if (status.state === 'completed') {
+                    const url = status?.result?.url;
+                    if (!url) throw new Error('Upload finished but URL missing');
+                    return `${API_URL}${url}`;
+                }
+
+                if (status.state === 'failed') {
+                    throw new Error(status?.failedReason || 'Upload processing failed');
+                }
+
+                await new Promise((resolve) => setTimeout(resolve, 800));
+            }
+
+            throw new Error('Upload timed out');
+        };
+
         try {
-            console.log(`Uploading file for target: ${target}`);
             const res = await fetch(`${API_URL}/uploads/image`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` },
                 body: formData
             });
 
-            if (res.ok) {
-                const data = await res.json();
-                console.log('Upload success:', data);
-                const imageUrl = `${API_URL}${data.url}`;
-
-                if (target === 'profile') {
-                    setProfile(p => ({ ...p, profile_pic_url: imageUrl }));
-                } else if (target === 'logo') {
-                    setProfile(p => ({ ...p, logo: { url: imageUrl, position: { x: 0, y: 0 } } }));
-                } else if (target === 'background' || target === 'backgrounds') {
-                    setProfile(p => {
-                        const backgrounds = p.backgrounds || [];
-                        const newBackgrounds = [...backgrounds, { url: imageUrl, position: { x: 0, y: 0 } }];
-                        console.log('Updated backgrounds:', newBackgrounds);
-                        return { ...p, backgrounds: newBackgrounds };
-                    });
-                } else if (target === 'banner' || target === 'banners') {
-                    setProfile(p => {
-                        const banners = p.banners || [];
-                        const newBanners: BannerImage[] = [...banners, {
-                            url: imageUrl,
-                            position: { x: 0, y: 0 },
-                            scale: 1,
-                            display_position: 'top',
-                            height: '320px'
-                        }];
-                        console.log('Updated banners:', newBanners);
-                        return { ...p, banners: newBanners };
-                    });
-                }
-            } else {
+            if (!res.ok) {
                 const errorText = await res.text();
-                console.error(`Upload failed with status ${res.status}:`, errorText);
-                alert(`Upload failed (${res.status}): ${errorText.substring(0, 100)}`);
+                throw new Error(`Upload failed (${res.status}): ${errorText.substring(0, 100)}`);
             }
-        } catch (error) { 
+
+            const data = await res.json();
+            const jobId = data?.jobId;
+            if (!jobId) {
+                throw new Error('Upload job id not returned');
+            }
+
+            const imageUrl = await resolveImageUrlFromJob(String(jobId));
+
+            if (target === 'profile') {
+                setProfile(p => ({ ...p, profile_pic_url: imageUrl }));
+            } else if (target === 'logo') {
+                setProfile(p => ({ ...p, logo: { url: imageUrl, position: { x: 0, y: 0 } } }));
+            } else if (target === 'background' || target === 'backgrounds') {
+                setProfile(p => {
+                    const backgrounds = p.backgrounds || [];
+                    return { ...p, backgrounds: [...backgrounds, { url: imageUrl, position: { x: 0, y: 0 } }] };
+                });
+            } else if (target === 'banner' || target === 'banners') {
+                setProfile(p => {
+                    const banners = p.banners || [];
+                    if (banners.length >= 2) {
+                        alert(lang === 'th' ? 'โคเวอร์ได้สูงสุด 2 รูป (บน 1, ล่าง 1)' : 'Maximum 2 banners (top 1, bottom 1)');
+                        return p;
+                    }
+
+                    const hasTop = banners.some((b) => (b.display_position || 'top') === 'top');
+                    const nextPosition: 'top' | 'bottom' = hasTop ? 'bottom' : 'top';
+
+                    const newBanners: BannerImage[] = [...banners, {
+                        url: imageUrl,
+                        position: { x: 0, y: 0 },
+                        scale: 1,
+                        display_position: nextPosition,
+                        height: '320px'
+                    }];
+                    return { ...p, banners: newBanners };
+                });
+            }
+        } catch (error: any) {
             console.error('Upload error:', error);
-            alert('Error uploading image. Please try again.');
-        } finally { 
+            alert(error?.message || 'Error uploading image. Please try again.');
+        } finally {
             setUploading(false);
             setUploadingSection(null);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -442,10 +545,6 @@ export default function ProfileEditorV2() {
     };
 
     // Profile position
-    const setProfilePosition = (pos: 'left' | 'center' | 'right' | 'overlay') => {
-        setProfile(p => ({ ...p, layout_config: { ...p.layout_config, profile_position: pos } }));
-    };
-
     const updateTheme = (key: string, value: any) => {
         setProfile(p => ({
             ...p,
@@ -505,9 +604,48 @@ export default function ProfileEditorV2() {
                 </div>
             </header>
 
-            <main className="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12 space-y-8 sm:space-y-10">
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+                <div className="mb-6 rounded-2xl border border-foreground/10 bg-background/70 backdrop-blur px-4 py-3 flex flex-wrap gap-3 items-center justify-between sticky top-20 z-40">
+                    <div className="flex items-center gap-2 text-xs font-bold">
+                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${loadError ? 'bg-red-500' : isDirty ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                        {loadError
+                            ? loadError
+                            : isDirty
+                                ? (lang === 'th' ? 'มีการเปลี่ยนแปลงที่ยังไม่บันทึก' : 'Unsaved changes')
+                                : (lang === 'th' ? 'บันทึกล่าสุดเรียบร้อย' : 'All changes saved')}
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                        {quickSections.map((s) => (
+                            <button
+                                key={s.id}
+                                type="button"
+                                onClick={() => scrollToSection(s.id)}
+                                className="px-3 py-1.5 text-xs rounded-lg border border-foreground/10 hover:border-primary/40 hover:text-primary transition"
+                            >
+                                {s.label}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6 lg:gap-8">
+                    <aside className="hidden lg:block sticky top-40 h-fit rounded-2xl border border-foreground/10 bg-background/60 backdrop-blur p-3">
+                        <div className="text-[10px] uppercase tracking-widest text-foreground/40 font-black px-2 pb-2">Quick Nav</div>
+                        <div className="space-y-1">
+                            {quickSections.map((s) => (
+                                <button
+                                    key={s.id}
+                                    type="button"
+                                    onClick={() => scrollToSection(s.id)}
+                                    className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-foreground/5 transition"
+                                >
+                                    {s.label}
+                                </button>
+                            ))}
+                        </div>
+                    </aside>
+                    <div className="space-y-8 sm:space-y-10">
                 {/* Names */}
-                <Section title={t.name} icon={<User size={22} className="text-primary" />} onAdd={() => addI18n('names_i18n')} canAdd={profile.names_i18n.length < LANGUAGES.length}>
+                <Section sectionId="sec-basic" title={t.name} icon={<User size={22} className="text-primary" />} onAdd={() => addI18n('names_i18n')} canAdd={profile.names_i18n.length < LANGUAGES.length}>
                     <div className="space-y-4">
                         {profile.names_i18n.map((item, i) => (
                             <I18nInput key={i} item={item} languages={LANGUAGES} onChange={(v) => updateI18n('names_i18n', i, v)} onRemove={profile.names_i18n.length > 1 ? () => removeI18n('names_i18n', i) : undefined} />
@@ -552,7 +690,7 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Profile Picture */}
-                <Section title={t.profilePic} icon={<ImageIcon size={22} className="text-primary" />}>
+                <Section sectionId="sec-media" title={t.profilePic} icon={<ImageIcon size={22} className="text-primary" />}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         {/* Image Cropper */}
                         <div className="flex justify-center md:justify-start">
@@ -583,22 +721,6 @@ export default function ProfileEditorV2() {
                                 <p className="text-[10px] font-black uppercase tracking-widest text-foreground/20 text-center">PNG, JPG, WEBP (Maximum 5MB)</p>
                             </div>
 
-                            {/* Layout Position */}
-                            <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.15em] ml-1">{t.profilePosition}</label>
-                                <div className="grid grid-cols-2 gap-3">
-                                    {[
-                                        { id: 'left', label: t.left },
-                                        { id: 'center', label: t.center },
-                                        { id: 'right', label: t.right },
-                                        { id: 'overlay', label: t.overlay }
-                                    ].map(pos => (
-                                        <button key={pos.id} onClick={() => setProfilePosition(pos.id as any)} className={`px-4 py-3 rounded-xl text-xs font-bold transition-all border-2 ${profile.layout_config.profile_position === pos.id ? 'border-primary bg-primary/5 text-primary shadow-inner' : 'border-transparent bg-foreground/5 text-foreground/40 hover:bg-foreground/10'}`}>
-                                            {pos.label}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </Section>
@@ -623,22 +745,21 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Backgrounds */}
-                <Section title={t.backgroundImages} icon={<ImageIcon size={22} className="text-primary" />} onAdd={profile.backgrounds?.length < 10 ? () => triggerUpload('background') : undefined} canAdd={profile.backgrounds?.length < 10}>
-                    <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">{t.max10Images}</div>
-                    <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-                        {profile.backgrounds?.map((bg, i) => (
-                            <div key={i} className="relative group aspect-[4/3] rounded-2xl overflow-hidden border border-foreground/10">
-                                <img src={bg.url} alt={`BG ${i}`} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                <Section title={t.backgroundImages} icon={<ImageIcon size={22} className="text-primary" />}>
+                    <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">ใช้ได้ 1 รูป</div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        {profile.backgrounds?.[0] ? (
+                            <div className="relative group aspect-[4/3] rounded-2xl overflow-hidden border border-foreground/10">
+                                <img src={profile.backgrounds[0].url} alt="Background" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                                    <button onClick={() => removeImage('backgrounds', i)} className="bg-red-500 text-white p-2 rounded-xl hover:scale-110 transition-transform">
+                                    <button onClick={() => setProfile(p => ({ ...p, backgrounds: [] }))} className="bg-red-500 text-white p-2 rounded-xl hover:scale-110 transition-transform">
                                         <Trash2 size={18} />
                                     </button>
                                 </div>
                             </div>
-                        ))}
-                        {profile.backgrounds?.length < 10 && (
-                            <button 
-                                onClick={() => triggerUpload('background')} 
+                        ) : (
+                            <button
+                                onClick={() => triggerUpload('background')}
                                 disabled={uploading}
                                 className={`aspect-[4/3] rounded-2xl border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-2 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'background' ? 'animate-pulse bg-primary/5' : ''}`}
                             >
@@ -650,9 +771,9 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Banners */}
-                <Section title={t.banners} icon={<ImageIcon size={22} className="text-primary" />} onAdd={profile.banners.length < 10 ? () => triggerUpload('banner') : undefined} canAdd={profile.banners.length < 10}>
+                <Section title={t.banners} icon={<ImageIcon size={22} className="text-primary" />} onAdd={profile.banners.length < 2 ? () => triggerUpload('banner') : undefined} canAdd={profile.banners.length < 2}>
                     <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">
-                        {lang === 'th' ? 'แต่ละภาพตั้งค่าแยกได้ • สูงสุด 10 รูป' : 'Each image has its own settings • Max 10'}
+                        {lang === 'th' ? 'สูงสุด 2 รูป (บน 1, ล่าง 1)' : 'Max 2 banners (top 1, bottom 1)'}
                     </div>
 
                     <div className="space-y-6">
@@ -746,7 +867,7 @@ export default function ProfileEditorV2() {
                                                 newBanners[i] = { ...newBanners[i], link_url: e.target.value };
                                                 setProfile(p => ({ ...p, banners: newBanners }));
                                             }}
-                                            placeholder={lang === 'th' ? 'https://example.com (คลิกแบนเนอร์แล้วเปิด)' : 'https://example.com (Click to open)'}
+                                            placeholder={lang === 'th' ? 'https://example.com (คลิกโคเวอร์แล้วเปิด)' : 'https://example.com (Click to open)'}
                                             className="flex-1 bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
                                         />
                                     </div>
@@ -755,14 +876,14 @@ export default function ProfileEditorV2() {
                         ))}
 
                         {/* Add Banner Button */}
-                        {profile.banners.length < 10 && (
+                        {profile.banners.length < 2 && (
                             <button
                                 onClick={() => triggerUpload('banner')}
                                 disabled={uploading}
                                 className={`w-full h-32 rounded-2xl border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-3 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'banner' ? 'animate-pulse bg-primary/5' : ''}`}
                             >
                                 {uploadingSection === 'banner' ? <Loader2 size={32} className="animate-spin text-primary" /> : <Plus size={32} />}
-                                <span className="text-[10px] font-black uppercase tracking-widest">{uploadingSection === 'banner' ? 'กำลังอัปโหลด...' : 'เพิ่มแบนเนอร์'}</span>
+                                <span className="text-[10px] font-black uppercase tracking-widest">{uploadingSection === 'banner' ? 'กำลังอัปโหลด...' : 'เพิ่มโคเวอร์'}</span>
                             </button>
                         )}
                     </div>
@@ -772,15 +893,27 @@ export default function ProfileEditorV2() {
                 <Section title="วิดีโอแนะนำ" icon={<Video size={22} className="text-primary" />}>
                     <div className="space-y-4">
                         <p className="text-sm text-foreground/60 mb-6">อัพโหลดวิดีโอแนะนำตัวเองหรือผลงาน สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
-                        <VideoUpload
-                            value={profile.video_config}
-                            onChange={(config) => setProfile(p => ({ ...p, video_config: config }))}
-                        />
+
+                        {!hasPremiumVideo && (
+                            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+                                ฟีเจอร์วิดีโอแนะนำสำหรับบัญชีพรีเมี่ยมเท่านั้น กรุณาอัปเกรดเพื่อปลดล็อคการใช้งาน
+                            </div>
+                        )}
+
+                        <div className={!hasPremiumVideo ? 'pointer-events-none opacity-50 select-none' : ''}>
+                            <VideoUpload
+                                value={profile.video_config}
+                                onChange={(config) => {
+                                    if (!hasPremiumVideo) return;
+                                    setProfile(p => ({ ...p, video_config: config }));
+                                }}
+                            />
+                        </div>
                     </div>
                 </Section>
 
                 {/* Websites */}
-                <Section title={t.websiteLinks} icon={<Globe size={22} className="text-primary" />} onAdd={addWebsite} canAdd={profile.websites.length < 10}>
+                <Section sectionId="sec-links" title={t.websiteLinks} icon={<Globe size={22} className="text-primary" />} onAdd={addWebsite} canAdd={profile.websites.length < 10}>
                     <div className="space-y-4">
                         {profile.websites.map((item, i) => (
                             <div key={i} className="flex items-center gap-4 group p-2 rounded-2xl hover:bg-foreground/[0.02] transition-colors border border-transparent hover:border-foreground/5">
@@ -842,7 +975,7 @@ export default function ProfileEditorV2() {
 
 
                 {/* Contact Settings */}
-                <Section title={t.contactSettings || "Contact Settings"} icon={<MessageCircle size={22} className="text-primary" />}>
+                <Section sectionId="sec-contact" title={t.contactSettings || "Contact Settings"} icon={<MessageCircle size={22} className="text-primary" />}>
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {/* Show Lead Form */}
                         <div className="flex items-center justify-between bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
@@ -893,15 +1026,15 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Theme Customization */}
-                <Section title={t.themeCustomization} icon={<Palette size={22} className="text-primary" />}>
+                <Section sectionId="sec-theme" title={t.themeCustomization} icon={<Palette size={22} className="text-primary" />}>
                     {/* Theme Mode */}
                     <div className="mb-10 space-y-4">
                         <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">{t.colorMode} (Public Profile Only)</label>
                         <div className="flex bg-foreground/5 p-1.5 rounded-2xl w-fit border border-foreground/5 gap-1.5">
-                            <button onClick={() => updateTheme('display_theme', 'light')} className={`px-6 py-3 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${profile.layout_config.display_theme === 'light' ? 'bg-background text-foreground shadow-xl scale-105' : 'text-foreground/30 hover:text-foreground/60'}`}>
+                            <button onClick={() => updateTheme('display_theme', 'light')} className={`px-6 py-3 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${profile.layout_config.display_theme !== 'dark' ? 'bg-background text-foreground shadow-xl scale-105' : 'text-foreground/30 hover:text-foreground/60'}`}>
                                 ☀️ {t.light}
                             </button>
-                            <button onClick={() => updateTheme('display_theme', 'dark')} className={`px-6 py-3 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${profile.layout_config.display_theme !== 'light' ? 'bg-background text-foreground shadow-xl scale-105' : 'text-foreground/30 hover:text-foreground/60'}`}>
+                            <button onClick={() => updateTheme('display_theme', 'dark')} className={`px-6 py-3 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${profile.layout_config.display_theme === 'dark' ? 'bg-background text-foreground shadow-xl scale-105' : 'text-foreground/30 hover:text-foreground/60'}`}>
                                 🌙 {t.dark}
                             </button>
                         </div>
@@ -979,6 +1112,8 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Account Settings Moved to /manage/account */}
+                    </div>
+                </div>
             </main>
             
             <footer className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-[0.3em]">
@@ -989,18 +1124,29 @@ export default function ProfileEditorV2() {
 }
 
 // Section component
-function Section({ title, icon, children, onAdd, canAdd = true }: { title: string; icon: React.ReactNode; children: React.ReactNode; onAdd?: () => void; canAdd?: boolean }) {
+function Section({ sectionId, title, icon, children, onAdd, canAdd = true }: { sectionId?: string; title: string; icon: React.ReactNode; children: React.ReactNode; onAdd?: () => void; canAdd?: boolean }) {
+    const [collapsed, setCollapsed] = useState(false);
+
     return (
-        <section className="bg-card-bg border border-glass-border rounded-[40px] p-10 glass-card">
-            <div className="flex justify-between items-center mb-10">
-                <h2 className="text-2xl font-black flex items-center gap-4 tracking-tighter">{icon} {title}</h2>
-                {onAdd && canAdd && (
-                    <button onClick={onAdd} className="bg-primary hover:bg-primary/90 text-white px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-primary/10 transition-all active:scale-95">
-                        <Plus size={18} /> {UI_TEXT['th'].add}
-                    </button>
-                )}
+        <section id={sectionId} className="bg-card-bg border border-glass-border rounded-[32px] p-5 md:p-8 glass-card scroll-mt-36">
+            <div className="flex flex-wrap justify-between items-center gap-3 mb-5 md:mb-6">
+                <button
+                    type="button"
+                    onClick={() => setCollapsed((prev) => !prev)}
+                    className="flex items-center gap-3 text-left"
+                >
+                    <h2 className="text-xl md:text-2xl font-black flex items-center gap-3 tracking-tighter">{icon} {title}</h2>
+                    {collapsed ? <ChevronDown size={18} className="text-foreground/40" /> : <ChevronUp size={18} className="text-foreground/40" />}
+                </button>
+                <div className="flex items-center gap-2">
+                    {onAdd && canAdd && !collapsed && (
+                        <button onClick={onAdd} className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-primary/10 transition-all active:scale-95">
+                            <Plus size={16} /> {UI_TEXT['th'].add}
+                        </button>
+                    )}
+                </div>
             </div>
-            {children}
+            {!collapsed && children}
         </section>
     );
 }

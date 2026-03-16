@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, User, LayoutDashboard, Pencil, Share2, Copy, Check, X } from 'lucide-react';
+import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, User, LayoutDashboard, Pencil, Share2, Copy, Check, X, Download, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { QrCodeImage } from '@/components/QrCode';
@@ -59,6 +59,13 @@ export default function Dashboard() {
         }
         fetchCatalogs();
     }, [token]);
+
+    const getImageUrl = (url: string | undefined) => {
+        if (!url) return '';
+        if (url.startsWith('http')) return url;
+        if (url.startsWith('/uploads')) return `${API_URL}${url}`;
+        return url;
+    };
 
     const fetchCatalogs = async () => {
         try {
@@ -184,37 +191,24 @@ export default function Dashboard() {
             {/* Navbar */}
             <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="font-bold text-xl tracking-tight">NAMECARD<span className="text-primary">.AI</span> <span className="text-foreground/40 font-normal text-sm ml-2 hidden sm:inline">/ Catalogs</span></div>
-                    <div className="flex items-center gap-2 sm:gap-6">
+                    <div className="flex items-center gap-4">
                         <Link
-                            href="/manage/dashboard"
-                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
+                            href="/manage/control-center"
+                            className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group"
+                            title="กลับหน้าเมนูหลัก"
                         >
-                            <LayoutDashboard size={16} /> <span className="hidden md:inline">สถิติ</span>
+                            <ArrowLeft size={20} className="text-foreground/40 group-hover:text-foreground transition-all" />
                         </Link>
-                        <Link
-                            href="/manage/profile"
-                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
-                        >
-                            <User size={16} /> <span className="hidden md:inline">แก้ไขโปรไฟล์</span>
-                        </Link>
-                        <Link
-                            href={Cookies.get('uid') ? `/p/${Cookies.get('uid')}` : '#'}
-                            target="_blank"
-                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
-                        >
-                            <ExternalLink size={16} /> <span className="hidden md:inline">ดูเว็บ</span>
-                        </Link>
-                        <Link
-                            href="/manage/account"
-                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
-                        >
-                            <Settings size={16} /> <span className="hidden md:inline">ตั้งค่าบัญชี</span>
-                        </Link>
-                        <div className="h-6 w-px bg-foreground/10 mx-1" />
+                        <div className="font-bold text-xl tracking-tight hidden sm:block">NAMECARD<span className="text-primary">.AI</span></div>
+                        <div className="h-6 w-px bg-foreground/10 mx-2 hidden sm:block" />
+                        <span className="text-foreground/40 font-bold text-sm">แคตตาล็อกสินค้า</span>
+                    </div>
+
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <ThemeToggle />
-                        <button onClick={handleLogout} className="text-foreground/60 hover:text-red-500 transition-colors ml-2">
-                            <LogOut size={18} />
+                        <div className="h-6 w-px bg-foreground/10 mx-1" />
+                        <button onClick={handleLogout} className="w-10 h-10 rounded-xl hover:bg-red-500/5 hover:text-red-500 text-foreground/40 transition-all flex items-center justify-center" title="ออกจากระบบ">
+                            <LogOut size={20} />
                         </button>
                     </div>
                 </div>
@@ -299,11 +293,23 @@ export default function Dashboard() {
                                             <button
                                                 onClick={() => generatePdf(catalog.id)}
                                                 disabled={generatingId === catalog.id}
-                                                className="bg-foreground/10 hover:bg-foreground/20 p-2.5 rounded-xl text-foreground/60 hover:text-foreground transition-all"
+                                                className="bg-foreground/10 hover:bg-foreground/20 p-2.5 rounded-xl text-foreground/60 hover:text-foreground transition-all flex items-center gap-2 px-4"
                                                 title="สร้าง PDF ใหม่"
                                             >
                                                 {generatingId === catalog.id ? <Loader2 size={18} className="animate-spin" /> : <Settings size={18} />}
+                                                <span className="text-sm font-bold">{generatingId === catalog.id ? 'Processing...' : 'Generate PDF'}</span>
                                             </button>
+                                            
+                                            {catalog.pdf_url && (
+                                                <a
+                                                    href={getImageUrl(catalog.pdf_url)}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="bg-primary text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/20"
+                                                >
+                                                    <Download size={18} /> Download PDF
+                                                </a>
+                                            )}
                                         </div>
                                     </div>
 

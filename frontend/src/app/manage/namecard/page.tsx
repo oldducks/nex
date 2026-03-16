@@ -209,7 +209,7 @@ export default function NamecardEditor() {
             <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <Link href="/manage/profile" className="text-foreground/40 hover:text-foreground transition-colors">
+                        <Link href="/manage/control-center" className="text-foreground/40 hover:text-foreground transition-colors">
                             <ArrowLeft size={20} />
                         </Link>
                         <div className="font-bold text-xl tracking-tight">Namecard Editor</div>

@@ -11,7 +11,7 @@ interface ThemeContextType {
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 const variant = process.env.NEXT_PUBLIC_THEME_VARIANT;
-const defaultTheme: Theme = variant === 'cyan-orange-green' ? 'brand-cog' : 'dark';
+const defaultTheme: Theme = variant === 'cyan-orange-green' ? 'brand-cog' : 'light';
 const supportedThemes: Theme[] = variant === 'cyan-orange-green'
     ? ['dark', 'light', 'pastel', 'midnight', 'brand-cog']
     : ['dark', 'light', 'pastel', 'midnight'];

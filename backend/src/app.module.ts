@@ -54,7 +54,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
         type: 'postgres',
         url: process.env.DATABASE_URL,
         entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage, Referral, Form, FormSubmission, QRCode, ConsentLog],
-        synchronize: true, // Dev only
+        synchronize: process.env.TYPEORM_SYNCHRONIZE === 'true',
       }),
     }),
     BullModule.forRootAsync({

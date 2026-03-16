@@ -26,8 +26,10 @@ export class AuthController {
         const secure = isProd;
         const sameSite: 'lax' | 'none' = isProd ? 'none' : 'lax';
 
+        // Temporary compatibility mode: frontend pages still read Cookies.get('token')
+        // Keep token readable by client until all pages migrate to server-session flow.
         res.cookie('token', payload.access_token, {
-            httpOnly: true,
+            httpOnly: false,
             secure,
             sameSite,
             path: '/',

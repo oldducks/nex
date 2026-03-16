@@ -49,16 +49,36 @@ export class PdfProcessor extends WorkerHost {
           <h1>${catalog.title}</h1>
           <p>${catalog.description || ''}</p>
           <hr/>
-          ${catalog.products.map(p => `
+          ${catalog.products.map(p => {
+            let imageSrc = '';
+            if (p.images_json?.[0]) {
+              try {
+                const relPath = p.images_json[0].startsWith('/') ? p.images_json[0].substring(1) : p.images_json[0];
+                const imagePath = path.join(process.cwd(), relPath);
+                
+                if (fs.existsSync(imagePath)) {
+                  const imageBuffer = fs.readFileSync(imagePath);
+                  const base64Image = imageBuffer.toString('base64');
+                  const ext = path.extname(imagePath).replace('.', '') || 'png';
+                  imageSrc = `data:image/${ext};base64,${base64Image}`;
+                } else {
+                    console.warn(`[PdfProcessor] Image NOT found: ${imagePath}`);
+                }
+              } catch (err) {
+                console.error(`[PdfProcessor] Error reading image: ${err.message}`);
+              }
+            }
+            return `
             <div class="product">
-              ${p.images_json?.[0] ? `<img src="${p.images_json[0]}" />` : ''}
+              ${imageSrc ? `<img src="${imageSrc}" />` : ''}
               <div class="details">
                 <h3>${p.name}</h3>
                 <p>${p.description || ''}</p>
                 <div class="price">฿${p.price}</div>
               </div>
             </div>
-          `).join('')}
+            `;
+          }).join('')}
         </body>
         </html>
       `;
@@ -67,10 +87,14 @@ export class PdfProcessor extends WorkerHost {
       const browser = await puppeteer.launch({
         headless: true,
         executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || undefined,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: ['--no-sandbox', '--disable-setuid-sandbox', '--allow-file-access-from-files'],
       });
       const page = await browser.newPage();
-      await page.setContent(htmlContent);
+      
+      // Additional check: print out what we are loading if debug is on or just helpful log
+      console.log(`[PdfProcessor] Setting content with ${catalog.products.length} products`);
+
+      await page.setContent(htmlContent, { waitUntil: 'networkidle0' });
 
       const fileName = `catalog_${catalogId}_${Date.now()}.pdf`;
       const uploadDir = path.join(process.cwd(), 'uploads');
@@ -79,7 +103,12 @@ export class PdfProcessor extends WorkerHost {
       // Ensure directory exists
       if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
-      await page.pdf({ path: filePath, format: 'A4' });
+      await page.pdf({ 
+        path: filePath, 
+        format: 'A4',
+        printBackground: true,
+        margin: { top: '20px', bottom: '20px', left: '20px', right: '20px' }
+      });
       await browser.close();
 
       // 4. Update Database

@@ -149,18 +149,30 @@ export class CreateLiteService {
     fallback: CreateLiteCopyResult,
   ): Promise<CreateLiteCopyResult | null> {
     if (process.env.OPENAI_API_KEY) {
-      const result = await this.generateWithOpenAi(input, fallback);
-      if (result) return result;
+      try {
+        const result = await this.generateWithOpenAi(input, fallback);
+        if (result) return result;
+      } catch (error) {
+        this.logger.warn(`OpenAI failed: ${error instanceof Error ? error.message : 'unknown'}`);
+      }
     }
 
     if (process.env.GOOGLE_API_KEY) {
-      const result = await this.generateWithGemini(input, fallback);
-      if (result) return result;
+      try {
+        const result = await this.generateWithGemini(input, fallback);
+        if (result) return result;
+      } catch (error) {
+        this.logger.warn(`Gemini failed: ${error instanceof Error ? error.message : 'unknown'}`);
+      }
     }
 
     if (process.env.ANTHROPIC_API_KEY) {
-      const result = await this.generateWithAnthropic(input, fallback);
-      if (result) return result;
+      try {
+        const result = await this.generateWithAnthropic(input, fallback);
+        if (result) return result;
+      } catch (error) {
+        this.logger.warn(`Anthropic failed: ${error instanceof Error ? error.message : 'unknown'}`);
+      }
     }
 
     return null;

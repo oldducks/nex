@@ -66,6 +66,24 @@ export default function PublicCatalog() {
     }
   };
 
+  const getImageUrl = (url: string | undefined) => {
+    if (!url) return 'https://via.placeholder.com/400x500';
+    const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
+    if (url.startsWith('http')) {
+        if (url.includes('localhost:') && SITE_URL.includes('https://nexsolution.cloud')) {
+            try {
+                const parsedUrl = new URL(url);
+                if (parsedUrl.pathname.startsWith('/uploads')) {
+                    return `${API_URL}${parsedUrl.pathname}`;
+                }
+            } catch (e) {}
+        }
+        return url;
+    }
+    if (url.startsWith('/uploads')) return `${API_URL}${url}`;
+    return url;
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -146,7 +164,7 @@ export default function PublicCatalog() {
               <div className="h-6 w-px bg-foreground/10 mx-2" />
               {catalog.pdf_url && (
                 <a 
-                  href={catalog.pdf_url} 
+                  href={getImageUrl(catalog.pdf_url)} 
                   target="_blank"
                   className="p-3 bg-foreground/5 hover:bg-foreground/10 rounded-xl transition-colors"
                 >
@@ -182,7 +200,7 @@ export default function PublicCatalog() {
                 {/* Image */}
                 <div className="aspect-[4/5] relative overflow-hidden">
                   <img
-                    src={product.images_json?.[0] || 'https://via.placeholder.com/400x500'}
+                    src={getImageUrl(product.images_json?.[0])}
                     alt={product.name}
                     className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   />
@@ -223,6 +241,7 @@ export default function PublicCatalog() {
         {selectedProduct && (
           <ProductModal 
             product={selectedProduct} 
+            getImageUrl={getImageUrl}
             onClose={() => setSelectedProduct(null)} 
           />
         )}
@@ -254,7 +273,7 @@ function CatalogLinks({ links }: { links?: any }) {
   );
 }
 
-function ProductModal({ product, onClose }: { product: Product, onClose: () => void }) {
+function ProductModal({ product, onClose, getImageUrl }: { product: Product, onClose: () => void, getImageUrl: (url: string | undefined) => string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
@@ -268,7 +287,7 @@ function ProductModal({ product, onClose }: { product: Product, onClose: () => v
           {/* Gallery Sidebar/Image */}
           <div className="md:w-1/2 p-4 md:p-8">
             <div className="relative aspect-[4/5] rounded-[32px] overflow-hidden bg-black">
-              <img src={product.images_json?.[0]} alt={product.name} className="w-full h-full object-cover" />
+              <img src={getImageUrl(product.images_json?.[0])} alt={product.name} className="w-full h-full object-cover" />
             </div>
           </div>
 

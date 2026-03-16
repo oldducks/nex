@@ -129,10 +129,13 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
     const updateConfig = (updates: Partial<VideoConfig>) => {
         if (value) {
             onChange({ ...value, ...updates });
+        } else {
+            onChange({ url: '', autoplay: false, link_enabled: false, enabled: true, ...updates });
         }
     };
 
-    const getFullUrl = (url: string) => {
+    const getFullUrl = (url?: string) => {
+        if (!url || typeof url !== 'string') return '';
         if (url.startsWith('http')) return url;
         return `${API_URL}${url}`;
     };
@@ -143,34 +146,34 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
             {!value?.url ? (
                 <div
                     onClick={() => !uploading && fileInputRef.current?.click()}
-                    className={`border-2 border-dashed border-foreground/20 rounded-2xl p-8 text-center transition-all ${uploading ? 'cursor-default opacity-80' : 'cursor-pointer hover:border-primary/50 hover:bg-primary/5'}`}
+                    className={`border-[3px] border-dashed border-primary/50 bg-primary/5 rounded-2xl p-10 text-center transition-all ${uploading ? 'cursor-default opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/10 hover:-translate-y-1 hover:shadow-xl'}`}
                 >
                     {uploading ? (
                         <div className="flex flex-col items-center gap-4">
-                            <div className="relative w-16 h-16">
-                                <Loader2 className="animate-spin text-primary absolute inset-0" size={64} />
-                                <div className="absolute inset-0 flex items-center justify-center text-[10px] font-black">
+                            <div className="relative w-20 h-20">
+                                <Loader2 className="animate-spin text-primary absolute inset-0" size={80} />
+                                <div className="absolute inset-0 flex items-center justify-center text-xs font-black">
                                     {progress}%
                                 </div>
                             </div>
-                            <div className="w-full max-w-[200px] bg-foreground/10 h-1.5 rounded-full overflow-hidden">
+                            <div className="w-full max-w-[250px] bg-foreground/10 h-2 rounded-full overflow-hidden">
                                 <div 
                                     className="h-full bg-primary transition-all duration-300"
                                     style={{ width: `${progress}%` }}
                                 />
                             </div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-foreground/40 italic">
-                                กำลังประมวลผลและบีบอัดวิดีโอ...
+                            <p className="text-xs font-black uppercase tracking-widest text-primary italic font-mono">
+                                กำลังอัพโหลดและบีบอัดวิดีโอ...
                             </p>
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-3">
-                            <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                <Upload className="text-primary" size={24} />
+                        <div className="flex flex-col items-center gap-4">
+                            <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                                <Upload className="text-white" size={36} />
                             </div>
                             <div>
-                                <p className="font-medium text-foreground">คลิกเพื่ออัพโหลดวิดีโอ</p>
-                                <p className="text-sm text-foreground/50 mt-1">MP4, WebM, OGG (สูงสุด 100MB)</p>
+                                <h3 className="text-lg font-black text-primary uppercase tracking-wider">คลิกที่นี่เพื่ออัพโหลดวิดีโอ</h3>
+                                <p className="text-sm text-foreground/60 mt-2 font-medium">รองรับ MP4, WebM, OGG (สูงสุด 200MB)</p>
                             </div>
                         </div>
                     )}
@@ -313,7 +316,8 @@ export function VideoPlayer({ config, className = '' }: VideoPlayerProps) {
         return null;
     }
 
-    const getFullUrl = (url: string) => {
+    const getFullUrl = (url?: string) => {
+        if (!url || typeof url !== 'string') return '';
         if (url.startsWith('http')) return url;
         return `${API_URL}${url}`;
     };

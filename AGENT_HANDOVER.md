@@ -1002,6 +1002,56 @@
 
 *Updated by Codex on 2026-03-07*
 
+### 2026-03-09: Runtime Hotfix – Public Profile Theme Lock + Premium Video Gate + Login Recovery
+**Goal**: แก้ปัญหาหน้า public profile ถูกควบคุมด้วย global theme toggle ของผู้ชม และล็อกฟีเจอร์วิดีโอแนะนำสำหรับบัญชีที่ยังไม่ปลดล็อกพรีเมี่ยม พร้อมกู้การล็อกอินให้กลับมาเสถียร
+
+**What changed**:
+1. Public Profile Theme Lock (Owner-controlled only)
+   - ไฟล์: `frontend/src/app/[prefix]/[uid]/page.tsx`
+   - ลบ `ThemeToggle` ออกจากหน้า public profile
+   - บังคับหน้า public ใช้ theme จาก `layout_config` ของเจ้าของเท่านั้น:
+     - `display_theme` (light/dark)
+     - `primary_color`
+     - `font_family`
+   - ตั้งค่า CSS variables (`--background`, `--foreground`, `--glass`, `--glass-border`) ตาม owner theme โดยตรง
+
+2. Premium Video Gate (Manage Profile UI)
+   - ไฟล์: `frontend/src/app/manage/profile/page.tsx`
+   - เพิ่มเงื่อนไขสิทธิ์วิดีโอ:
+     - เปิดใช้งานได้เมื่อ `subscription_tier === 'premium'` หรือ `feature_config.video === true`
+   - ถ้ายังไม่ปลดล็อก:
+     - แสดงกล่องแจ้งเตือนว่าเป็นฟีเจอร์พรีเมี่ยม
+     - ปิด interaction ของ `VideoUpload` (pointer-events none + dimmed)
+
+3. Profile API payload expansion for gating
+   - ไฟล์: `backend/src/profiles/profiles.service.ts`
+   - `GET /profile/me` เพิ่มข้อมูลกลับไป frontend:
+     - `subscription_tier`
+     - `feature_config`
+   - ครอบคลุมทั้งเคสมี profile และยังไม่มี profile
+
+4. Login recovery (cookie compatibility)
+   - ไฟล์: `backend/src/auth/auth.controller.ts`
+   - ปรับ `token` cookie เป็น readable ฝั่ง client ชั่วคราว (`httpOnly: false`) เพื่อเข้ากับหน้าที่ยังใช้ `Cookies.get('token')`
+   - รีเซ็ตรหัสผ่านผู้ใช้ `chonlapat.th@gmail.com` เพื่อทดสอบ/กู้การเข้าถึง
+   - ยืนยัน API login สำเร็จ (`201`) และ set-cookie กลับครบ
+
+5. OAuth health check
+   - ตรวจ `GET /api/auth/google` และ `GET /api/auth/line` ได้ `302` redirect ไป provider ถูกต้อง
+
+6. Docker deploy
+   - รัน `docker compose up -d --build api web`
+   - ยืนยัน service `api` และ `web` ทำงานปกติหลัง deploy
+
+**Files updated**:
+- `frontend/src/app/[prefix]/[uid]/page.tsx`
+- `frontend/src/app/manage/profile/page.tsx`
+- `backend/src/profiles/profiles.service.ts`
+- `backend/src/auth/auth.controller.ts`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-09*
+
 ### 2026-03-07: Go-live Finalization + AI Runtime Wiring + Ops Validation
 **Goal**: ปิดงานก่อน go-live ให้ครบทั้ง test/build/deploy verification, runtime stabilization, และตรวจความพร้อม AI integration จริงใน production stack
 
@@ -1132,3 +1182,41 @@
 - `frontend/src/proxy.ts` (renamed from `frontend/src/middleware.ts`)
 
 *Updated by Codex on 2026-03-07*
+
+### 2026-03-15: Phase 7 - Unified Navigation & UI Consolidation
+**Goal**: เพิ่มความสะดวกในการใช้งาน (UX) โดยรวมเมนูจัดการเข้าหาศูนย์กลาง (Control Center) และปรับปรุงระบบการนำทางกลับ (Back Navigation)
+
+**What changed**:
+1. **Control Center Optimization (`/manage/control-center`)**:
+   - เพิ่ม **Quick Access Sticky Bottom Menu** สำหรับเวอร์ชันมือถือและเดสก์ท็อป ประกอบด้วย: สถิติ, แก้ไขโปรไฟล์, ดูหน้าเว็บจริง, และตั้งค่าบัญชี
+   - กู้คืนและตรวจสอบการทำงานของ **Upgrade Modal** เพื่อให้ระบบสมัครสมาชิกพรีเมียมทำงานได้สมบูรณ์
+   - ปรับแต่งหน้าตา (UI) ให้สะอาดขึ้น โดยย้ายเมนูย่อยของแต่ละส่วนมารวมไว้ที่นี่ที่เดียว
+
+2. **Standardized Back Navigation**:
+   - เพิ่มปุ่ม "ย้ายกลับเมนูก่อนหน้า" (Back to Control Center) ในทุกหน้าจัดการหลัก:
+     - Catalogs (`/manage`)
+     - Dashboard (`/manage/dashboard`)
+     - Account Settings (`/manage/account`)
+     - Profile Editor (`/manage/profile`)
+     - Leads (`/manage/leads`)
+     - QR Generator (`/manage/qr`)
+     - Namecard Designer (`/manage/namecard`)
+     - Referrals (`/manage/referrals`)
+   - ลบเมนูนำทาง (Navbar Links) ที่ซ้ำซ้อนในแต่ละหน้าออก เพื่อลด Cognitive Load และเน้นให้ผู้ใช้กลับมาใช้ Control Center เป็นหลัก
+
+3. **Checklist sync**:
+   - อัปเดต `DEVELOPMENT_CHECKLIST.md` เพิ่ม Phase 7 — Navigation & UX Refinement
+
+**Files updated**:
+- `frontend/src/app/manage/control-center/page.tsx`
+- `frontend/src/app/manage/page.tsx`
+- `frontend/src/app/manage/dashboard/page.tsx`
+- `frontend/src/app/manage/account/page.tsx`
+- `frontend/src/app/manage/profile/page.tsx`
+- `frontend/src/app/manage/leads/page.tsx`
+- `frontend/src/app/manage/qr/page.tsx`
+- `frontend/src/app/manage/namecard/page.tsx`
+- `frontend/src/app/manage/referrals/page.tsx`
+- `DEVELOPMENT_CHECKLIST.md`
+
+*Updated by Antigravity on 2026-03-15*

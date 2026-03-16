@@ -75,6 +75,8 @@ export class ProfilesService {
         uid: user?.uid || '',
         url_prefix: user?.url_prefix,
         expiration_date: user?.expiration_date,
+        subscription_tier: user?.subscription_tier || 'free',
+        feature_config: user?.feature_config || {},
         full_name: '',
         position: '',
         company_name: '',
@@ -89,6 +91,8 @@ export class ProfilesService {
       uid: profile.user?.uid || '',
       url_prefix: profile.user?.url_prefix,
       expiration_date: profile.user?.expiration_date,
+      subscription_tier: profile.user?.subscription_tier || 'free',
+      feature_config: profile.user?.feature_config || {},
       ...profile,
       user: profile.user ? { role: profile.user.role } : null
     };

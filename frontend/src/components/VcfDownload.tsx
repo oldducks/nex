@@ -140,10 +140,10 @@ FN:${name}
         <button
             onClick={generateVcf}
             disabled={downloading}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all disabled:opacity-50"
+            className="w-full bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all shadow-lg shadow-blue-500/20 active:scale-[0.98] disabled:opacity-50"
         >
             {downloading ? <Loader2 size={24} className="animate-spin" /> : <Download size={24} />}
-            บันทึกข้อมูลติดต่อ
+            ดาวน์โหลดข้อมูลลงสมุดโทรศัพท์
         </button>
     );
 }

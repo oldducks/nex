@@ -52,7 +52,7 @@ export default function AccountSettingsPage() {
              <header className="fixed top-0 left-0 right-0 z-50 glass-effect border-b border-glass-border">
                 <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-6">
-                        <Link href="/manage" className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-all">
+                        <Link href="/manage/control-center" className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-all">
                             <ArrowLeft size={20} />
                         </Link>
                         <div>

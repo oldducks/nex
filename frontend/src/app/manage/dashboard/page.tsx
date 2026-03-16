@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart as ReLineChart, Line } from 'recharts';
-import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, LayoutDashboard, Database, Loader2, LineChart, QrCode } from 'lucide-react';
+import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, LayoutDashboard, Database, Loader2, LineChart, QrCode, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
@@ -128,34 +128,24 @@ export default function AnalyticsDashboard() {
             {/* Navbar */}
             <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="font-bold text-xl tracking-tight flex items-center gap-2">
-                        <LayoutDashboard size={24} className="text-primary" />
-                        <span className="hidden sm:inline">สถิติการใช้งาน</span>
+                    <div className="flex items-center gap-4">
+                        <Link
+                            href="/manage/control-center"
+                            className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group"
+                            title="กลับหน้าเมนูหลัก"
+                        >
+                            <ArrowLeft size={20} className="text-foreground/40 group-hover:text-foreground transition-all" />
+                        </Link>
+                        <div className="font-bold text-xl tracking-tight flex items-center gap-2">
+                            <LayoutDashboard size={24} className="text-primary" />
+                            <span className="hidden sm:inline">สถิติการใช้งาน</span>
+                        </div>
                     </div>
-                    <div className="flex items-center gap-2 sm:gap-6">
-                        <Link
-                            href="/manage"
-                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
-                        >
-                            <Database size={16} /> <span className="hidden md:inline">แคตตาล็อก</span>
-                        </Link>
-                        <Link
-                            href="/manage/profile"
-                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
-                        >
-                            <User size={16} /> <span className="hidden md:inline">โปรไฟล์</span>
-                        </Link>
-                        <Link
-                            href={profile?.url_prefix ? `/${profile.url_prefix}/${profile.uid}` : '#'}
-                            target="_blank"
-                            className="text-foreground/60 hover:text-foreground transition-colors flex items-center gap-2 text-sm"
-                        >
-                            <ExternalLink size={16} /> <span className="hidden md:inline">ดูเว็บ</span>
-                        </Link>
-                        <div className="h-6 w-px bg-foreground/10 mx-1" />
+                    <div className="flex items-center gap-2 sm:gap-4">
                         <ThemeToggle />
-                        <button onClick={handleLogout} className="text-foreground/60 hover:text-red-500 transition-colors ml-2">
-                            <LogOut size={18} />
+                        <div className="h-6 w-px bg-foreground/10 mx-1" />
+                        <button onClick={handleLogout} className="w-10 h-10 rounded-xl hover:bg-red-500/5 hover:text-red-500 text-foreground/40 transition-all flex items-center justify-center" title="ออกจากระบบ">
+                            <LogOut size={20} />
                         </button>
                     </div>
                 </div>

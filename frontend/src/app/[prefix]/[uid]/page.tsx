@@ -19,9 +19,70 @@ import { ProfilePageClient } from '../../../components/ProfilePageClient';
 import { VideoEmbed } from '../../../components/VideoEmbed';
 import { Gallery } from '../../../components/Gallery';
 import { LeadForm } from '../../../components/LeadForm';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { SocialLinksDisplay } from '../../../components/SocialLinksDisplay';
 import { CatalogsDisplay } from '../../../components/CatalogsDisplay';
+
+import { SaveToHomeButton } from '../../../components/SaveToHomeButton';
+import { Metadata } from 'next';
+
+// Helper function for metadata since we can't share it easily with the component
+const getImageUrlBase = (url: string | null | undefined) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    if (url.startsWith('/uploads')) return `${API_URL}${url}`;
+    return url;
+};
+
+const getThumbUrlBase = (url: string | null | undefined) => {
+    if (!url) return '';
+    if (url.startsWith('http')) return url;
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    if (url.startsWith('/uploads')) {
+        const parts = url.split('/');
+        const filename = parts.pop();
+        return `${API_URL}${parts.join('/')}/thumb_${filename}`;
+    }
+    return url;
+};
+
+export async function generateMetadata({ params }: { params: Promise<{ prefix: string; uid: string }> }): Promise<Metadata> {
+    const { prefix, uid } = await params;
+    const data = await getProfile(uid);
+    if (!data) return { title: 'Not Found | NEX Solution' };
+
+    const displayName = data.names_i18n?.find((n: any) => n.value?.trim())?.value || data.full_name || 'NEX Digital Card';
+    const profileImageUrl = getImageUrlBase(data.profile_pic_url);
+    const thumbUrl = getThumbUrlBase(data.profile_pic_url);
+    const fallbackIconUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/nex_logo_nobg.png`;
+    const iconUrl = thumbUrl || profileImageUrl || fallbackIconUrl;
+
+    return {
+        title: displayName,
+        description: data.about_me || `Digital card for ${displayName}`,
+        manifest: `/${prefix}/${uid}/manifest`,
+        icons: {
+            icon: [
+                { url: '/favicon.ico' },
+                { url: iconUrl, sizes: '192x192', type: 'image/png' },
+            ],
+            apple: [
+                { url: iconUrl, sizes: '180x180', type: 'image/png' },
+            ],
+        },
+        openGraph: {
+            title: displayName,
+            description: data.about_me || `Digital card for ${displayName}`,
+            images: profileImageUrl ? [{ url: profileImageUrl }] : [],
+        },
+        other: {
+            'mobile-web-app-capable': 'yes',
+            'apple-mobile-web-app-capable': 'yes',
+            'apple-mobile-web-app-status-bar-style': 'black-translucent',
+            'apple-mobile-web-app-title': displayName,
+        }
+    };
+}
 
 export default async function ProfilePage({ params }: { params: Promise<{ prefix: string; uid: string }> }) {
     const { prefix, uid } = await params;
@@ -85,9 +146,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     // Get display values
     // Get display values
     const displayName = names_i18n?.find((n: any) => n.value?.trim())?.value || full_name || 'Unknown User';
-    const displayPosition = positions_i18n?.length > 0
-        ? positions_i18n.map((p: any) => p.value).filter(Boolean).join(' / ')
-        : position || '';
+    const displayPositions = positions_i18n?.filter((p: any) => p.value?.trim()) || [];
+    if (displayPositions.length === 0 && position) {
+        displayPositions.push({ value: position });
+    }
+    const displayPosition = displayPositions[0]?.value || '';
     const displayCompanies = companies_i18n?.filter((c: any) => c.value?.trim()) || [];
     if (displayCompanies.length === 0 && company_name) {
         displayCompanies.push({ value: company_name });
@@ -106,23 +169,40 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
         return url;
     };
 
+    const getThumbUrl = (url: string) => {
+        if (!url) return '';
+        if (url.startsWith('http')) return url;
+        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+        if (url.startsWith('/uploads')) {
+            const parts = url.split('/');
+            const filename = parts.pop();
+            return `${API_URL}${parts.join('/')}/thumb_${filename}`;
+        }
+        return url;
+    };
+
     const profileImageUrl = getImageUrl(profile_pic_url || '');
+    const profileThumbUrl = getThumbUrl(profile_pic_url || '');
+    const fallbackIconUrl = `${SITE_URL}/nex_logo_nobg.png`;
+    const iconUrl = profileThumbUrl || profileImageUrl || fallbackIconUrl;
     const logoUrl = logo?.url ? getImageUrl(logo.url) : '';
     const bannerUrl = banners?.[0]?.url ? getImageUrl(banners[0].url) : '';
     const profileUrl = `${SITE_URL}/${data.url_prefix}/${uid}`;
 
-    // Theme Configuration
+    // Theme Configuration (locked to profile owner's layout_config)
     const theme = layout_config || {};
-    // const lightMode = theme.display_theme === 'light'; // Removed to allow global theme
+    const lightMode = theme.display_theme !== 'dark';
     const primary = theme.primary_color || '#6366F1';
     const font = theme.font_family || 'Inter';
 
     const themeStyles = {
         '--primary': primary,
-        // '--background': lightMode ? '#f4f4f5' : '#050505', // Use global theme
-        // '--foreground': lightMode ? '#18181b' : '#ffffff', // Use global theme
-        // '--glass': lightMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 15, 15, 0.7)', // Use global theme
-        // '--glass-border': lightMode ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)', // Use global theme
+        '--background': lightMode ? '#f4f4f5' : '#050505',
+        '--foreground': lightMode ? '#18181b' : '#ffffff',
+        '--glass': lightMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 15, 15, 0.7)',
+        '--glass-border': lightMode ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
+        backgroundColor: lightMode ? '#f4f4f5' : '#050505',
+        color: lightMode ? '#18181b' : '#ffffff',
         fontFamily: `"${font}", sans-serif`,
     } as React.CSSProperties;
 
@@ -135,8 +215,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     const bgImage = backgrounds?.[0]?.url ? getImageUrl(backgrounds[0].url) : null;
 
     // Filter banners by position
-    const topBanners = banners?.filter((b: any) => (b.display_position || 'top') === 'top') || [];
-    const bottomBanners = banners?.filter((b: any) => b.display_position === 'bottom') || [];
+    const topBanners = (banners?.filter((b: any) => (b.display_position || 'top') === 'top') || []).slice(0, 1);
+    const bottomBanners = (banners?.filter((b: any) => b.display_position === 'bottom') || []).slice(0, 1);
 
     // Single Banner Component
     const BannerItem = ({ banner, index }: { banner: any; index: number }) => {
@@ -210,11 +290,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
         <ProfilePageClient profileData={data}>
             <link href={`https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;700;900&display=swap`} rel="stylesheet" />
             
-            {/* Global Theme Toggle for Profile */}
-            <div className="fixed top-6 right-6 z-[100]">
-                <ThemeToggle />
-            </div>
-
             <main
                 id="profile-capture"
                 className={`relative min-h-screen transition-colors duration-500 overflow-hidden bg-background text-foreground ${isExpired ? 'grayscale pointer-events-none select-none' : ''}`}
@@ -289,9 +364,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                         <User size={96} />
                                     </div>
                                 )}
-                                {/* Logo Badge */}
+                                {/* Logo Badge Premium */}
                                 {logoUrl && (
-                                    <div className="absolute bottom-4 right-4 w-16 h-16 bg-white rounded-xl shadow-lg p-2 border border-gray-200">
+                                    <div className="absolute bottom-4 right-4 w-16 h-16 drop-shadow-xl overflow-hidden rounded-xl">
                                         <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
                                     </div>
                                 )}
@@ -299,31 +374,50 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         </div>
 
                         {/* Info */}
-                        <div className={`flex-grow ${profilePosition === 'center' ? 'text-center' : 'text-left'}`}>
-                            {displayPosition && (
-                                <div className={`text-primary font-bold tracking-[0.2em] uppercase text-sm mb-3 flex items-center gap-2 ${profilePosition === 'center' ? 'justify-center' : ''} drop-shadow-md`}>
-                                    {displayPosition}
-                                </div>
-                            )}
-
-                            <h1 className="text-4xl font-black mb-4 tracking-tight leading-none drop-shadow-lg text-foreground">
-                                {displayName}
-                            </h1>
-
-                            {names_i18n?.length > 1 && (
-                                <div className="flex flex-wrap gap-2 mb-4 justify-center">
-                                    {names_i18n.slice(1).map((name: any, i: number) => (
-                                        <span key={i} className="text-foreground/70 text-lg drop-shadow-md">{name.value}</span>
+                        <div className={`flex-grow flex flex-col ${profilePosition === 'center' ? 'text-center items-center' : 'text-left items-start'}`}>
+                            {/* Positions (Job Titles) */}
+                            {displayPositions.length > 0 && (
+                                <div className={`flex flex-col gap-2 mb-6 w-full ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
+                                    {displayPositions.map((pos: any, i: number) => (
+                                        <div 
+                                            key={i} 
+                                            className={`font-black tracking-[0.15em] drop-shadow-md ${i === 0 ? 'text-primary/70 text-sm' : 'text-primary text-[15px] uppercase'}`}
+                                        >
+                                            {pos.value}
+                                        </div>
                                     ))}
                                 </div>
                             )}
 
+                            {/* Names */}
+                            <div className={`flex flex-col gap-3 mb-8 w-full ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
+                                <h1 className="text-[44px] leading-tight sm:text-[56px] font-black tracking-tight text-foreground" style={{ textShadow: '0 4px 30px rgba(0,0,0,0.5)' }}>
+                                    {displayName}
+                                </h1>
+                                
+                                {names_i18n?.length > 1 && (
+                                    <div className="flex flex-col gap-2">
+                                        {names_i18n.slice(1).map((name: any, i: number) => (
+                                            <h2 key={i} className="text-foreground/60 font-medium tracking-wide text-[22px] drop-shadow-md">
+                                                {name.value}
+                                            </h2>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Companies */}
                             {displayCompanies.length > 0 && (
-                                <div className="mb-4 flex flex-col gap-2 items-center text-foreground/65 drop-shadow-md">
+                                <div className={`flex flex-col gap-3 w-full ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
                                     {displayCompanies.map((comp: any, i: number) => (
-                                        <p key={i} className="text-xl flex items-center gap-2">
-                                            <Building2 size={18} /> {comp.value}
-                                        </p>
+                                        <div key={i} className="flex items-center gap-3 text-foreground/75 hover:text-foreground transition-all duration-300 group">
+                                            <div className="w-10 h-10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
+                                                <Building2 size={24} className="opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all" />
+                                            </div>
+                                            <span className="font-medium tracking-wide text-2xl drop-shadow-sm">
+                                                {comp.value}
+                                            </span>
+                                        </div>
                                     ))}
                                 </div>
                             )}
@@ -438,9 +532,27 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         </section>
                     )}
 
-                    {/* Save Contact Button */}
-                    {feature_config?.can_save_vcf !== false && (
-                        <section className="mb-12">
+                    {/* Lead Generation Form */}
+                    {layout_config?.show_lead_form !== false && (
+                        <section className="mb-12 cursor-default">
+                            <LeadForm targetUid={uid} />
+                        </section>
+                    )}
+
+                    {/* Catalogs */}
+                    <CatalogsDisplay catalogs={catalogs} />
+
+                    {/* Quick Actions (Downloads & Saves) */}
+                    <section className="mb-12 flex flex-col gap-4">
+                        {/* Save to Home Screen Button */}
+                        <SaveToHomeButton 
+                            uid={uid}
+                            profileName={displayName}
+                            profilePicUrl={profileThumbUrl || profileImageUrl}
+                        />
+
+                        {/* Save Contact Button */}
+                        {feature_config?.can_save_vcf !== false && (
                             <VcfDownloadButton
                                 name={displayName}
                                 position={displayPosition}
@@ -450,18 +562,9 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 website={ensureHttps(websites?.[0]?.url || '')}
                                 profilePicUrl={profileImageUrl}
                             />
-                        </section>
-                    )}
+                        )}
 
-                    {/* Lead Generation Form */}
-                    {layout_config?.show_lead_form !== false && (
-                        <section className="mb-12 cursor-default">
-                            <LeadForm targetUid={uid} />
-                        </section>
-                    )}
-
-                    {/* Download Namecard PNG Button */}
-                    <section className="mb-12">
+                        {/* Download Namecard Image Button */}
                         <NamecardDownloadButton
                             nameMain={displayName}
                             nameSub={names_i18n?.find((n: any) => n.lang === 'en')?.value}
@@ -475,9 +578,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             template="gradient"
                         />
                     </section>
-
-                    {/* Catalogs */}
-                    <CatalogsDisplay catalogs={catalogs} />
                 </div>
 
                 {/* Bottom Banners */}
