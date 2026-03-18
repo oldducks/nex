@@ -1,10 +1,11 @@
-import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException, Inject, forwardRef } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Form } from './entities/form.entity';
 import { CreateFormDto } from './dto/create-form.dto';
 import { UpdateFormDto } from './dto/update-form.dto';
 import { FormSubmission } from './entities/form-submission.entity';
+import { LeadsService } from '../leads/leads.service';
 
 @Injectable()
 export class FormsService {
@@ -13,6 +14,8 @@ export class FormsService {
     private readonly formsRepository: Repository<Form>,
     @InjectRepository(FormSubmission)
     private readonly submissionsRepository: Repository<FormSubmission>,
+    @Inject(forwardRef(() => LeadsService))
+    private readonly leadsService: LeadsService,
   ) {}
 
   async create(ownerId: number, dto: CreateFormDto) {
@@ -90,6 +93,28 @@ export class FormsService {
       source: payload.source || null,
     });
     await this.submissionsRepository.save(submission);
+
+    // บันทึกลงในระบบ Leads ของ Platform
+    try {
+      // พยายามแมพข้อมูลจาก data เข้าสู่โครงสร้าง Lead
+      const data = payload.data || {};
+      const leadData: any = {
+        name: data.name || data.fullname || data.customer_name || '',
+        email: data.email || data.customer_email || '',
+        phone: data.phone || data.telephone || data.tel || '',
+        occupation: data.occupation || data.company || '',
+        message: JSON.stringify(data), // เก็บข้อมูลทั้งหมดไว้ใน message ในรูปแบบ JSON
+        pdpa_consent: true,
+        source_type: 'form',
+        source_id: form.id,
+        source_url: payload.source?.referrer || '',
+      };
+
+      await this.leadsService.create(form.owner_id, leadData);
+    } catch (error) {
+      console.error('Failed to sync form submission to leads:', error);
+      // ไม่ throw error เพื่อไม่ให้การส่งฟอร์มหลักล้มเหลว
+    }
 
     return { success: true };
   }

@@ -5,6 +5,16 @@ import LandingPageClient from './LandingPageClient';
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
 
+// For SSR, we need absolute URL
+function getApiUrl(): string {
+    const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+    // If it's a relative path (starts with /), prepend the site URL
+    if (apiUrl.startsWith('/')) {
+        return process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
+    }
+    return apiUrl;
+}
+
 interface LandingPage {
     id: number;
     title: string;
@@ -19,8 +29,9 @@ interface LandingPage {
 
 async function getLandingPage(slug: string): Promise<LandingPage | null> {
     try {
-        const res = await fetch(`${API_URL}/landing-pages/public/${slug}`, {
-            next: { revalidate: 60 } // Cache for 1 minute
+        const baseUrl = getApiUrl();
+        const res = await fetch(`${baseUrl}/api/landing-pages/public/${slug}`, {
+            cache: 'no-store'
         });
         if (!res.ok) return null;
         return res.json();

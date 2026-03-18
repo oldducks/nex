@@ -23,6 +23,9 @@ export class Form {
   @Column({ type: 'jsonb', default: [] })
   fields: any[];
 
+  @Column({ type: 'jsonb', nullable: true })
+  agent_handover_config: any;
+
   @Column({ default: true })
   is_active: boolean;
 

@@ -7,6 +7,7 @@ import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, User,
 import Link from 'next/link';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { QrCodeImage } from '@/components/QrCode';
+import { LogoInline } from '@/components/Logo';
 
 interface Catalog {
     id: number;
@@ -199,7 +200,7 @@ export default function Dashboard() {
                         >
                             <ArrowLeft size={20} className="text-foreground/40 group-hover:text-foreground transition-all" />
                         </Link>
-                        <div className="font-bold text-xl tracking-tight hidden sm:block">NAMECARD<span className="text-primary">.AI</span></div>
+                        <LogoInline className="hidden sm:flex" />
                         <div className="h-6 w-px bg-foreground/10 mx-2 hidden sm:block" />
                         <span className="text-foreground/40 font-bold text-sm">แคตตาล็อกสินค้า</span>
                     </div>

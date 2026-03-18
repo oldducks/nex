@@ -267,7 +267,6 @@ export default function ProfileEditorV2() {
         { id: 'sec-media', label: lang === 'th' ? 'รูป/วิดีโอ' : 'Media' },
         { id: 'sec-links', label: lang === 'th' ? 'ลิงก์' : 'Links' },
         { id: 'sec-theme', label: lang === 'th' ? 'ธีม' : 'Theme' },
-        { id: 'sec-contact', label: lang === 'th' ? 'การติดต่อ' : 'Contact' },
     ];
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -973,58 +972,6 @@ export default function ProfileEditorV2() {
                     </div>
                 </Section>
 
-
-                {/* Contact Settings */}
-                <Section sectionId="sec-contact" title={t.contactSettings || "Contact Settings"} icon={<MessageCircle size={22} className="text-primary" />}>
-                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {/* Show Lead Form */}
-                        <div className="flex items-center justify-between bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
-                            <div>
-                                <h4 className="font-bold text-sm mb-1">{t.showContactForm || "Show Contact Form"}</h4>
-                                <p className="text-xs text-foreground/50">Allow visitors to send you messages directly.</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only peer" 
-                                    checked={profile.layout_config?.show_lead_form !== false}
-                                    onChange={(e) => setProfile(p => ({
-                                        ...p,
-                                        layout_config: {
-                                            ...p.layout_config,
-                                            show_lead_form: e.target.checked
-                                        }
-                                    }))}
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                            </label>
-                        </div>
-                        
-                        {/* Show Contact Info */}
-                        <div className="flex items-center justify-between bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
-                            <div>
-                                <h4 className="font-bold text-sm mb-1">{t.showContactInfo || "Show Contact Info"}</h4>
-                                <p className="text-xs text-foreground/50">Display email, phone, and address on your profile.</p>
-                            </div>
-                            <label className="relative inline-flex items-center cursor-pointer">
-                                <input 
-                                    type="checkbox" 
-                                    className="sr-only peer" 
-                                    checked={profile.layout_config?.show_contact_info !== false}
-                                    onChange={(e) => setProfile(p => ({
-                                        ...p,
-                                        layout_config: {
-                                            ...p.layout_config,
-                                            show_contact_info: e.target.checked
-                                        }
-                                    }))}
-                                />
-                                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
-                            </label>
-                        </div>
-                    </div>
-                </Section>
-
                 {/* Theme Customization */}
                 <Section sectionId="sec-theme" title={t.themeCustomization} icon={<Palette size={22} className="text-primary" />}>
                     {/* Theme Mode */}
@@ -1117,7 +1064,7 @@ export default function ProfileEditorV2() {
             </main>
             
             <footer className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-[0.3em]">
-                NAMECARD.AI © 2024 • THE PREMIUM DIGITAL EXPERIENCE
+                NEX Solution © 2024 • THE PREMIUM DIGITAL EXPERIENCE
             </footer>
         </div>
     );

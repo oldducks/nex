@@ -13,10 +13,10 @@ export class Lead {
     @JoinColumn({ name: 'owner_id' })
     owner: User;
 
-    @Column()
+    @Column({ nullable: true })
     name: string;
 
-    @Column()
+    @Column({ nullable: true })
     email: string;
 
     @Column({ nullable: true })
@@ -25,13 +25,13 @@ export class Lead {
     @Column({ nullable: true })
     occupation: string;
 
-    @Column('text')
+    @Column({ type: 'text', nullable: true })
     message: string;
 
     @Column({ default: true })
     pdpa_consent: boolean;
 
-    @Column({ type: 'timestamp' })
+    @Column({ type: 'timestamp', nullable: true })
     consent_timestamp: Date;
 
     @Column({ default: 'profile' })

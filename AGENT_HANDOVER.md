@@ -1217,6 +1217,112 @@
 - `frontend/src/app/manage/qr/page.tsx`
 - `frontend/src/app/manage/namecard/page.tsx`
 - `frontend/src/app/manage/referrals/page.tsx`
-- `DEVELOPMENT_CHECKLIST.md`
 
-*Updated by Antigravity on 2026-03-15*
+### 2026-03-17: Landing Page UI Improvements & Brand Consistency
+**Goal**: ปรับปรุง Landing Page ให้สวยงามขึ้น และใช้สี/โลโก้ตรงกับ Homepage
+
+**What changed**:
+1. **Landing Page Design (`/lp/[slug]`)**:
+   - เปลี่ยน background จาก `#000000` (ดำ) เป็น `#EFF6FF` (ฟ้าอ่อน) ตรงกับ homepage
+   - เพิ่ม gradient effects และ blur blobs เหมือน homepage
+   - เปลี่ยนสีตัวอักษรเป็น `#050579` (น้ำเงินเข้ม) และ `#475569`
+   - เปลี่ยน accent color เป็น `#F97316` (ส้ม)
+
+2. **Logo Component (New)**:
+   - สร้าง `frontend/src/components/Logo.tsx` ใหม่
+   - `Logo` - สำหรับ navbar หลัก
+   - `LogoInline` - สำหรับ navbar ใน manage pages
+   - `LogoFooter` - สำหรับ footer
+   - ใช้ `/nex_logo_nobg.png` เป็นโลโก้หลัก
+
+3. **Brand Consistency**:
+   - เปลี่ยน `NAMECARD.AI` เป็น `NEX Solution` ทั่วทั้งเว็บ
+   - อัปเดต footer ทุกหน้าให้ใช้ชื่อใหม่
+   - ใช้โลโก้ภาพแทน text logo
+
+4. **Profile Page**:
+   - ลบ LeadForm ("ฝากข้อมูลติดต่อกลับ") ออกจาก profile page public view
+   - LeadForm ยังคงอยู่ใน Landing Page เท่านั้น
+
+5. **Landing Page Editor UX**:
+   - เพิ่มขนาดตัวอักษรใน editor (`text-[10px]` → `text-sm`)
+   - ปรับสีให้อ่านง่ายขึ้น (`text-foreground/30` → `text-foreground/60`)
+   - เพิ่มกล่องไฮไลท์สำหรับข้อความอธิบายสำคัญ
+
+**Files updated**:
+- `frontend/src/components/Logo.tsx` (new)
+- `frontend/src/app/lp/[slug]/LandingPageClient.tsx`
+- `frontend/src/app/[prefix]/[uid]/page.tsx`
+- `frontend/src/app/manage/page.tsx`
+- `frontend/src/app/login/page.tsx`
+- `frontend/src/app/register/page.tsx`
+- `frontend/src/app/manage/profile/page.tsx`
+- `frontend/src/app/manage/account/page.tsx`
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`
+- `frontend/src/app/manage/landing-pages/[id]/page.tsx`
+
+*Updated by Cascade on 2026-03-17*
+
+### 2026-03-18: ux agent handover
+**Goal**: อัปเดตเอกสาร UX/UI ชุด `v2` และปรับหน้า public หลักให้สอดคล้องกับ NEX standard ใหม่ โดยคงโครงสร้างเดิมเท่าที่ทำได้
+
+**What changed**:
+1. **Docs standard refresh**
+   - สร้าง/อัปเดตเอกสารมาตรฐานใหม่:
+     - `docs/NEX_BRAND_GUIDELINE_V2.md`
+     - `docs/NEX_UX_UI_STANDARD_V2.md`
+     - `docs/NEX_COLOR_SYSTEM_V2.md`
+     - `docs/NEX_TAILWIND_TOKENS_V2.md`
+     - `docs/NEX_SOLUTION_BLUEPRINT_REV0.md`
+     - `docs/home-gateway-copy.md`
+   - rename ไฟล์จาก `V1` -> `V2` สำหรับ brand guideline, UX/UI standard, color system, tailwind tokens
+   - sync reference ใน `docs/README.md` และเอกสารที่อ้างอิงกันให้ตรงชื่อใหม่
+
+2. **Homepage (`/`) -> minimal gateway**
+   - ตัดหน้า home ให้เหลือ:
+     - centered logo
+     - 4 option boxes
+     - footer
+   - ใช้ labels ตามข้อกำหนด:
+     - `เข้าสู่ระบบ`
+     - `NEX คืออะไร`
+     - `สมัครเป็น NEX Digital Agent`
+     - `โซลูชันสำหรับองค์กร`
+   - ใช้สีตาม standard ใหม่:
+     - soft blue background
+     - navy secondary boxes
+     - orange primary box
+   - ปรับขนาดโลโก้และ spacing รอบโลโก้
+   - ใส่ `pointer-events-none` ให้โลโก้เพื่อไม่ให้บังการคลิกปุ่ม
+
+3. **Homepage modal behavior**
+   - คง login modal เดิมไว้สำหรับปุ่ม `เข้าสู่ระบบ`
+   - เปลี่ยนปุ่ม `สมัครเป็น NEX Digital Agent` ให้เปิด register modal บนหน้า home แทนการพาไปอีกหน้า
+   - ดึง register submit logic หลักมาใช้ใน modal หน้า home
+
+4. **What is NEX (`/what-is-nex`) theme refresh**
+   - คงเนื้อหาเดิมและลำดับ section เดิม
+   - เปลี่ยนภาพรวมจาก dark/cyan sci-fi เป็น NEX standard:
+     - `#EEF0FF` background
+     - navy headline/text
+     - white cards
+     - orange CTA
+
+**Files updated**:
+- `AGENT_HANDOVER.md`
+- `docs/README.md`
+- `docs/NEX_BRAND_GUIDELINE_V2.md`
+- `docs/NEX_UX_UI_STANDARD_V2.md`
+- `docs/NEX_COLOR_SYSTEM_V2.md`
+- `docs/NEX_TAILWIND_TOKENS_V2.md`
+- `docs/NEX_SOLUTION_BLUEPRINT_REV0.md`
+- `docs/home-gateway-copy.md`
+- `frontend/src/app/page.tsx`
+- `frontend/src/app/what-is-nex/page.tsx`
+
+**Notes**:
+- มีการ rebuild/recreate `web` service หลายรอบด้วย `docker compose up -d --build --force-recreate web`
+- หน้า `/register` ยังมีอยู่เป็น route แยก แต่ homepage ปุ่มสมัครสมาชิกถูกเปลี่ยนให้เปิด modal บนหน้า `/`
+- ถ้าผู้ใช้ยังเห็นหน้าเก่าหลัง deploy มักเป็น browser cache; ใช้ hard refresh หรือ private window
+
+*Updated by Codex on 2026-03-18 05:34:41 UTC*

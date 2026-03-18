@@ -15,7 +15,7 @@ export async function GET(
     const displayName = data.names_i18n?.find((n: any) => n.value?.trim())?.value || data.full_name || 'NEX Digital Card';
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
+    
     const toAbsoluteUrl = (url: string) => {
         if (url.startsWith('http')) return url;
         if (url.startsWith('/uploads')) return `${API_URL}${url}`;

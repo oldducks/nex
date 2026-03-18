@@ -11,6 +11,13 @@ import {
   Trash2,
   Plus,
   AlertCircle,
+  Mail,
+  MessageCircle,
+  Facebook,
+  Link as LinkIcon,
+  Webhook,
+  Copy,
+  Check,
 } from "lucide-react";
 import Link from "next/link";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -26,12 +33,22 @@ interface FormFieldConfig {
   options?: string[];
 }
 
+interface AgentHandoverConfig {
+  email: { enabled: boolean; address: string };
+  line: { enabled: boolean; userId: string };
+  whatsapp: { enabled: boolean; phoneNumber: string };
+  facebook: { enabled: boolean; pageId: string };
+  copy_link: { enabled: boolean };
+  webhook: { enabled: boolean; url: string };
+}
+
 interface FormItem {
   id: number;
   name: string;
   description?: string;
   fields: FormFieldConfig[];
   is_active: boolean;
+  agent_handover_config?: AgentHandoverConfig;
   created_at: string;
 }
 
@@ -69,9 +86,20 @@ export default function FormBuilderPage() {
         throw new Error("ไม่พบฟอร์มนี้");
       }
       const data = await res.json();
+      
+      const defaultHandover: AgentHandoverConfig = {
+        email: { enabled: false, address: "" },
+        line: { enabled: false, userId: "" },
+        whatsapp: { enabled: false, phoneNumber: "" },
+        facebook: { enabled: false, pageId: "" },
+        copy_link: { enabled: false },
+        webhook: { enabled: false, url: "" },
+      };
+
       setForm({
         ...data,
         fields: data.fields || [],
+        agent_handover_config: data.agent_handover_config || defaultHandover,
       });
     } catch (e: any) {
       console.error(e);
@@ -185,6 +213,7 @@ export default function FormBuilderPage() {
           name: form.name.trim(),
           description: form.description || undefined,
           fields: form.fields,
+          agent_handover_config: form.agent_handover_config,
         }),
       });
       if (!res.ok) {
@@ -197,6 +226,31 @@ export default function FormBuilderPage() {
     } finally {
       setSaving(false);
     }
+  };
+
+  const updateHandover = (
+    key: keyof AgentHandoverConfig,
+    patch: any
+  ) => {
+    if (!form || !form.agent_handover_config) return;
+    setForm({
+      ...form,
+      agent_handover_config: {
+        ...form.agent_handover_config,
+        [key]: {
+          ...form.agent_handover_config[key],
+          ...patch,
+        },
+      },
+    });
+  };
+
+  const [copied, setCopied] = useState(false);
+  const handleCopyLink = () => {
+    const link = `${window.location.origin}/lp/form/${formId}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
   };
 
   if (!token) return null;
@@ -306,6 +360,11 @@ export default function FormBuilderPage() {
             </div>
           </div>
         </section>
+
+        {/* Agent Handover Configuration - Hidden as requested */}
+        {/* <section className="space-y-6">
+          ... (hidden content) ...
+        </section> */}
 
         {/* Fields editor */}
         <section className="space-y-6">
@@ -474,6 +533,63 @@ export default function FormBuilderPage() {
           )}
         </section>
       </main>
+    </div>
+  );
+}
+
+function HandoverCard({
+  icon,
+  title,
+  description,
+  enabled,
+  onToggle,
+  children,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  description: string;
+  enabled: boolean;
+  onToggle: (val: boolean) => void;
+  children?: React.ReactNode;
+}) {
+  return (
+    <div
+      className={`p-6 rounded-[28px] border transition-all ${
+        enabled
+          ? "border-primary/30 bg-primary/5 shadow-lg shadow-primary/5"
+          : "border-foreground/5 bg-foreground/5/40"
+      }`}
+    >
+      <div className="flex items-start justify-between gap-4 mb-2">
+        <div className="flex items-center gap-3">
+          <div
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+              enabled ? "bg-primary text-white" : "bg-foreground/10 text-foreground/40"
+            }`}
+          >
+            {icon}
+          </div>
+          <div>
+            <h4 className="font-bold text-sm tracking-tight">{title}</h4>
+            <p className="text-[10px] text-foreground/40 font-medium">
+              {description}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => onToggle(!enabled)}
+          className={`relative w-10 h-5 rounded-full transition-colors ${
+            enabled ? "bg-primary" : "bg-foreground/20"
+          }`}
+        >
+          <div
+            className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-transform ${
+              enabled ? "left-6" : "left-1"
+            }`}
+          />
+        </button>
+      </div>
+      {enabled && children}
     </div>
   );
 }

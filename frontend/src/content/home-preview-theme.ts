@@ -1,0 +1,31 @@
+export const homePreviewTheme = {
+  brand: "#050579",
+  brandHover: "#07079A",
+  brandDark: "#03034F",
+  cta: "#F97316",
+  ctaHover: "#EA580C",
+  ctaSoft: "#FFF7ED",
+  support: "#84CC16",
+  supportHover: "#65A30D",
+  supportSoft: "#F7FEE7",
+  pageBackground: "#F8FAFC",
+  pageGradient:
+    "radial-gradient(circle_at_top_left,rgba(191,219,254,0.26),transparent_34%),radial-gradient(circle_at_top_center,rgba(255,255,255,0.88),transparent_42%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.07),transparent_26%),linear-gradient(180deg,#f8fafc_0%,#f8fbff_48%,#eef6ff_100%)",
+  glowLeft: "rgba(191,219,254,0.42)",
+  glowRight: "rgba(219,234,254,0.5)",
+  glowCenter: "rgba(255,255,255,0.4)",
+  surface: "#FFFFFF",
+  surfaceAlt: "#EEF2FF",
+  surfaceMuted: "#FCFDFF",
+  border: "#E2E8F0",
+  borderStrong: "#CBD5E1",
+  textPrimary: "#0F172A",
+  textSecondary: "#475569",
+  textMuted: "#64748B",
+  textOnDark: "#FFFFFF",
+  overlay: "rgba(15,23,42,0.45)",
+  whiteTint: "rgba(255,255,255,0.08)",
+  whiteBorder: "rgba(255,255,255,0.15)",
+} as const;
+
+export type HomePreviewTheme = typeof homePreviewTheme;

@@ -25,6 +25,8 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
     const fileInputRef = useRef<HTMLInputElement>(null);
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
+    
+    console.log('VideoUpload token:', token ? 'exists' : 'missing');
 
     const pollJobStatus = async (jobId: string) => {
         const interval = setInterval(async () => {
@@ -79,11 +81,13 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
         setUploading(true);
         setProgress(0);
         console.log(`Uploading video: ${file.name}, Type: ${file.type}, Size: ${file.size}`);
+        console.log(`API_URL: ${API_URL}, Token: ${token ? 'exists' : 'missing'}`);
 
         try {
             const formData = new FormData();
             formData.append('file', file);
 
+            console.log('Sending upload request...');
             const res = await fetch(`${API_URL}/uploads/video`, {
                 method: 'POST',
                 headers: {
@@ -92,9 +96,11 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                 body: formData
             });
 
+            console.log('Response status:', res.status);
             if (!res.ok) {
                 const errorText = await res.text();
-                throw new Error(`Upload failed: ${res.statusText}`);
+                console.error('Upload error:', errorText);
+                throw new Error(`Upload failed: ${res.status} - ${errorText}`);
             }
 
             const data = await res.json();
@@ -137,6 +143,7 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
     const getFullUrl = (url?: string) => {
         if (!url || typeof url !== 'string') return '';
         if (url.startsWith('http')) return url;
+        if (url.startsWith('/api')) return url;
         return `${API_URL}${url}`;
     };
 
@@ -319,6 +326,7 @@ export function VideoPlayer({ config, className = '' }: VideoPlayerProps) {
     const getFullUrl = (url?: string) => {
         if (!url || typeof url !== 'string') return '';
         if (url.startsWith('http')) return url;
+        if (url.startsWith('/api')) return url;
         return `${API_URL}${url}`;
     };
 

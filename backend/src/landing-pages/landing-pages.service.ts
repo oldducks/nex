@@ -12,6 +12,12 @@ export class LandingPagesService {
     ) {}
 
     async create(userId: number, dto: CreateLandingPageDto) {
+        // Check landing page limit (max 10 per user)
+        const existingCount = await this.repository.count({ where: { user_id: userId } });
+        if (existingCount >= 10) {
+            throw new ConflictException('คุณสร้าง Landing Page ครบ 10 หน้าแล้ว ไม่สามารถสร้างเพิ่มได้');
+        }
+
         const existing = await this.repository.findOne({ where: { slug: dto.slug } });
         if (existing) throw new ConflictException('Slug already exists');
 
@@ -50,6 +56,19 @@ export class LandingPagesService {
         if (dto.slug && dto.slug !== page.slug) {
             const existing = await this.repository.findOne({ where: { slug: dto.slug } });
             if (existing) throw new ConflictException('Slug already exists');
+        }
+
+        // Check image and video limits (max 10 each per landing page)
+        if (dto.content_blocks) {
+            const imageBlocks = dto.content_blocks.filter((b: any) => b.type === 'image');
+            const videoBlocks = dto.content_blocks.filter((b: any) => b.type === 'video');
+            
+            if (imageBlocks.length > 10) {
+                throw new ConflictException('จำกัดรูปภาพไม่เกิน 10 รูปต่อ Landing Page');
+            }
+            if (videoBlocks.length > 10) {
+                throw new ConflictException('จำกัดวิดีโอไม่เกิน 10 วิดีโอต่อ Landing Page');
+            }
         }
 
         this.repository.merge(page, dto);

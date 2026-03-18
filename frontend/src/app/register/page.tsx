@@ -3,6 +3,7 @@
 import { useState, useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Loader2, UserPlus, Mail, Lock, ArrowRight, Sparkles, Gift } from 'lucide-react';
 
 function RegisterContent() {
@@ -58,10 +59,10 @@ function RegisterContent() {
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-2 text-2xl font-bold">
-            <div className="w-10 h-10 bg-gradient-to-tr from-primary to-secondary rounded-lg flex items-center justify-center shadow-lg shadow-primary/20">
-              <Sparkles size={24} className="text-white" />
+            <div className="relative w-10 h-10 overflow-hidden rounded-lg">
+              <Image src="/nex_logo_nobg.png" alt="NEX" fill className="object-contain" unoptimized />
             </div>
-            NAMECARD<span className="text-primary">.AI</span>
+            <span style={{ color: "#050579" }}>NEX<span style={{ color: "#F97316" }}>.</span></span>
           </Link>
         </div>
 

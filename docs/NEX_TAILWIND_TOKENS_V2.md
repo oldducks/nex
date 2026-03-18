@@ -1,4 +1,4 @@
-# NEX Tailwind Tokens v1
+# NEX Tailwind Tokens v2
 
 ## 1) Color Tokens
 ```js
@@ -15,11 +15,12 @@ colors: {
     greenHover: '#65A30D',
   },
   neutral: {
-    bg: '#F8FAFC',
+    bg: '#EEF0FF',
+    bgAlt: '#F6F8FF',
     surface: '#FFFFFF',
-    surfaceAlt: '#EEF2FF',
-    border: '#E2E8F0',
-    divider: '#CBD5E1',
+    surfaceAlt: '#E8ECFF',
+    border: '#D9E1F2',
+    divider: '#C7D2E5',
   },
   text: {
     primary: '#0F172A',
@@ -37,11 +38,12 @@ colors: {
 ```
 
 ## 2) Suggested Usage Mapping
-- `bg-brand` = section หรือ navbar หลัก
+- `bg-brand` = navbar, gateway panel, section เน้นแบรนด์
 - `text-brand` = headline / brand emphasis
 - `bg-accent-orange` = primary CTA
 - `bg-accent-green` = success badge / positive stat
-- `bg-neutral-bg` = page background
+- `bg-neutral-bg` = page background หลัก
+- `bg-neutral-bgAlt` = section alternate background
 - `bg-neutral-surface` = card background
 - `border-neutral-border` = standard border
 - `text-text-primary` = main paragraph/headline
@@ -62,12 +64,24 @@ button: {
   outline: {
     border: '#050579',
     text: '#050579',
-    hoverBg: '#EEF2FF',
+    hoverBg: '#E8ECFF',
   },
 }
 ```
 
-## 4) Example Tailwind Extend
+## 4) Gateway Landing Suggestion
+```js
+landing: {
+  outerBg: '#EEF0FF',
+  panelBg: '#050579',
+  panelText: '#FFFFFF',
+  optionPrimaryBg: '#F97316',
+  optionSecondaryBg: '#1C1C95',
+  optionBorder: '#3B45C9',
+}
+```
+
+## 5) Example Tailwind Extend
 ```js
 // tailwind.config.js
 module.exports = {
@@ -86,11 +100,12 @@ module.exports = {
           'green-hover': '#65A30D',
         },
         neutral: {
-          bg: '#F8FAFC',
+          bg: '#EEF0FF',
+          'bg-alt': '#F6F8FF',
           surface: '#FFFFFF',
-          'surface-alt': '#EEF2FF',
-          border: '#E2E8F0',
-          divider: '#CBD5E1',
+          'surface-alt': '#E8ECFF',
+          border: '#D9E1F2',
+          divider: '#C7D2E5',
         },
         textc: {
           primary: '#0F172A',
@@ -110,15 +125,23 @@ module.exports = {
 }
 ```
 
-## 5) Sample Class Usage
+## 6) Sample Class Usage
 ```html
-<section class="bg-neutral-bg text-textc-primary">
-  <div class="bg-neutral-surface border border-neutral-border rounded-2xl p-6">
-    <h1 class="text-brand">NEX Solution</h1>
-    <p class="text-textc-secondary">Modern digital platform for business growth.</p>
-    <button class="bg-accent-orange hover:bg-accent-orange-hover text-white rounded-xl px-5 py-3">
-      สมัครใช้งาน
-    </button>
+<section class="bg-neutral-bg text-textc-primary min-h-screen">
+  <div class="mx-auto max-w-md rounded-[32px] bg-brand p-6 text-textc-on-dark">
+    <div class="mb-8 text-center">
+      <img src="/logo.svg" alt="NEX" class="mx-auto h-16 w-auto" />
+    </div>
+
+    <a class="mb-4 flex items-center justify-between rounded-2xl bg-accent-orange px-6 py-5 text-white">
+      <span>เข้าสู่ระบบ</span>
+      <span>→</span>
+    </a>
+
+    <a class="mb-4 flex items-center justify-between rounded-2xl border border-[#3B45C9] bg-[#1C1C95] px-6 py-5 text-white">
+      <span>NEX คืออะไร</span>
+      <span>→</span>
+    </a>
   </div>
 </section>
 ```

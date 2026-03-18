@@ -18,7 +18,6 @@ import { NamecardDownloadButton } from '../../../components/NamecardDownload';
 import { ProfilePageClient } from '../../../components/ProfilePageClient';
 import { VideoEmbed } from '../../../components/VideoEmbed';
 import { Gallery } from '../../../components/Gallery';
-import { LeadForm } from '../../../components/LeadForm';
 import { SocialLinksDisplay } from '../../../components/SocialLinksDisplay';
 import { CatalogsDisplay } from '../../../components/CatalogsDisplay';
 
@@ -529,13 +528,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                         <section className="mb-12 text-center text-foreground drop-shadow-md">
                             <h3 className="text-lg font-bold mb-4">Scan to Connect</h3>
                             <QrCodeImage url={profileUrl} size={180} />
-                        </section>
-                    )}
-
-                    {/* Lead Generation Form */}
-                    {layout_config?.show_lead_form !== false && (
-                        <section className="mb-12 cursor-default">
-                            <LeadForm targetUid={uid} />
                         </section>
                     )}
 

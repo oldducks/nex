@@ -83,6 +83,9 @@ services:
       - "traefik.http.routers.nex-api.tls.certresolver=mytlschallenge"
       - "traefik.http.services.nex-api.loadbalancer.server.port=4000"
       - "traefik.http.routers.nex-api.priority=100"
+      # Increase max body size for video uploads (250MB)
+      - "traefik.http.middlewares.nex-api-buffering.buffering.maxRequestBodyBytes=250000000"
+      - "traefik.http.routers.nex-api.middlewares=nex-api-buffering"
       # Disable response buffering for streaming uploads
       - "traefik.http.services.nex-api.loadbalancer.responseforwarding.flushinterval=100ms"
 

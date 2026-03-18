@@ -1,10 +1,10 @@
-import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, ValidateNested } from 'class-validator';
+import { IsArray, IsBoolean, IsNotEmpty, IsOptional, IsString, ValidateNested, IsObject } from 'class-validator';
 import { Type } from 'class-transformer';
 
 class FormFieldConfigDto {
   @IsString()
-  @IsNotEmpty()
-  id: string;
+  @IsOptional()
+  id?: string;
 
   @IsString()
   @IsNotEmpty()
@@ -14,8 +14,13 @@ class FormFieldConfigDto {
   @IsNotEmpty()
   type: string; // text, email, phone, dropdown, textarea
 
+  @IsString()
+  @IsOptional()
+  placeholder?: string;
+
   @IsBoolean()
-  required: boolean;
+  @IsOptional()
+  required?: boolean;
 
   @IsOptional()
   @IsArray()
@@ -32,8 +37,17 @@ export class CreateFormDto {
   description?: string;
 
   @IsArray()
+  @IsOptional()
   @ValidateNested({ each: true })
   @Type(() => FormFieldConfigDto)
   fields: FormFieldConfigDto[];
+
+  @IsBoolean()
+  @IsOptional()
+  is_active?: boolean;
+
+  @IsObject()
+  @IsOptional()
+  agent_handover_config?: any;
 }
 

@@ -115,7 +115,7 @@ export default function AccountSettingsPage() {
             </main>
 
             <footer className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-[0.3em]">
-                NAMECARD.AI © 2024 • THE PREMIUM DIGITAL EXPERIENCE
+                NEX Solution © 2024 • THE PREMIUM DIGITAL EXPERIENCE
             </footer>
         </div>
     );

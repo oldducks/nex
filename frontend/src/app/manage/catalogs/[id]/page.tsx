@@ -871,7 +871,7 @@ export default function CatalogDetail() {
             )}
             
             <footer className="py-24 text-center opacity-10 font-black uppercase tracking-[0.5rem] text-[10px]">
-                Namecard.ai Production Engineering © 2024
+                NEX Solution © 2024
             </footer>
 
             <style jsx global>{`

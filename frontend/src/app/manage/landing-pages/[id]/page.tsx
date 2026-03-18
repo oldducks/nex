@@ -8,13 +8,14 @@ import {
   Type, Image as ImageIcon, Video, MousePointer2,
   Settings, Eye, Globe, QrCode as QrIcon, 
   ChevronUp, ChevronDown, CheckCircle, Smartphone, 
-  Monitor, Layout, Sparkles, MessageSquare, Share2, ExternalLink, Loader2, Link as LinkIcon, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Maximize2, Minimize2
+  Monitor, Layout, Sparkles, MessageSquare, Share2, ExternalLink, Loader2, Link as LinkIcon, Bold, Italic, AlignLeft, AlignCenter, AlignRight, Maximize2, Minimize2, MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { VideoUpload } from '@/components/VideoUpload';
 import { Toast, ToastType } from '@/components/Toast';
+import { getEmbedUrl } from '@/lib/videoUtils';
 
 interface VideoConfig {
     url: string;
@@ -52,7 +53,7 @@ export default function LandingPageEditor() {
     const [autoSaving, setAutoSaving] = useState(false);
     const hasLoadedRef = useRef(false);
     const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-    const [activeTab, setActiveTab] = useState<'content' | 'design' | 'seo'>('content');
+    const [activeTab, setActiveTab] = useState<'content' | 'design' | 'seo' | 'settings'>('content');
     const [previewMode, setPreviewMode] = useState<'desktop' | 'mobile'>('desktop');
     const [activeBlockId, setActiveBlockId] = useState<string | null>(null);
     const [aiLoading, setAiLoading] = useState<Record<string, boolean>>({});
@@ -296,7 +297,7 @@ export default function LandingPageEditor() {
                             value={page.title}
                             onChange={e => setPage({...page, title: e.target.value})}
                         />
-                        <div className="text-[10px] text-foreground/30 font-black uppercase tracking-widest mt-0.5 ml-1">SLUG: /lp/{page.slug}</div>
+                        <div className="text-xs text-foreground/50 font-bold uppercase tracking-widest mt-0.5 ml-1">SLUG: /lp/{page.slug}</div>
                     </div>
                 </div>
 
@@ -340,7 +341,7 @@ export default function LandingPageEditor() {
                                  'บันทึกหน้าแคมเปญ'}
                             </span>
                         </button>
-                        <span className={`text-[10px] font-medium transition-colors ${saveStatus.type === 'error' ? 'text-red-500' : saveStatus.type === 'success' ? 'text-emerald-500' : 'text-foreground/40'}`}>
+                        <span className={`text-xs font-medium transition-colors ${saveStatus.type === 'error' ? 'text-red-500' : saveStatus.type === 'success' ? 'text-emerald-500' : 'text-foreground/50'}`}>
                             {saveStatus.message || (autoSaving ? 'กำลังบันทึกอัตโนมัติ...' : 'ระบบจะบันทึกอัตโนมัติระหว่างแก้ไข')}
                         </span>
                     </div>
@@ -351,16 +352,17 @@ export default function LandingPageEditor() {
                 {/* Left Toolbar (Blocks) */}
                 <aside className="w-80 border-r border-foreground/5 bg-card-bg flex flex-col overflow-hidden shrink-0 transition-colors duration-500">
                     <div className="flex border-b border-foreground/5">
-                        <button onClick={() => setActiveTab('content')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'content' ? 'text-primary bg-primary/5 border-b-2 border-primary' : 'text-foreground/30 hover:text-foreground/60'}`}>เนื้อหา</button>
-                        <button onClick={() => setActiveTab('design')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'design' ? 'text-primary bg-primary/5 border-b-2 border-primary' : 'text-foreground/30 hover:text-foreground/60'}`}>ดีไซน์</button>
-                        <button onClick={() => setActiveTab('seo')} className={`flex-1 py-4 text-[10px] font-black uppercase tracking-widest transition-all ${activeTab === 'seo' ? 'text-primary bg-primary/5 border-b-2 border-primary' : 'text-foreground/30 hover:text-foreground/60'}`}>การแชร์</button>
+                        <button onClick={() => setActiveTab('content')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'content' ? 'text-primary bg-primary/5 border-b-2 border-primary' : 'text-foreground/50 hover:text-foreground/80'}`}>เนื้อหา</button>
+                        <button onClick={() => setActiveTab('design')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'design' ? 'text-primary bg-primary/5 border-b-2 border-primary' : 'text-foreground/50 hover:text-foreground/80'}`}>ดีไซน์</button>
+                        <button onClick={() => setActiveTab('seo')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'seo' ? 'text-primary bg-primary/5 border-b-2 border-primary' : 'text-foreground/50 hover:text-foreground/80'}`}>การแชร์</button>
+                        <button onClick={() => setActiveTab('settings')} className={`flex-1 py-4 text-xs font-black uppercase tracking-widest transition-all ${activeTab === 'settings' ? 'text-primary bg-primary/5 border-b-2 border-primary' : 'text-foreground/50 hover:text-foreground/80'}`}>ตั้งค่า</button>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
                         {activeTab === 'content' && (
                             <div className="space-y-8">
                                 <div>
-                                    <h4 className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                    <h4 className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-6 flex items-center gap-2">
                                         <Plus size={14} className="text-primary" /> เพิ่มคอมโพเนนต์
                                     </h4>
                                     <div className="grid grid-cols-2 gap-3">
@@ -373,7 +375,7 @@ export default function LandingPageEditor() {
                                 </div>
 
                                 <div className="pt-8 border-t border-foreground/5">
-                                    <h4 className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                                    <h4 className="text-xs font-bold text-foreground/50 uppercase tracking-wider mb-6 flex items-center gap-2">
                                         <GripVertical size={14} className="text-primary" /> ลำดับโครงสร้าง
                                     </h4>
                                     <div className="space-y-3">
@@ -401,7 +403,7 @@ export default function LandingPageEditor() {
                                             </div>
                                         ))}
                                         {page.content_blocks.length === 0 && (
-                                            <div className="text-center py-6 text-[10px] font-bold text-foreground/20 uppercase tracking-widest border-2 border-dashed border-foreground/5 rounded-2xl">
+                                            <div className="text-center py-6 text-xs font-bold text-foreground/30 uppercase tracking-widest border-2 border-dashed border-foreground/10 rounded-2xl">
                                                 ยังไม่มีคอนเทนต์
                                             </div>
                                         )}
@@ -413,7 +415,7 @@ export default function LandingPageEditor() {
                         {activeTab === 'design' && (
                             <div className="space-y-8">
                                 <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">สีหลักแคมเปญ (Primary)</label>
+                                    <label className="block text-sm font-bold text-foreground/60 ml-1">สีหลักแคมเปญ (Primary)</label>
                                     <div className="flex items-center gap-4 bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
                                         <input 
                                             type="color" 
@@ -432,7 +434,7 @@ export default function LandingPageEditor() {
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">ฉากหลัง (Backdrop)</label>
+                                    <label className="block text-sm font-bold text-foreground/60 ml-1">ฉากหลัง (Backdrop)</label>
                                     <div className="grid grid-cols-5 gap-3">
                                         {['#000000', '#0f172a', '#1e1b4b', '#450a0a', '#ffffff'].map(c => (
                                             <button 
@@ -452,7 +454,7 @@ export default function LandingPageEditor() {
                                 {/* SEO Metadata Editor */}
                                 <div className="space-y-6">
                                     <div>
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2 ml-1">
+                                        <label className="block text-sm font-bold text-foreground/60 mb-2 ml-1">
                                             URL Slug (ตัวอย่าง: nexsolution.cloud/lp/your-slug)
                                         </label>
                                         <div className="flex items-center bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus-within:ring-2 focus-within:ring-primary/20 transition-all">
@@ -472,7 +474,7 @@ export default function LandingPageEditor() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2 ml-1">
+                                        <label className="block text-sm font-bold text-foreground/60 mb-2 ml-1">
                                             SEO Title
                                         </label>
                                         <input
@@ -495,7 +497,7 @@ export default function LandingPageEditor() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2 ml-1">
+                                        <label className="block text-sm font-bold text-foreground/60 mb-2 ml-1">
                                             SEO Description
                                         </label>
                                         <textarea
@@ -518,7 +520,7 @@ export default function LandingPageEditor() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2 ml-1">
+                                        <label className="block text-sm font-bold text-foreground/60 mb-2 ml-1">
                                             Keywords (comma separated)
                                         </label>
                                         <input
@@ -538,7 +540,7 @@ export default function LandingPageEditor() {
                                     </div>
 
                                     <div>
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-2 ml-1">
+                                        <label className="block text-sm font-bold text-foreground/60 mb-2 ml-1">
                                             OG Image URL (รูปสำหรับแชร์บนโซเชียล)
                                         </label>
                                         <input
@@ -589,6 +591,64 @@ export default function LandingPageEditor() {
                                                 <Globe size={18} /> copy url
                                             </button>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {activeTab === 'settings' && page && (
+                            <div className="space-y-8 pt-6">
+                                {/* Contact Settings */}
+                                <div className="space-y-4">
+                                    <div className="flex items-center gap-2 mb-6">
+                                        <MessageCircle size={18} className="text-primary" />
+                                        <h3 className="text-sm font-black uppercase tracking-widest text-foreground/70">การติดต่อ</h3>
+                                    </div>
+                                    
+                                    {/* Show Lead Form */}
+                                    <div className="flex items-center justify-between bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
+                                        <div>
+                                            <h4 className="font-bold text-sm mb-1">แสดงแบบฟอร์มติดต่อ</h4>
+                                            <p className="text-xs text-foreground/50">อนุญาตให้ผู้เยี่ยมชมส่งข้อความติดต่อได้</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={page.theme_config?.show_lead_form !== false}
+                                                onChange={(e) => setPage({
+                                                    ...page,
+                                                    theme_config: {
+                                                        ...page.theme_config,
+                                                        show_lead_form: e.target.checked
+                                                    }
+                                                })}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
+                                    </div>
+                                    
+                                    {/* Show Contact Info */}
+                                    <div className="flex items-center justify-between bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
+                                        <div>
+                                            <h4 className="font-bold text-sm mb-1">แสดงข้อมูลติดต่อ</h4>
+                                            <p className="text-xs text-foreground/50">แสดงอีเมล, เบอร์โทร บนหน้าแคมเปญ</p>
+                                        </div>
+                                        <label className="relative inline-flex items-center cursor-pointer">
+                                            <input 
+                                                type="checkbox" 
+                                                className="sr-only peer" 
+                                                checked={page.theme_config?.show_contact_info !== false}
+                                                onChange={(e) => setPage({
+                                                    ...page,
+                                                    theme_config: {
+                                                        ...page.theme_config,
+                                                        show_contact_info: e.target.checked
+                                                    }
+                                                })}
+                                            />
+                                            <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-primary/20 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+                                        </label>
                                     </div>
                                 </div>
                             </div>
@@ -649,7 +709,7 @@ export default function LandingPageEditor() {
 
                         {/* Footer decorative */}
                         <div className="py-20 text-center opacity-10">
-                            <h4 className="font-black text-2xl tracking-[0.5em] uppercase">Built with Namecard.ai</h4>
+                            <h4 className="font-black text-2xl tracking-[0.5em] uppercase">Built with NEX Solution</h4>
                         </div>
                     </div>
                 </main>
@@ -932,114 +992,133 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
             return (
                 <div className="max-w-5xl mx-auto">
                     {isEditing ? (
-                        <div className="p-12 bg-foreground/5 border-2 border-dashed border-foreground/10 rounded-[40px] text-center space-y-8">
-                            <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mx-auto text-foreground/20">
-                                <ImageIcon size={40} />
-                            </div>
-                            <div className="space-y-4">
-                                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">อัปโหลดรูปภาพ หรือวางลิงก์รูปภาพภายนอก</p>
-                                <div className="flex flex-col md:flex-row gap-3">
-                                    <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-background cursor-pointer border border-foreground/10 hover:border-primary/40 transition-all text-xs font-black uppercase tracking-[0.2em]">
-                                        <input
-                                            type="file"
-                                            accept="image/*"
-                                            className="hidden"
-                                            onChange={(e) => {
-                                                const file = e.target.files?.[0];
-                                                if (file) handleImageUpload(file);
-                                            }}
-                                        />
-                                        {uploadingImage ? (
-                                            <div className="flex flex-col items-center gap-2">
-                                                <div className="flex items-center gap-2">
-                                                    <Loader2 size={14} className="animate-spin" /> 
-                                                    <span className="text-[10px] font-black">{imageProgress}%</span>
-                                                </div>
-                                                <div className="w-20 bg-foreground/10 h-1 rounded-full overflow-hidden">
-                                                    <div 
-                                                        className="h-full bg-primary transition-all duration-300"
-                                                        style={{ width: `${imageProgress}%` }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        ) : (
-                                            <>
-                                                <ImageIcon size={14} /> เลือกรูปจากเครื่อง
-                                            </>
-                                        )}
-                                    </label>
-                                    <input 
-                                        className="flex-[2] bg-background border border-foreground/10 rounded-2xl px-6 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono tracking-tighter transition-all"
-                                        placeholder="https://images.unsplash.com/..."
-                                        value={block.content.url || ''}
-                                        onChange={e => onUpdate({ ...(block.content || {}), url: e.target.value })}
+                        <div className="p-8 bg-white border-2 border-dashed border-gray-200 rounded-[32px] text-center space-y-6 shadow-lg">
+                            {/* Show preview if image exists */}
+                            {block.content.url ? (
+                                <div className="relative">
+                                    <img 
+                                        src={block.content.url} 
+                                        alt="Preview" 
+                                        className="w-full h-auto rounded-2xl shadow-lg max-h-[400px] object-contain bg-gray-100"
                                     />
+                                    <button
+                                        onClick={() => onUpdate({ ...(block.content || {}), url: '' })}
+                                        className="absolute top-2 right-2 bg-red-500 text-white p-2 rounded-lg hover:bg-red-600 transition-all"
+                                        title="ลบรูป"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
+                            ) : (
+                                <>
+                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                                        <ImageIcon size={32} className="text-gray-400" />
+                                    </div>
+                                    <p className="text-base font-bold text-gray-700">อัปโหลดรูปภาพ หรือวางลิงก์รูปภาพภายนอก</p>
+                                </>
+                            )}
+                            
+                            <div className="flex flex-col md:flex-row gap-3">
+                                <label className="flex-1 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-2xl bg-gray-100 cursor-pointer border border-gray-300 hover:border-primary hover:bg-primary/5 transition-all text-sm font-bold text-gray-700">
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        className="hidden"
+                                        onChange={(e) => {
+                                            const file = e.target.files?.[0];
+                                            if (file) handleImageUpload(file);
+                                        }}
+                                    />
+                                    {uploadingImage ? (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <div className="flex items-center gap-2">
+                                                <Loader2 size={16} className="animate-spin" /> 
+                                                <span className="text-sm font-bold">{imageProgress}%</span>
+                                            </div>
+                                            <div className="w-20 bg-gray-300 h-1 rounded-full overflow-hidden">
+                                                <div 
+                                                    className="h-full bg-primary transition-all duration-300"
+                                                    style={{ width: `${imageProgress}%` }}
+                                                />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <ImageIcon size={18} className="text-gray-500" /> เลือกรูปจากเครื่อง
+                                        </>
+                                    )}
+                                </label>
+                                <input 
+                                    className="flex-[2] bg-gray-50 border border-gray-300 rounded-2xl px-6 py-3 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm transition-all text-gray-700 placeholder:text-gray-400"
+                                    placeholder="https://images.unsplash.com/..."
+                                    value={block.content.url || ''}
+                                    onChange={e => onUpdate({ ...(block.content || {}), url: e.target.value })}
+                                />
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left pt-4 border-t border-gray-200">
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">
+                                    <label className="block text-sm font-bold text-gray-700 ml-1">
                                         การจัดวาง
                                     </label>
-                                    <div className="inline-flex rounded-xl bg-background border border-foreground/10 p-1">
+                                    <div className="inline-flex rounded-xl bg-gray-100 border border-gray-300 p-1">
                                         <button
                                             type="button"
                                             onClick={() => onUpdate({ ...(block.content || {}), align: 'left' })}
-                                            className={`p-2 rounded-lg ${(!block.content.align || block.content.align === 'left') ? 'bg-primary text-white' : 'text-foreground/50 hover:text-foreground'}`}
+                                            className={`p-2 rounded-lg ${(!block.content.align || block.content.align === 'left') ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                         >
-                                            <AlignLeft size={14} />
+                                            <AlignLeft size={16} />
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => onUpdate({ ...(block.content || {}), align: 'center' })}
-                                            className={`p-2 rounded-lg ${block.content.align === 'center' ? 'bg-primary text-white' : 'text-foreground/50 hover:text-foreground'}`}
+                                            className={`p-2 rounded-lg ${block.content.align === 'center' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                         >
-                                            <AlignCenter size={14} />
+                                            <AlignCenter size={16} />
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => onUpdate({ ...(block.content || {}), align: 'right' })}
-                                            className={`p-2 rounded-lg ${block.content.align === 'right' ? 'bg-primary text-white' : 'text-foreground/50 hover:text-foreground'}`}
+                                            className={`p-2 rounded-lg ${block.content.align === 'right' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                         >
-                                            <AlignRight size={14} />
+                                            <AlignRight size={16} />
                                         </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">
+                                    <label className="block text-sm font-bold text-gray-700 ml-1">
                                         ขนาดรูป
                                     </label>
-                                    <div className="inline-flex rounded-xl bg-background border border-foreground/10 p-1">
+                                    <div className="inline-flex rounded-xl bg-gray-100 border border-gray-300 p-1">
                                         <button
                                             type="button"
                                             onClick={() => onUpdate({ ...(block.content || {}), size: 'small' })}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${block.content.size === 'small' ? 'bg-primary text-white' : 'text-foreground/50 hover:text-foreground'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${block.content.size === 'small' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                         >
                                             S
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => onUpdate({ ...(block.content || {}), size: 'medium' })}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${!block.content.size || block.content.size === 'medium' ? 'bg-primary text-white' : 'text-foreground/50 hover:text-foreground'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${!block.content.size || block.content.size === 'medium' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                         >
                                             M
                                         </button>
                                         <button
                                             type="button"
                                             onClick={() => onUpdate({ ...(block.content || {}), size: 'large' })}
-                                            className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest ${block.content.size === 'large' ? 'bg-primary text-white' : 'text-foreground/50 hover:text-foreground'}`}
+                                            className={`px-3 py-1.5 rounded-lg text-sm font-bold ${block.content.size === 'large' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                         >
                                             L
                                         </button>
                                     </div>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">
+                                    <label className="block text-sm font-bold text-gray-700 ml-1">
                                         ลิงก์เมื่อคลิกที่รูป (ไม่บังคับ)
                                     </label>
                                     <input
-                                        className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                        className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700 placeholder:text-gray-400"
                                         placeholder="https://..."
                                         value={block.content.link || ''}
                                         onChange={e => onUpdate({ ...(block.content || {}), link: e.target.value })}
@@ -1078,18 +1157,39 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
             return (
                 <div className="max-w-4xl mx-auto">
                     {isEditing ? (
-                        <div className="p-8 bg-foreground/5 border-2 border-dashed border-foreground/10 rounded-[40px] space-y-6">
+                        <div className="p-8 bg-white border-2 border-dashed border-gray-200 rounded-[32px] space-y-6 shadow-lg">
+                            {/* Show preview if video exists */}
+                            {sourceType === 'embed' && block.content.url ? (
+                                <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100">
+                                    <iframe
+                                        className="w-full h-full"
+                                        src={getEmbedUrl(block.content.url)}
+                                        title="Video preview"
+                                        frameBorder="0"
+                                        allowFullScreen
+                                    />
+                                </div>
+                            ) : sourceType === 'upload' && videoConfig?.url ? (
+                                <div className="relative aspect-video rounded-2xl overflow-hidden bg-gray-100">
+                                    <video
+                                        src={videoConfig.url.startsWith('http') ? videoConfig.url : videoConfig.url.startsWith('/api') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
+                                        controls
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                            ) : null}
+                            
                             {/* Source Type Toggle */}
-                            <div className="flex justify-center gap-2 p-1 bg-foreground/5 rounded-xl w-fit mx-auto">
+                            <div className="flex justify-center gap-2 p-1 bg-gray-100 rounded-xl w-fit mx-auto">
                                 <button
                                     onClick={() => onUpdate({ ...block.content, source_type: 'embed' })}
-                                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${sourceType === 'embed' ? 'bg-primary text-white' : 'text-foreground/40 hover:text-foreground'}`}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${sourceType === 'embed' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     YouTube/Vimeo
                                 </button>
                                 <button
                                     onClick={() => onUpdate({ ...block.content, source_type: 'upload' })}
-                                    className={`px-4 py-2 rounded-lg text-xs font-black transition-all ${sourceType === 'upload' ? 'bg-primary text-white' : 'text-foreground/40 hover:text-foreground'}`}
+                                    className={`px-4 py-2 rounded-lg text-sm font-bold transition-all ${sourceType === 'upload' ? 'bg-primary text-white' : 'text-gray-500 hover:text-gray-700'}`}
                                 >
                                     อัพโหลดวิดีโอ
                                 </button>
@@ -1097,12 +1197,16 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
 
                             {sourceType === 'embed' ? (
                                 <div className="space-y-4 text-center">
-                                    <div className="w-16 h-16 bg-foreground/5 rounded-full flex items-center justify-center mx-auto text-foreground/20">
-                                        <Video size={32} />
-                                    </div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30">Paste Video Link (YouTube/Vimeo)</p>
+                                    {!block.content.url && (
+                                        <>
+                                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto">
+                                                <Video size={32} className="text-gray-400" />
+                                            </div>
+                                            <p className="text-base font-bold text-gray-700">Paste Video Link (YouTube/Vimeo)</p>
+                                        </>
+                                    )}
                                     <input
-                                        className="w-full bg-background border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono tracking-tighter transition-all"
+                                        className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm transition-all text-gray-700 placeholder:text-gray-400"
                                         placeholder="https://www.youtube.com/watch?v=..."
                                         value={block.content.url || ''}
                                         onChange={e => onUpdate({ ...block.content, url: e.target.value })}
@@ -1110,7 +1214,7 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-foreground/30 text-center">อัพโหลดวิดีโอพร้อมตั้งค่า Autoplay และ Link</p>
+                                    <p className="text-base font-bold text-gray-700 text-center">อัพโหลดวิดีโอพร้อมตั้งค่า Autoplay และ Link</p>
                                     <VideoUpload
                                         value={videoConfig}
                                         onChange={(config) => onUpdate({ ...block.content, video_config: config })}
@@ -1124,7 +1228,7 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                 videoConfig.link_enabled && videoConfig.link_url ? (
                                     <a href={videoConfig.link_url} target="_blank" rel="noopener noreferrer" className="block w-full h-full relative group">
                                         <video
-                                            src={videoConfig.url.startsWith('http') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
+                                            src={videoConfig.url.startsWith('http') ? videoConfig.url : videoConfig.url.startsWith('/api') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
                                             autoPlay={videoConfig.autoplay}
                                             muted={videoConfig.autoplay}
                                             loop
@@ -1137,7 +1241,7 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                     </a>
                                 ) : (
                                     <video
-                                        src={videoConfig.url.startsWith('http') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
+                                        src={videoConfig.url.startsWith('http') ? videoConfig.url : videoConfig.url.startsWith('/api') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
                                         autoPlay={videoConfig.autoplay}
                                         muted={videoConfig.autoplay}
                                         loop
@@ -1149,7 +1253,7 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                             ) : (
                                 <iframe
                                     className="w-full h-full"
-                                    src={block.content.url?.replace('watch?v=', 'embed/')}
+                                    src={getEmbedUrl(block.content.url)}
                                     title="Video content"
                                     frameBorder="0"
                                     allowFullScreen
@@ -1163,31 +1267,31 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
             return (
                 <div className="text-center py-12">
                     {isEditing ? (
-                        <div className="max-w-md mx-auto space-y-6 bg-foreground/5 p-10 rounded-[40px] border border-foreground/5 shadow-inner">
+                        <div className="max-w-md mx-auto space-y-6 bg-white p-8 rounded-[32px] border border-gray-200 shadow-lg">
                             <div className="space-y-2">
                                 <div className="flex items-center justify-between ml-1">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest text-left">ข้อความบนปุ่ม</label>
+                                    <label className="block text-sm font-bold text-gray-700 text-left">ข้อความบนปุ่ม</label>
                                     <button
                                         type="button"
                                         onClick={onAiSuggest}
                                         disabled={aiLoading}
-                                        className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all font-black text-[9px] uppercase tracking-wider"
+                                        className="flex items-center gap-1.5 px-2 py-1 bg-primary/10 text-primary rounded-lg hover:bg-primary/20 transition-all font-bold text-xs"
                                     >
-                                        {aiLoading ? <Loader2 size={10} className="animate-spin" /> : <Sparkles size={10} />}
+                                        {aiLoading ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
                                         AI Suggest
                                     </button>
                                 </div>
                                 <input 
-                                    className="w-full bg-background border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 text-lg font-black tracking-tight transition-all"
+                                    className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-lg font-bold tracking-tight transition-all text-gray-700 placeholder:text-gray-400"
                                     placeholder="เช่น 'สมัครเลย'"
                                     value={block.content.label}
                                     onChange={e => onUpdate({...block.content, label: e.target.value})}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1 text-left">ลิงก์ปลายทาง</label>
+                                <label className="block text-sm font-bold text-gray-700 ml-1 text-left">ลิงก์ปลายทาง</label>
                                 <input 
-                                    className="w-full bg-background border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono transition-all"
+                                    className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm transition-all text-gray-700 placeholder:text-gray-400"
                                     placeholder="https://..."
                                     value={block.content.url}
                                     onChange={e => onUpdate({...block.content, url: e.target.value})}
@@ -1210,24 +1314,24 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
             return (
                 <div className="max-w-2xl mx-auto">
                     {isEditing ? (
-                        <div className="p-12 bg-foreground/5 border-2 border-dashed border-foreground/10 rounded-[40px] text-left space-y-8">
-                            <div className="w-20 h-20 bg-foreground/5 rounded-full flex items-center justify-center mx-auto mb-4 text-foreground/20">
-                                <MessageSquare size={40} />
+                        <div className="p-8 bg-white border-2 border-dashed border-gray-200 rounded-[32px] text-left space-y-6 shadow-lg">
+                            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                                <MessageSquare size={32} className="text-gray-400" />
                             </div>
 
                             {/* Mode toggle */}
                             <div className="space-y-3">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">
+                                <label className="block text-sm font-bold text-gray-700 ml-1">
                                     โหมดฟอร์ม
                                 </label>
-                                <div className="inline-flex rounded-2xl bg-background border border-foreground/10 p-1">
+                                <div className="inline-flex rounded-2xl bg-gray-100 border border-gray-300 p-1">
                                     <button
                                         type="button"
                                         onClick={() => onUpdate({ ...block.content, mode: 'external' })}
-                                        className={`px-4 py-2 text-xs font-black rounded-xl transition-all ${
+                                        className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
                                             !block.content.mode || block.content.mode === 'external'
                                                 ? 'bg-primary text-white'
-                                                : 'text-foreground/50 hover:text-foreground'
+                                                : 'text-gray-500 hover:text-gray-700'
                                         }`}
                                     >
                                         ลิงก์ฟอร์มภายนอก
@@ -1235,29 +1339,33 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                     <button
                                         type="button"
                                         onClick={() => onUpdate({ ...block.content, mode: 'internal' })}
-                                        className={`px-4 py-2 text-xs font-black rounded-xl transition-all ${
+                                        className={`px-4 py-2 text-sm font-bold rounded-xl transition-all ${
                                             block.content.mode === 'internal'
                                                 ? 'bg-primary text-white'
-                                                : 'text-foreground/50 hover:text-foreground'
+                                                : 'text-gray-500 hover:text-gray-700'
                                         }`}
                                     >
                                         ฟอร์มเก็บ Leads ในระบบ
                                     </button>
                                 </div>
-                                <p className="text-[11px] text-foreground/40 ml-1">
-                                    - โหมดลิงก์ภายนอก: ใช้ Google Forms หรือ Form tool อื่น ๆ<br />
-                                    - โหมดฟอร์มในระบบ: ใช้ฟอร์มมาตรฐานของ NEX และบันทึกลงเมนู Leads
-                                </p>
+                                <div className="mt-3 p-4 bg-gray-100 rounded-xl border border-gray-200">
+                                    <p className="text-sm text-gray-700 leading-relaxed">
+                                        <span className="font-bold">โหมดลิงก์ภายนอก:</span> ใช้ Google Forms หรือ Form tool อื่น ๆ
+                                    </p>
+                                    <p className="text-sm text-gray-700 leading-relaxed mt-1">
+                                        <span className="font-bold">โหมดฟอร์มในระบบ:</span> ใช้ฟอร์มมาตรฐานของ NEX และบันทึกลงเมนู Leads
+                                    </p>
+                                </div>
                             </div>
 
                             {/* External form config */}
                             {(!block.content.mode || block.content.mode === 'external') && (
                                 <div className="space-y-3">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">
+                                    <label className="block text-sm font-bold text-gray-700 ml-1">
                                         Form Submission Link (ภายนอก)
                                     </label>
                                     <input
-                                        className="w-full bg-background border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 text-xs font-mono tracking-tighter transition-all"
+                                        className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-sm transition-all text-gray-700 placeholder:text-gray-400"
                                         placeholder="https://forms.gle/..."
                                         value={block.content.url || ''}
                                         onChange={(e) => onUpdate({ ...block.content, url: e.target.value })}
@@ -1270,11 +1378,11 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                 <div className="space-y-5">
                                     {/* Form selection from system */}
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">
+                                        <label className="block text-sm font-bold text-gray-700 ml-1">
                                             เลือกฟอร์มจากระบบ (Form Selection)
                                         </label>
                                         {formsLoading ? (
-                                            <div className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-3 text-sm text-foreground/40 flex items-center justify-between">
+                                            <div className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-4 py-3 text-sm text-gray-500 flex items-center justify-between">
                                                 <span>กำลังโหลดรายการฟอร์ม...</span>
                                                 <Loader2 className="animate-spin" size={16} />
                                             </div>
@@ -1284,7 +1392,7 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                             </div>
                                         ) : forms && forms.length > 0 ? (
                                             <select
-                                                className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                                className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-gray-700"
                                                 value={block.content.form_id ? String(block.content.form_id) : ''}
                                                 onChange={(e) => {
                                                     const value = e.target.value;
@@ -1312,8 +1420,8 @@ function RenderBlock({ block, theme, isEditing, aiLoading, onUpdate, onAiSuggest
                                                 ))}
                                             </select>
                                         ) : (
-                                            <div className="w-full bg-background border border-foreground/10 rounded-2xl px-4 py-4 text-sm flex flex-col gap-2">
-                                                <span className="text-foreground/50">ยังไม่มีฟอร์มในระบบ</span>
+                                            <div className="w-full bg-gray-50 border border-gray-300 rounded-2xl px-4 py-4 text-sm flex flex-col gap-2">
+                                                <span className="text-gray-500">ยังไม่มีฟอร์มในระบบ</span>
                                                 <Link
                                                     href="/manage/forms"
                                                     className="inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.18em] text-primary hover:text-primary/80"

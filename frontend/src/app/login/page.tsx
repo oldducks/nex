@@ -247,8 +247,8 @@ function LoginContent() {
             </div>
 
             {!isEmbed && (
-                <footer className="mt-12 text-foreground/20 text-xs text-center">
-                    © {new Date().getFullYear()} NAMECARD.AI All rights reserved.
+                <footer className="mt-12 text-center text-xs leading-6 text-foreground/20">
+                    © {new Date().getFullYear()} NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.
                 </footer>
             )}
         </div>

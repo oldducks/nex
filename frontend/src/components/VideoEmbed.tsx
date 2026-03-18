@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from 'react';
+import { getEmbedUrl, isEmbedableVideo } from '@/lib/videoUtils';
 
 interface VideoEmbedProps {
   url: string;
@@ -49,47 +50,38 @@ export function VideoEmbed({ url, autoplay = false }: VideoEmbedProps) {
     return path;
   };
 
-  let embedUrl = "";
-  let isDirectFile = false;
+  // Check if URL is YouTube or Vimeo
+  const isEmbedable = isEmbedableVideo(url);
   
-  // YouTube 
-  const ytMatch = url.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)/);
-  if (ytMatch) {
-    const id = ytMatch[1].split('&')[0];
-    embedUrl = `https://www.youtube.com/embed/${id}?autoplay=${autoplay ? 1 : 0}&mute=${autoplay ? 1 : 0}`;
-  } else {
-      // Vimeo
-      const vimeoMatch = url.match(/(?:https?:\/\/)?(?:www\.)?vimeo\.com\/(.+)/);
-      if (vimeoMatch) {
-        embedUrl = `https://player.vimeo.com/video/${vimeoMatch[1]}?autoplay=${autoplay ? 1 : 0}&muted=${autoplay ? 1 : 0}`;
-      } else {
-        // Assume direct file if not YouTube/Vimeo
-        isDirectFile = true;
-      }
+  if (!isEmbedable) {
+    // Direct video file
+    return (
+      <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 shadow-lg bg-black">
+          <video
+              ref={videoRef}
+              src={getFullUrl(url)}
+              muted={autoplay} // Required for autoplay
+              loop
+              playsInline
+              controls
+              className="w-full h-full object-cover"
+          />
+      </div>
+    );
   }
 
-  if (isDirectFile) {
-      return (
-        <div className="relative w-full rounded-2xl overflow-hidden border border-white/10 shadow-lg bg-black">
-            <video
-                ref={videoRef}
-                src={getFullUrl(url)}
-                muted={autoplay} // Required for autoplay
-                loop
-                playsInline
-                controls
-                className="w-full h-full object-cover"
-            />
-        </div>
-      );
-  }
-
+  const embedUrl = getEmbedUrl(url);
   if (!embedUrl) return null;
+
+  // Add autoplay params for YouTube/Vimeo
+  const finalUrl = embedUrl.includes('?') 
+    ? `${embedUrl}&autoplay=${autoplay ? 1 : 0}&mute=${autoplay ? 1 : 0}`
+    : `${embedUrl}?autoplay=${autoplay ? 1 : 0}&mute=${autoplay ? 1 : 0}`;
 
   return (
     <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">
       <iframe
-        src={embedUrl}
+        src={finalUrl}
         className="absolute inset-0 w-full h-full"
         allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
         allowFullScreen
