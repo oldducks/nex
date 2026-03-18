@@ -6,7 +6,6 @@ import Cookies from 'js-cookie';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart as ReLineChart, Line } from 'recharts';
 import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, LayoutDashboard, Database, Loader2, LineChart, QrCode, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -124,27 +123,26 @@ export default function AnalyticsDashboard() {
 
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.28),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
             {/* Navbar */}
-            <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
+            <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-md">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
                         <Link
                             href="/manage/control-center"
-                            className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group"
+                            className="group flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-white"
                             title="กลับหน้าเมนูหลัก"
                         >
-                            <ArrowLeft size={20} className="text-foreground/40 group-hover:text-foreground transition-all" />
+                            <ArrowLeft size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
                         </Link>
-                        <div className="font-bold text-xl tracking-tight flex items-center gap-2">
-                            <LayoutDashboard size={24} className="text-primary" />
+                        <div className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#050579]">
+                            <LayoutDashboard size={24} className="text-[#050579]" />
                             <span className="hidden sm:inline">สถิติการใช้งาน</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4">
-                        <ThemeToggle />
-                        <div className="h-6 w-px bg-foreground/10 mx-1" />
-                        <button onClick={handleLogout} className="w-10 h-10 rounded-xl hover:bg-red-500/5 hover:text-red-500 text-foreground/40 transition-all flex items-center justify-center" title="ออกจากระบบ">
+                        <button onClick={handleLogout} className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:bg-[#FEF2F2] hover:text-[#DC2626]" title="ออกจากระบบ">
                             <LogOut size={20} />
                         </button>
                     </div>
@@ -155,23 +153,23 @@ export default function AnalyticsDashboard() {
                 {/* Header & Filter */}
                 <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
                     <div>
-                        <h1 className="text-3xl font-black mb-2 tracking-tight">ภาพรวมแดชบอร์ด</h1>
-                        <div className="flex items-center gap-2 text-foreground/60">
+                        <h1 className="mb-2 text-3xl font-black tracking-tight text-[#050579]">ภาพรวมแดชบอร์ด</h1>
+                        <div className="flex items-center gap-2 text-[#475569]">
                             <Calendar size={16} />
-                            <span>สมาชิก: <strong className="text-primary">เหลืออีก {remainingDays} วัน</strong></span>
+                            <span>สมาชิก: <strong className="text-[#F97316]">เหลืออีก {remainingDays} วัน</strong></span>
                             {profile?.expiration_date && (
-                                <span className="text-xs opacity-50">
+                                <span className="text-xs text-[#64748B]">
                                     (หมดอายุ: {new Date(profile.expiration_date).toLocaleDateString('th-TH')})
                                 </span>
                             )}
                         </div>
                     </div>
-                    <div className="bg-foreground/5 p-1 rounded-2xl flex border border-foreground/5 w-full md:w-auto overflow-x-auto">
+                    <div className="flex w-full overflow-x-auto rounded-2xl border border-[#D9E1F2] bg-white p-1 md:w-auto">
                         {['today', '7days', '30days', 'all'].map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPeriod(p)}
-                                className={`px-4 py-2 rounded-xl text-sm font-bold transition-all whitespace-nowrap ${period === p ? 'bg-background text-foreground shadow-md' : 'text-foreground/40 hover:text-foreground'}`}
+                                className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold transition-all ${period === p ? 'bg-[#F6F8FF] text-[#050579] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'}`}
                             >
                                 {p === 'today' ? 'วันนี้' : p === '7days' ? '7 วันที่ผ่านมา' : p === '30days' ? '30 วันที่ผ่านมา' : 'ทั้งหมด'}
                             </button>
@@ -180,9 +178,9 @@ export default function AnalyticsDashboard() {
                 </div>
 
                 {loading ? (
-                    <div className="flex flex-col items-center justify-center py-24 gap-4">
-                        <Loader2 className="animate-spin text-primary" size={32} />
-                        <span className="text-foreground/40 font-medium tracking-wide">กำลังโหลดข้อมูล...</span>
+                        <div className="flex flex-col items-center justify-center gap-4 py-24">
+                            <Loader2 className="animate-spin text-[#F97316]" size={32} />
+                            <span className="font-medium tracking-wide text-[#64748B]">กำลังโหลดข้อมูล...</span>
                     </div>
                 ) : (
                     <>
@@ -239,15 +237,15 @@ export default function AnalyticsDashboard() {
                         {/* Charts Section */}
                         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
                             {/* Bar Chart */}
-                            <div className="bg-foreground/5 border border-foreground/10 rounded-[40px] p-8 glass-card overflow-hidden relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                            <div className="group relative overflow-hidden rounded-[36px] border border-[#D9E1F2] bg-white p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#EEF2FF] via-transparent to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
                                 <div className="flex items-center justify-between mb-8 relative z-10">
-                                    <h3 className="text-xl font-bold tracking-tight">แยกตามประเภทการใช้งาน</h3>
+                                    <h3 className="text-xl font-bold tracking-tight text-[#050579]">แยกตามประเภทการใช้งาน</h3>
                                     <div className="hidden sm:flex gap-4">
                                         {chartData.slice(0, 3).map((item, i) => (
                                             <div key={i} className="flex items-center gap-1.5">
                                                 <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
-                                                <span className="text-[10px] text-foreground/40 font-medium">{item.name}</span>
+                                                <span className="text-[10px] font-medium text-[#64748B]">{item.name}</span>
                                             </div>
                                         ))}
                                     </div>
@@ -280,14 +278,13 @@ export default function AnalyticsDashboard() {
                                             />
                                             <Tooltip
                                                 contentStyle={{ 
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
-                                                    borderColor: 'rgba(255, 255, 255, 0.1)', 
+                                                    backgroundColor: 'rgba(255, 255, 255, 0.96)', 
+                                                    borderColor: '#D9E1F2', 
                                                     borderRadius: '20px',
-                                                    backdropFilter: 'blur(30px)',
-                                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                                    border: '1px solid #D9E1F2',
+                                                    boxShadow: '0 20px 40px -24px rgba(15,23,42,0.18)'
                                                 }}
-                                                itemStyle={{ color: '#fff', fontSize: '12px', fontWeight: '800' }}
+                                                itemStyle={{ color: '#0F172A', fontSize: '12px', fontWeight: '800' }}
                                                 cursor={{ fill: 'currentColor', opacity: 0.05 }}
                                             />
                                             <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={32} animationDuration={1500} animationEasing="ease-out">
@@ -301,11 +298,11 @@ export default function AnalyticsDashboard() {
                             </div>
 
                             {/* Line Chart */}
-                            <div className="bg-foreground/5 border border-foreground/10 rounded-[40px] p-8 glass-card overflow-hidden relative group">
-                                <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
+                            <div className="group relative overflow-hidden rounded-[36px] border border-[#D9E1F2] bg-white p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
+                                <div className="absolute inset-0 bg-gradient-to-br from-[#EAF4FF] via-transparent to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
                                 <div className="mb-8 relative z-10">
-                                    <h3 className="text-xl font-bold tracking-tight">การเติบโตของผู้เข้าชม (Engagement)</h3>
-                                    <p className="text-xs text-foreground/40 mt-1">จำนวนการใช้งานรวมในแต่ละวัน</p>
+                                    <h3 className="text-xl font-bold tracking-tight text-[#050579]">การเติบโตของผู้เข้าชม (Engagement)</h3>
+                                    <p className="mt-1 text-xs text-[#64748B]">จำนวนการใช้งานรวมในแต่ละวัน</p>
                                 </div>
                                 <div className="h-80 w-full relative z-10">
                                     <ResponsiveContainer width="100%" height="100%">
@@ -338,21 +335,20 @@ export default function AnalyticsDashboard() {
                                             <Tooltip
                                                 labelFormatter={(label) => new Date(label).toLocaleDateString('th-TH', { dateStyle: 'long' })}
                                                 contentStyle={{ 
-                                                    backgroundColor: 'rgba(255, 255, 255, 0.05)', 
-                                                    borderColor: 'rgba(255, 255, 255, 0.1)', 
+                                                    backgroundColor: 'rgba(255,255,255,0.96)', 
+                                                    borderColor: '#D9E1F2', 
                                                     borderRadius: '20px',
-                                                    backdropFilter: 'blur(30px)',
-                                                    border: '1px solid rgba(255, 255, 255, 0.1)',
-                                                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
+                                                    border: '1px solid #D9E1F2',
+                                                    boxShadow: '0 20px 40px -24px rgba(15,23,42,0.18)'
                                                 }}
                                             />
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="count" 
-                                                stroke="#8B5CF6" 
+                                                stroke="#2563EB" 
                                                 strokeWidth={5} 
-                                                dot={{ r: 6, fill: '#8B5CF6', strokeWidth: 3, stroke: 'var(--background)' }}
-                                                activeDot={{ r: 8, strokeWidth: 4, stroke: 'var(--background)' }}
+                                                dot={{ r: 6, fill: '#2563EB', strokeWidth: 3, stroke: '#FFFFFF' }}
+                                                activeDot={{ r: 8, strokeWidth: 4, stroke: '#FFFFFF' }}
                                                 animationDuration={2000}
                                             />
                                         </ReLineChart>
@@ -362,21 +358,21 @@ export default function AnalyticsDashboard() {
                         </div>
 
                         {/* Landing pages performance */}
-                        <div className="bg-foreground/5 border border-foreground/10 rounded-[32px] p-8 glass-card">
+                        <div className="rounded-[32px] border border-[#D9E1F2] bg-white p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
                             <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-xl font-bold tracking-tight flex items-center gap-2">
-                                    <LineChart size={20} className="text-primary" />
+                                <h3 className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#050579]">
+                                    <LineChart size={20} className="text-[#050579]" />
                                     สถิติ Landing Page (สูงสุด 5 หน้าแรก)
                                 </h3>
                                 {landingLoading && (
-                                    <span className="flex items-center gap-2 text-xs text-foreground/50">
+                                    <span className="flex items-center gap-2 text-xs text-[#64748B]">
                                         <Loader2 className="animate-spin" size={14} />
                                         กำลังโหลดสถิติหน้าเพจ...
                                     </span>
                                 )}
                             </div>
                             {landingPages.length === 0 ? (
-                                <p className="text-sm text-foreground/50">
+                                <p className="text-sm text-[#64748B]">
                                     ยังไม่มี Landing Page ในระบบ คุณสามารถเริ่มสร้างได้จากเมนู Landing Pages
                                 </p>
                             ) : (
@@ -386,22 +382,22 @@ export default function AnalyticsDashboard() {
                                         return (
                                             <div
                                                 key={page.id}
-                                                className="p-4 rounded-2xl border border-foreground/10 bg-background/40 flex items-center justify-between gap-4"
+                                                className="flex items-center justify-between gap-4 rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-4"
                                             >
                                                 <div className="min-w-0">
-                                                    <p className="text-xs text-foreground/40 uppercase font-black tracking-widest mb-1">
+                                                    <p className="mb-1 text-xs font-black uppercase tracking-widest text-[#64748B]">
                                                         Landing Page
                                                     </p>
                                                     <p className="text-sm font-semibold truncate mb-1">
                                                         {page.title || '(ไม่มีชื่อเพจ)'}
                                                     </p>
-                                                    <p className="text-xs text-foreground/40 truncate">
+                                                    <p className="truncate text-xs text-[#64748B]">
                                                         /lp/{page.slug}
                                                     </p>
                                                 </div>
                                                 <div className="text-right">
                                                     <div className="text-2xl font-black">{views.toLocaleString()}</div>
-                                                    <div className="text-[10px] text-foreground/40 uppercase tracking-widest">
+                                                    <div className="text-[10px] uppercase tracking-widest text-[#64748B]">
                                                         Views รวม
                                                     </div>
                                                 </div>
@@ -420,10 +416,10 @@ export default function AnalyticsDashboard() {
 
 function StatCard({ title, value, icon, color }: any) {
     return (
-        <div className={`p-8 rounded-[32px] border ${color} flex items-center justify-between hover:scale-[1.02] transition-all cursor-default group`}>
+        <div className={`flex cursor-default items-center justify-between rounded-[32px] border p-8 transition-all hover:scale-[1.02] ${color} shadow-[0_20px_50px_-36px_rgba(15,23,42,0.14)]`}>
             <div>
-                <p className="text-foreground/40 text-xs font-black uppercase tracking-widest mb-2">{title}</p>
-                <h3 className="text-4xl font-black tracking-tighter group-hover:text-primary transition-colors">{value.toLocaleString()}</h3>
+                <p className="mb-2 text-xs font-black uppercase tracking-widest text-[#64748B]">{title}</p>
+                <h3 className="text-4xl font-black tracking-tighter text-[#050579]">{value.toLocaleString()}</h3>
             </div>
             <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color.split(' ')[0]} shadow-inner`}>
                 {icon}

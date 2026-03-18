@@ -1308,6 +1308,37 @@
      - white cards
      - orange CTA
 
+5. **Enterprise page (`/enterprise`)**
+   - เปลี่ยน quick action `โซลูชันสำหรับองค์กร` บนหน้า home ให้พาไปหน้าใหม่ `/enterprise`
+   - สร้างหน้า `frontend/src/app/enterprise/page.tsx`
+   - รอบแรกมี copy ที่ extrapolate จาก blueprint มากเกินไป จึงแก้ใหม่เป็น `blueprint-only`
+   - ตัดถ้อยคำแบบ internal/team-facing ออก เช่น `MVP Scope`, `Why This Flow`
+   - ปรับ section ท้ายให้เป็นข้อความที่ลูกค้าองค์กรควรเห็น:
+     - `ปัญหาหลักที่ NEX ช่วยแก้`
+     - `เหมาะกับธุรกิจแบบไหน`
+
+6. **Footer company identity**
+   - เพิ่มชื่อบริษัทใน footer หน้า public หลัก:
+     - `บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด`
+     - `KHRAM INTELLIGENT AI Co., Ltd.`
+   - ปรับจากหลายบรรทัดให้เป็นข้อความต่อเนื่องบรรทัดเดียวบนหน้า home และหน้า login
+
+7. **Logo asset rollout**
+   - ตรวจพบไฟล์ใหม่ใน `frontend/public`:
+     - `nex-logo-current.png`
+     - `nex-logo-current-transparent.png`
+   - deploy โลโก้ใหม่โดยไม่แตะ layout/spacing อื่น:
+     - backup ของเดิมไว้ที่ `frontend/public/nex_logo_nobg.backup-20260318.png`
+     - แทนที่ `frontend/public/nex_logo_nobg.png` ด้วย `nex-logo-current-transparent.png`
+   - ยืนยันด้วย hash ว่าไฟล์ที่ service `web` เสิร์ฟจริงตรงกับไฟล์ใหม่
+
+8. **Homepage logo size follow-up**
+   - หลังเปลี่ยนโลโก้ใหม่ ผู้ใช้ขอให้ลดขนาดโลโก้หน้า home ลง `20%`
+   - ปรับเฉพาะ container logo บน `frontend/src/app/page.tsx`
+     - `h-[220px] -> h-[176px]`
+     - `sm:h-[280px] -> sm:h-[224px]`
+   - ไม่เปลี่ยนส่วนอื่นของ layout
+
 **Files updated**:
 - `AGENT_HANDOVER.md`
 - `docs/README.md`
@@ -1318,11 +1349,90 @@
 - `docs/NEX_SOLUTION_BLUEPRINT_REV0.md`
 - `docs/home-gateway-copy.md`
 - `frontend/src/app/page.tsx`
+- `frontend/src/app/login/page.tsx`
+- `frontend/src/app/enterprise/page.tsx`
 - `frontend/src/app/what-is-nex/page.tsx`
+- `frontend/public/nex_logo_nobg.png`
+- `frontend/public/nex_logo_nobg.backup-20260318.png`
 
 **Notes**:
 - มีการ rebuild/recreate `web` service หลายรอบด้วย `docker compose up -d --build --force-recreate web`
+- บางรอบใช้ `docker compose up -d --build web` สำหรับ rebuild เฉพาะ frontend ตามคำขอ deploy logo
 - หน้า `/register` ยังมีอยู่เป็น route แยก แต่ homepage ปุ่มสมัครสมาชิกถูกเปลี่ยนให้เปิด modal บนหน้า `/`
+- หน้า `/enterprise` ถูกปรับให้อ่านแบบ customer-facing มากขึ้น และหลีกเลี่ยงภาษาภายในทีม
 - ถ้าผู้ใช้ยังเห็นหน้าเก่าหลัง deploy มักเป็น browser cache; ใช้ hard refresh หรือ private window
 
-*Updated by Codex on 2026-03-18 05:34:41 UTC*
+*Updated by Codex on 2026-03-18 06:33:00 UTC*
+
+### 2026-03-18: ux agent handover follow-up - auth callback + manage pages standardization
+**Goal**: ขยาย NEX UX standard จากหน้า public เข้าสู่ flow หลัง login ให้ต่อเนื่องขึ้น โดยแก้หน้า feedback หลัง OAuth และหน้าหลังบ้านหลักที่ user เจอต่อทันที
+
+**What changed**:
+1. **OAuth callback (`/oauth-callback`)**
+   - เปลี่ยนหน้า callback หลัง login จากพื้นดำแบบ old success screen เป็นหน้าโทน NEX standard:
+     - soft blue background
+     - white card
+     - navy headline
+     - orange loading
+     - green success
+     - red error
+   - ใช้ `Logo` component และปรับโลโก้ให้ใหญ่ขึ้นตามคำขอภายหลัง
+   - refactor logic เล็กน้อยเพื่อลด `setState` ใน `useEffect` และให้ lint ผ่าน
+
+2. **Control Center (`/manage/control-center`)**
+   - ปรับหน้าเข้าแรกหลัง login ให้เข้ากับ standard ใหม่:
+     - เปลี่ยน page shell, navbar, hero summary, metric cards, feature cards, status blocks, upgrade modal, bottom dock
+     - ใช้โครงสี `#EEF0FF / #FFFFFF / #050579 / #F97316 / semantic green`
+   - ลดการใช้ rainbow gradients และแทนด้วย tone system ต่อ feature (`navy`, `orange`, `green`, `blue`)
+   - เลือก `นามบัตรดิจิทัล` เป็น primary card หลัก และลดน้ำหนัก visual ของ cards อื่น
+   - ลดความเด่นของ `upgrade card` และ `bottom dock`
+   - ซ่อนปุ่มสลับธีม (`ThemeToggle`) บนหน้านี้ตามคำขอ เพื่อไม่ให้ธีม visual ของหน้าเปลี่ยนจาก standard
+
+3. **Manage page shell alignment**
+   - ขยายมาตรฐาน UX ไปยัง 4 หน้าหลักหลัง login:
+     - `/manage/profile`
+     - `/manage/dashboard`
+     - `/manage/account`
+     - `/manage/leads`
+   - สิ่งที่ปรับในภาพรวม:
+     - page background / shell
+     - sticky header / navbar
+     - section surfaces / cards / borders / shadows
+     - loading / empty states
+     - action buttons และ status bars
+   - เอา `ThemeToggle` ออกจาก flow ของหน้ากลุ่มนี้เพื่อให้ visual continuity เหมือน `control-center`
+
+4. **Profile editor deeper pass (`/manage/profile`)**
+   - เก็บรายละเอียดภายในหน้าเพิ่มเติมจาก shell รอบแรก:
+     - media / upload blocks
+     - logo / background / banner management areas
+     - website rows / social rows
+     - about / interests
+     - theme customization controls
+     - QR section
+   - เปลี่ยน input surfaces, chips, upload states และ option buttons ให้เป็นระบบเดียวกับ NEX standard มากขึ้น
+   - ยังไม่ได้ rewrite logic ฟอร์มหรือเปลี่ยน component ใหญ่เชิงโครงสร้าง เน้น visual standardization แบบเสี่ยงต่ำ
+
+5. **Verification / deploy**
+   - หลายรอบของงานนี้มีการตรวจ `npm run build` ฝั่ง frontend ผ่านก่อน deploy
+   - deploy แต่ละรอบด้วย:
+     - `docker compose up -d --build --force-recreate web`
+   - แม้ `docker compose` จะ recreate `api` ไปด้วยตาม build graph ของ stack แต่สุดท้าย `web` และ `api` กลับขึ้น `Up` ปกติทุกครั้ง
+
+**Files updated**:
+- `AGENT_HANDOVER.md`
+- `frontend/src/app/oauth-callback/page.tsx`
+- `frontend/src/app/manage/control-center/page.tsx`
+- `frontend/src/app/manage/profile/page.tsx`
+- `frontend/src/app/manage/dashboard/page.tsx`
+- `frontend/src/app/manage/account/page.tsx`
+- `frontend/src/app/manage/leads/page.tsx`
+
+**Notes**:
+- งานรอบนี้ intentionally แก้เฉพาะหน้า/ไฟล์เป้าหมาย ไม่ได้แก้ design token กลางหรือ shared theme ทั้งระบบ
+- บางไฟล์ใน repo ยังมี lint warnings/typing debt เดิมอยู่ แต่ frontend build ล่าสุดผ่าน
+- ถ้าจะต่อรอบหน้า แนะนำ:
+  - เก็บ `manage/profile` รอบสุดท้ายในรายละเอียดเล็ก ๆ ที่เหลือ
+  - หรือเริ่มย้าย pattern ที่นิ่งแล้ว (manage nav / section shell / action bars) ไปเป็น shared components
+
+*Updated by Codex on 2026-03-18*

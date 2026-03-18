@@ -5,10 +5,9 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { 
   Users, Mail, Phone, Briefcase, Calendar, 
-  ChevronRight, ArrowLeft, MoreHorizontal, CheckCircle, Loader2
+  ArrowLeft, CheckCircle
 } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface Lead {
   id: number;
@@ -31,6 +30,19 @@ export default function LeadsPage() {
   const token = Cookies.get('token');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
+  async function fetchLeads() {
+    try {
+      const res = await fetch('/api/leads', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      const data = await res.json();
+      setLeads(data);
+      setLoading(false);
+    } catch {
+      setLoading(false);
+    }
+  }
+
   useEffect(() => {
     if (!token) {
       router.push('/login');
@@ -40,19 +52,6 @@ export default function LeadsPage() {
     fetchLeads();
   }, [token, router]);
 
-  const fetchLeads = async () => {
-    try {
-      const res = await fetch('/api/leads', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      const data = await res.json();
-      setLeads(data);
-      setLoading(false);
-    } catch (error) {
-      setLoading(false);
-    }
-  };
-
   const markAsRead = async (id: number) => {
     try {
       await fetch(`/api/leads/${id}/read`, {
@@ -60,26 +59,27 @@ export default function LeadsPage() {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       setLeads(leads.map(l => l.id === id ? { ...l, is_read: true } : l));
-    } catch (error) {}
+    } catch {}
   };
 
   if (!token) return null;
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
+    <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.28),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
       {/* Header */}
-      <header className="border-b border-foreground/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
+      <header className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
           <div className="flex items-center gap-4">
-            <Link href="/manage/control-center" className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group">
-              <ArrowLeft size={18} className="text-foreground/40 group-hover:text-foreground transition-colors" />
+            <Link href="/manage/control-center" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors group hover:bg-white">
+              <ArrowLeft size={18} className="text-[#64748B] transition-colors group-hover:text-[#050579]" />
             </Link>
-            <h1 className="font-bold text-xl tracking-tight flex items-center gap-2">
-              <Users size={20} className="text-primary" /> รายชื่อติดต่อ <span className="text-foreground/20 font-normal hidden sm:inline">(Leads)</span>
+            <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#050579]">
+              <Users size={20} className="text-[#050579]" /> รายชื่อติดต่อ <span className="hidden font-normal text-[#94A3B8] sm:inline">(Leads)</span>
             </h1>
           </div>
           <div className="flex items-center gap-4">
-            <div className="text-[10px] font-black uppercase tracking-widest text-foreground/30 bg-foreground/5 px-3 py-1.5 rounded-lg hidden md:block">
+            <div className="hidden rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#64748B] md:block">
               ทั้งหมด {leads.length} รายชื่อ
             </div>
             {leads.length > 0 && (
@@ -103,36 +103,34 @@ export default function LeadsPage() {
                     // ignore error for now
                   }
                 }}
-                className="text-[10px] font-black uppercase tracking-widest text-foreground bg-foreground/10 px-3 py-1.5 rounded-lg hover:bg-foreground/20 transition-colors"
+                className="rounded-xl bg-[#F97316] px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-[#EA580C]"
               >
                 ดาวน์โหลด CSV
               </button>
             )}
-            <div className="h-6 w-px bg-foreground/10 mx-1 hidden sm:block" />
-            <ThemeToggle />
           </div>
         </div>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="mb-12">
-          <h2 className="text-4xl font-black mb-3 tracking-tighter">ลูกค้าที่สนใจ</h2>
-          <p className="text-foreground/50 text-lg">รายชื่อลูกค้าที่กรอกข้อมูลติดต่อจากหน้าโปรไฟล์ของคุณ</p>
+          <h2 className="mb-3 text-4xl font-black tracking-tighter text-[#050579]">ลูกค้าที่สนใจ</h2>
+          <p className="text-lg text-[#475569]">รายชื่อลูกค้าที่กรอกข้อมูลติดต่อจากหน้าโปรไฟล์ของคุณ</p>
         </div>
 
         {loading ? (
           <div className="space-y-6">
             {[1, 2, 3].map(i => (
-              <div key={i} className="h-32 bg-foreground/5 rounded-[24px] animate-pulse" />
+              <div key={i} className="h-32 rounded-[24px] border border-[#E7ECF7] bg-white/70 animate-pulse" />
             ))}
           </div>
         ) : leads.length === 0 ? (
-          <div className="text-center py-32 bg-foreground/5 border-2 border-dashed border-foreground/10 rounded-[40px] glass-card">
-            <div className="w-24 h-24 bg-foreground/5 rounded-full flex items-center justify-center mx-auto mb-8">
-               <Mail size={40} className="text-foreground/10" />
+          <div className="rounded-[40px] border-2 border-dashed border-[#D9E1F2] bg-white/80 py-32 text-center shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
+            <div className="mx-auto mb-8 flex h-24 w-24 items-center justify-center rounded-full bg-[#F6F8FF]">
+               <Mail size={40} className="text-[#94A3B8]" />
             </div>
-            <h3 className="text-2xl font-black text-foreground/40 mb-3 tracking-tight">ยังไม่มีข้อมูลติดต่อกลับ</h3>
-            <p className="text-foreground/20 font-medium max-w-sm mx-auto">ลองแชร์โปรไฟล์ของคุณไปที่โซเชียลต่างๆ เพื่อเริ่มเก็บข้อมูลลูกค้าที่สนใจ</p>
+            <h3 className="mb-3 text-2xl font-black tracking-tight text-[#050579]">ยังไม่มีข้อมูลติดต่อกลับ</h3>
+            <p className="mx-auto max-w-sm font-medium text-[#64748B]">ลองแชร์โปรไฟล์ของคุณไปที่โซเชียลต่างๆ เพื่อเริ่มเก็บข้อมูลลูกค้าที่สนใจ</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -140,44 +138,44 @@ export default function LeadsPage() {
               <div 
                 key={lead.id}
                 onClick={() => !lead.is_read && markAsRead(lead.id)}
-                className={`group relative bg-card-bg border ${lead.is_read ? 'border-foreground/5' : 'border-primary/30'} p-8 rounded-[32px] transition-all hover:bg-foreground/[0.02] cursor-pointer hover:border-primary/20 hover:-translate-y-1 shadow-xl hover:shadow-primary/5 active:scale-[0.99] glass-card`}
+                className={`group relative cursor-pointer rounded-[32px] border bg-white p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)] transition-all hover:-translate-y-1 active:scale-[0.99] ${lead.is_read ? 'border-[#D9E1F2]' : 'border-[#F6D5BF]'}`}
               >
                 {!lead.is_read && (
-                  <div className="absolute top-8 left-3 w-2 h-2 bg-primary rounded-full shadow-[0_0_15px_rgba(var(--primary-rgb),0.5)] animate-pulse" />
+                  <div className="absolute left-3 top-8 h-2 w-2 rounded-full bg-[#F97316] shadow-[0_0_15px_rgba(249,115,22,0.45)] animate-pulse" />
                 )}
                 
                 <div className="flex flex-col md:flex-row md:items-start justify-between gap-8">
                   <div className="flex items-start gap-6">
-                     <div className="w-16 h-16 rounded-[20px] bg-foreground/5 flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform duration-500 shadow-inner">
+                     <div className="flex h-16 w-16 flex-shrink-0 items-center justify-center rounded-[20px] bg-[#F6F8FF] shadow-inner transition-transform duration-500 group-hover:scale-105">
                         <UserIcon name={lead.name} />
                      </div>
                      <div className="space-y-4">
                         <div className="flex items-center gap-3">
-                          <h4 className="font-black text-2xl tracking-tight">{lead.name}</h4>
-                          {lead.is_read && <CheckCircle size={18} className="text-primary opacity-50" />}
+                          <h4 className="text-2xl font-black tracking-tight text-[#050579]">{lead.name}</h4>
+                          {lead.is_read && <CheckCircle size={18} className="text-[#16A34A] opacity-70" />}
                         </div>
                         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
-                           <span className="flex items-center gap-2 text-foreground/50 font-medium hover:text-foreground transition-colors"><Mail size={14} className="text-primary/50" /> {lead.email}</span>
-                           <span className="flex items-center gap-2 text-foreground/50 font-medium hover:text-foreground transition-colors"><Phone size={14} className="text-primary/50" /> {lead.phone}</span>
+                           <span className="flex items-center gap-2 font-medium text-[#475569] transition-colors hover:text-[#0F172A]"><Mail size={14} className="text-[#050579]/60" /> {lead.email}</span>
+                           <span className="flex items-center gap-2 font-medium text-[#475569] transition-colors hover:text-[#0F172A]"><Phone size={14} className="text-[#050579]/60" /> {lead.phone}</span>
                            {lead.occupation && (
-                             <span className="flex items-center gap-2 text-primary font-bold bg-primary/10 px-3 py-1 rounded-lg"><Briefcase size={14} /> {lead.occupation}</span>
+                             <span className="flex items-center gap-2 rounded-lg bg-[#EEF2FF] px-3 py-1 font-bold text-[#050579]"><Briefcase size={14} /> {lead.occupation}</span>
                            )}
                         </div>
                      </div>
                   </div>
 
                   <div className="flex flex-col items-start md:items-end gap-2 shrink-0">
-                     <div className="flex items-center gap-2 text-[10px] font-black text-foreground/30 uppercase tracking-[0.15em] bg-foreground/5 px-4 py-2 rounded-xl">
+                     <div className="flex items-center gap-2 rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-4 py-2 text-[10px] font-black uppercase tracking-[0.15em] text-[#64748B]">
                         <Calendar size={12} /> {new Date(lead.created_at).toLocaleDateString('th-TH', { 
                           day: 'numeric', month: 'long', year: 'numeric'
                         })}
                      </div>
                      {lead.source_type === 'landing_page' ? (
-                       <div className="flex items-center gap-2 text-[9px] font-black text-primary uppercase tracking-widest bg-primary/10 px-3 py-1.5 rounded-lg border border-primary/20">
+                       <div className="flex items-center gap-2 rounded-lg border border-[#D6E4FF] bg-[#F4F8FF] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#2563EB]">
                          Landing: {lead.source_url || 'Unknown'}
                        </div>
                      ) : (
-                       <div className="flex items-center gap-2 text-[9px] font-black text-foreground/40 uppercase tracking-widest bg-foreground/5 px-3 py-1.5 rounded-lg border border-foreground/10">
+                       <div className="flex items-center gap-2 rounded-lg border border-[#E7ECF7] bg-[#F6F8FF] px-3 py-1.5 text-[9px] font-black uppercase tracking-widest text-[#64748B]">
                          Source: Profile
                        </div>
                      )}
@@ -185,10 +183,10 @@ export default function LeadsPage() {
                 </div>
 
                 {lead.message && (
-                  <div className="mt-8 pt-8 border-t border-foreground/5">
-                    <div className="text-[10px] font-black uppercase tracking-widest text-foreground/20 mb-3 ml-1">ข้อความจากลูกค้า:</div>
-                    <p className="text-foreground/60 text-base leading-relaxed italic bg-foreground/[0.02] p-6 rounded-2xl border border-foreground/5">
-                      "{lead.message}"
+                  <div className="mt-8 border-t border-[#E7ECF7] pt-8">
+                    <div className="mb-3 ml-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">ข้อความจากลูกค้า:</div>
+                    <p className="rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-6 text-base italic leading-relaxed text-[#475569]">
+                      &ldquo;{lead.message}&rdquo;
                     </p>
                   </div>
                 )}
@@ -204,8 +202,8 @@ export default function LeadsPage() {
 function UserIcon({ name }: { name: string }) {
   const initial = name.charAt(0).toUpperCase();
   const colors = [
-    'bg-blue-500', 'bg-emerald-500', 'bg-indigo-500', 
-    'bg-purple-500', 'bg-rose-500', 'bg-amber-500'
+    'bg-[#050579]', 'bg-[#16A34A]', 'bg-[#2563EB]',
+    'bg-[#F97316]', 'bg-[#1D4ED8]', 'bg-[#0F766E]'
   ];
   const colorIndex = name.length % colors.length;
   return (

@@ -14,7 +14,6 @@ import {
 } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
 import { ImageCropper } from '../../../components/ImageCropper';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { VideoUpload } from '@/components/VideoUpload';
 import { Video } from 'lucide-react';
 
@@ -394,6 +393,10 @@ export default function ProfileEditorV2() {
                 if (status.state === 'completed') {
                     const url = status?.result?.url;
                     if (!url) throw new Error('Upload finished but URL missing');
+                    // Fix: Handle both absolute and relative URLs from API
+                    if (url.startsWith('http://') || url.startsWith('https://')) {
+                        return url;
+                    }
                     return `${API_URL}${url}`;
                 }
 
@@ -552,49 +555,46 @@ export default function ProfileEditorV2() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-            <Loader2 className="animate-spin text-primary" size={32} />
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] flex items-center justify-center">
+            <Loader2 className="animate-spin text-[#F97316]" size={32} />
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
+            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.3),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
             {/* Hidden file input */}
             <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
 
             {/* Navbar */}
-            <header className="border-b border-foreground/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
+            <header className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-xl">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => router.push('/manage/control-center')} className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group">
-                            <ArrowLeft size={20} className="text-foreground/40 group-hover:text-foreground transition-all" />
+                        <button onClick={() => router.push('/manage/control-center')} className="group flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-white">
+                            <ArrowLeft size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
                         </button>
-                        <h1 className="text-xl font-black tracking-tight hidden sm:block">{t.header}</h1>
+                        <h1 className="hidden text-xl font-black tracking-tight text-[#050579] sm:block">{t.header}</h1>
                     </div>
                     
                     <div className="flex gap-2 md:gap-4 items-center">
                         {/* Language Switcher */}
-                        <div className="flex bg-foreground/5 rounded-xl p-1">
-                            <button onClick={() => setLang('th')} className={`w-10 h-8 rounded-lg text-xs font-black transition-all ${lang === 'th' ? 'bg-background text-foreground shadow-sm' : 'text-foreground/30 hover:text-foreground/60'}`}>TH</button>
-                            <button onClick={() => setLang('en')} className={`w-10 h-8 rounded-lg text-xs font-black transition-all ${lang === 'en' ? 'bg-background text-foreground shadow-sm' : 'text-foreground/30 hover:text-foreground/60'}`}>EN</button>
+                        <div className="flex rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] p-1">
+                            <button onClick={() => setLang('th')} className={`h-8 w-10 rounded-lg text-xs font-black transition-all ${lang === 'th' ? 'bg-white text-[#050579] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'}`}>TH</button>
+                            <button onClick={() => setLang('en')} className={`h-8 w-10 rounded-lg text-xs font-black transition-all ${lang === 'en' ? 'bg-white text-[#050579] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'}`}>EN</button>
                         </div>
 
-                        <div className="h-6 w-px bg-foreground/10 mx-1 hidden sm:block" />
-                        
-                        <ThemeToggle />
-
-                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="hidden md:flex items-center gap-2 px-4 py-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 text-foreground transition-all font-bold text-sm">
+                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="hidden items-center gap-2 rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-2.5 text-sm font-bold text-[#0F172A] transition-colors hover:bg-white md:flex">
                             <Eye size={18} />
                             <span>{t.viewPublic}</span>
                         </Link>
-                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="md:hidden p-2.5 rounded-xl bg-foreground/5 hover:bg-foreground/10 transition-all text-foreground/60 hover:text-foreground" title="ดูหน้าโปรไฟล์">
+                        <Link href={`/${profile.url_prefix || 'p'}/${uid}`} target="_blank" className="rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] p-2.5 text-[#64748B] transition-colors hover:bg-white hover:text-[#0F172A] md:hidden" title="ดูหน้าโปรไฟล์">
                             <Eye size={20} />
                         </Link>
                         
                         <button
                             onClick={handleSave}
                             disabled={saving}
-                            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-primary hover:bg-primary/90 text-white transition-all font-black text-sm shadow-lg shadow-primary/20 disabled:opacity-50 disabled:scale-95 active:scale-95"
+                            className="flex items-center gap-2 rounded-xl bg-[#F97316] px-6 py-2.5 text-sm font-black text-white shadow-[0_18px_40px_-26px_rgba(249,115,22,0.45)] transition-colors hover:bg-[#EA580C] disabled:scale-95 disabled:opacity-50 active:scale-95"
                         >
                             {saving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
                             <span className="hidden md:inline">{saving ? (lang === 'th' ? 'กำลังบันทึก...' : 'Saving...') : t.save}</span>
@@ -604,9 +604,9 @@ export default function ProfileEditorV2() {
             </header>
 
             <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-                <div className="mb-6 rounded-2xl border border-foreground/10 bg-background/70 backdrop-blur px-4 py-3 flex flex-wrap gap-3 items-center justify-between sticky top-20 z-40">
-                    <div className="flex items-center gap-2 text-xs font-bold">
-                        <span className={`inline-block w-2.5 h-2.5 rounded-full ${loadError ? 'bg-red-500' : isDirty ? 'bg-amber-500' : 'bg-emerald-500'}`} />
+                <div className="sticky top-20 z-40 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D9E1F2] bg-white/88 px-4 py-3 backdrop-blur">
+                    <div className="flex items-center gap-2 text-xs font-bold text-[#475569]">
+                        <span className={`inline-block h-2.5 w-2.5 rounded-full ${loadError ? 'bg-red-500' : isDirty ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                         {loadError
                             ? loadError
                             : isDirty
@@ -619,7 +619,7 @@ export default function ProfileEditorV2() {
                                 key={s.id}
                                 type="button"
                                 onClick={() => scrollToSection(s.id)}
-                                className="px-3 py-1.5 text-xs rounded-lg border border-foreground/10 hover:border-primary/40 hover:text-primary transition"
+                                className="rounded-lg border border-[#D9E1F2] px-3 py-1.5 text-xs transition hover:border-[#F6D5BF] hover:text-[#F97316]"
                             >
                                 {s.label}
                             </button>
@@ -627,15 +627,15 @@ export default function ProfileEditorV2() {
                     </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6 lg:gap-8">
-                    <aside className="hidden lg:block sticky top-40 h-fit rounded-2xl border border-foreground/10 bg-background/60 backdrop-blur p-3">
-                        <div className="text-[10px] uppercase tracking-widest text-foreground/40 font-black px-2 pb-2">Quick Nav</div>
+                    <aside className="sticky top-40 hidden h-fit rounded-2xl border border-[#D9E1F2] bg-white/88 p-3 backdrop-blur lg:block">
+                        <div className="px-2 pb-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">Quick Nav</div>
                         <div className="space-y-1">
                             {quickSections.map((s) => (
                                 <button
                                     key={s.id}
                                     type="button"
                                     onClick={() => scrollToSection(s.id)}
-                                    className="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-foreground/5 transition"
+                                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-[#475569] transition hover:bg-[#F6F8FF] hover:text-[#050579]"
                                 >
                                     {s.label}
                                 </button>
@@ -644,7 +644,7 @@ export default function ProfileEditorV2() {
                     </aside>
                     <div className="space-y-8 sm:space-y-10">
                 {/* Names */}
-                <Section sectionId="sec-basic" title={t.name} icon={<User size={22} className="text-primary" />} onAdd={() => addI18n('names_i18n')} canAdd={profile.names_i18n.length < LANGUAGES.length}>
+                <Section sectionId="sec-basic" title={t.name} icon={<User size={22} className="text-[#050579]" />} onAdd={() => addI18n('names_i18n')} canAdd={profile.names_i18n.length < LANGUAGES.length}>
                     <div className="space-y-4">
                         {profile.names_i18n.map((item, i) => (
                             <I18nInput key={i} item={item} languages={LANGUAGES} onChange={(v) => updateI18n('names_i18n', i, v)} onRemove={profile.names_i18n.length > 1 ? () => removeI18n('names_i18n', i) : undefined} />
@@ -653,7 +653,7 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Positions */}
-                <Section title={t.position} icon={<Briefcase size={22} className="text-primary" />} onAdd={() => addI18n('positions_i18n')} canAdd={profile.positions_i18n.length < LANGUAGES.length}>
+                <Section title={t.position} icon={<Briefcase size={22} className="text-[#050579]" />} onAdd={() => addI18n('positions_i18n')} canAdd={profile.positions_i18n.length < LANGUAGES.length}>
                     <div className="space-y-4">
                         {profile.positions_i18n.map((item, i) => (
                             <I18nInput key={i} item={item} languages={LANGUAGES} onChange={(v) => updateI18n('positions_i18n', i, v)} onRemove={profile.positions_i18n.length > 1 ? () => removeI18n('positions_i18n', i) : undefined} />
@@ -662,7 +662,7 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Companies */}
-                <Section title={t.company} icon={<Building2 size={22} className="text-primary" />} onAdd={() => addI18n('companies_i18n')} canAdd={profile.companies_i18n.length < LANGUAGES.length}>
+                <Section title={t.company} icon={<Building2 size={22} className="text-[#050579]" />} onAdd={() => addI18n('companies_i18n')} canAdd={profile.companies_i18n.length < LANGUAGES.length}>
                     <div className="space-y-4">
                         {profile.companies_i18n.map((item, i) => (
                             <I18nInput key={i} item={item} languages={LANGUAGES} onChange={(v) => updateI18n('companies_i18n', i, v)} onRemove={profile.companies_i18n.length > 1 ? () => removeI18n('companies_i18n', i) : undefined} />
@@ -671,7 +671,7 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Emails */}
-                <Section title={t.email} icon={<Mail size={22} className="text-primary" />} onAdd={() => addContact('emails')} canAdd={profile.emails.length < 10}>
+                <Section title={t.email} icon={<Mail size={22} className="text-[#050579]" />} onAdd={() => addContact('emails')} canAdd={profile.emails.length < 10}>
                     <div className="space-y-4">
                         {profile.emails.map((item, i) => (
                             <ContactInput key={i} item={item} placeholder="email@example.com" onLabelChange={(v) => updateContact('emails', i, 'label', v)} onValueChange={(v) => updateContact('emails', i, 'value', v)} onRemove={profile.emails.length > 1 ? () => removeContact('emails', i) : undefined} />
@@ -680,7 +680,7 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Phones */}
-                <Section title={t.phone} icon={<Phone size={22} className="text-primary" />} onAdd={() => addContact('phones')} canAdd={profile.phones.length < 10}>
+                <Section title={t.phone} icon={<Phone size={22} className="text-[#050579]" />} onAdd={() => addContact('phones')} canAdd={profile.phones.length < 10}>
                     <div className="space-y-4">
                         {profile.phones.map((item, i) => (
                             <ContactInput key={i} item={item} placeholder="08x-xxx-xxxx" onLabelChange={(v) => updateContact('phones', i, 'label', v)} onValueChange={(v) => updateContact('phones', i, 'value', v)} onRemove={profile.phones.length > 1 ? () => removeContact('phones', i) : undefined} />
@@ -689,12 +689,12 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Profile Picture */}
-                <Section sectionId="sec-media" title={t.profilePic} icon={<ImageIcon size={22} className="text-primary" />}>
+                <Section sectionId="sec-media" title={t.profilePic} icon={<ImageIcon size={22} className="text-[#050579]" />}>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                         {/* Image Cropper */}
                         <div className="flex justify-center md:justify-start">
                             {profile.profile_pic_url ? (
-                                <div className="p-4 bg-foreground/5 rounded-[40px] border border-foreground/5 shadow-inner">
+                                <div className="rounded-[40px] border border-[#D9E1F2] bg-[#F8FAFF] p-4 shadow-inner">
                                     <ImageCropper
                                         imageUrl={profile.profile_pic_url}
                                         initialPosition={profile.profile_pic_position}
@@ -704,9 +704,9 @@ export default function ProfileEditorV2() {
                                     />
                                 </div>
                             ) : (
-                                <div className="w-56 h-56 rounded-[40px] bg-foreground/5 border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-3">
-                                    <User size={64} className="text-foreground/10" />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-foreground/20">ยังไม่มีรูปโปรไฟล์</span>
+                                <div className="flex h-56 w-56 flex-col items-center justify-center gap-3 rounded-[40px] border-2 border-dashed border-[#D9E1F2] bg-[#F8FAFF]">
+                                    <User size={64} className="text-[#CBD5E1]" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-[#94A3B8]">ยังไม่มีรูปโปรไฟล์</span>
                                 </div>
                             )}
                         </div>
@@ -714,10 +714,10 @@ export default function ProfileEditorV2() {
                         {/* Upload and Options */}
                         <div className="space-y-8">
                             <div className="space-y-3">
-                                <button onClick={() => triggerUpload('profile')} disabled={uploading} className="bg-primary hover:bg-primary/90 text-white px-6 py-3.5 rounded-2xl font-black text-sm flex items-center gap-3 w-full justify-center shadow-lg shadow-primary/20 transition-all active:scale-95">
+                                <button onClick={() => triggerUpload('profile')} disabled={uploading} className="flex w-full items-center justify-center gap-3 rounded-2xl bg-[#F97316] px-6 py-3.5 text-sm font-black text-white shadow-[0_18px_40px_-24px_rgba(249,115,22,0.42)] transition-colors hover:bg-[#EA580C] active:scale-95">
                                     {uploading ? <Loader2 size={18} className="animate-spin" /> : <Upload size={18} />} {t.uploadImage}
                                 </button>
-                                <p className="text-[10px] font-black uppercase tracking-widest text-foreground/20 text-center">PNG, JPG, WEBP (Maximum 5MB)</p>
+                                <p className="text-center text-[10px] font-black uppercase tracking-widest text-[#94A3B8]">PNG, JPG, WEBP (Maximum 5MB)</p>
                             </div>
 
                         </div>
@@ -725,30 +725,30 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Logo */}
-                <Section title={t.companyLogo} icon={<Building2 size={22} className="text-primary" />}>
+                <Section title={t.companyLogo} icon={<Building2 size={22} className="text-[#050579]" />}>
                     <div className="flex items-center gap-8">
-                        <div className="w-28 h-28 rounded-[24px] bg-foreground/5 border border-foreground/10 overflow-hidden flex items-center justify-center p-4 group hover:border-primary/30 transition-colors">
+                        <div className="group flex h-28 w-28 items-center justify-center overflow-hidden rounded-[24px] border border-[#D9E1F2] bg-[#F8FAFF] p-4 transition-colors hover:border-[#F6D5BF]">
                             {profile.logo?.url ? (
                                 <img src={profile.logo.url} alt="Logo" className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
                             ) : (
-                                <Building2 size={40} className="text-foreground/10" />
+                                <Building2 size={40} className="text-[#CBD5E1]" />
                             )}
                         </div>
                         <div className="space-y-2">
-                             <button onClick={() => triggerUpload('logo')} disabled={uploading} className="bg-foreground text-background hover:opacity-90 px-6 py-3 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 transition-all active:scale-95">
+                             <button onClick={() => triggerUpload('logo')} disabled={uploading} className="flex items-center gap-2 rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-6 py-3 text-xs font-black uppercase tracking-widest text-[#0F172A] transition-colors hover:bg-white active:scale-95">
                                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />} {t.uploadLogo}
                             </button>
-                            <p className="text-[10px] font-medium text-foreground/30 px-1">โลโก้จะแสดงที่มุมขวาบนของโปรไฟล์</p>
+                            <p className="px-1 text-[10px] font-medium text-[#94A3B8]">โลโก้จะแสดงที่มุมขวาบนของโปรไฟล์</p>
                         </div>
                     </div>
                 </Section>
 
                 {/* Backgrounds */}
-                <Section title={t.backgroundImages} icon={<ImageIcon size={22} className="text-primary" />}>
-                    <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">ใช้ได้ 1 รูป</div>
+                <Section title={t.backgroundImages} icon={<ImageIcon size={22} className="text-[#050579]" />}>
+                    <div className="mb-6 ml-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">ใช้ได้ 1 รูป</div>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {profile.backgrounds?.[0] ? (
-                            <div className="relative group aspect-[4/3] rounded-2xl overflow-hidden border border-foreground/10">
+                            <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#D9E1F2]">
                                 <img src={profile.backgrounds[0].url} alt="Background" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <button onClick={() => setProfile(p => ({ ...p, backgrounds: [] }))} className="bg-red-500 text-white p-2 rounded-xl hover:scale-110 transition-transform">
@@ -760,9 +760,9 @@ export default function ProfileEditorV2() {
                             <button
                                 onClick={() => triggerUpload('background')}
                                 disabled={uploading}
-                                className={`aspect-[4/3] rounded-2xl border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-2 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'background' ? 'animate-pulse bg-primary/5' : ''}`}
+                                className={`flex aspect-[4/3] flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[#D9E1F2] text-[#94A3B8] transition-all hover:bg-[#F8FAFF] hover:text-[#F97316] ${uploadingSection === 'background' ? 'animate-pulse bg-[#FFF7F1]' : ''}`}
                             >
-                                {uploadingSection === 'background' ? <Loader2 size={24} className="animate-spin text-primary" /> : <Plus size={24} />}
+                                {uploadingSection === 'background' ? <Loader2 size={24} className="animate-spin text-[#F97316]" /> : <Plus size={24} />}
                                 <span className="text-[9px] font-black uppercase tracking-widest">{uploadingSection === 'background' ? 'กำลังส่งข้อมูล...' : 'เพิ่มรูป'}</span>
                             </button>
                         )}
@@ -770,14 +770,14 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Banners */}
-                <Section title={t.banners} icon={<ImageIcon size={22} className="text-primary" />} onAdd={profile.banners.length < 2 ? () => triggerUpload('banner') : undefined} canAdd={profile.banners.length < 2}>
-                    <div className="text-[10px] font-black text-foreground/30 uppercase tracking-widest mb-6 ml-1">
+                <Section title={t.banners} icon={<ImageIcon size={22} className="text-[#050579]" />} onAdd={profile.banners.length < 2 ? () => triggerUpload('banner') : undefined} canAdd={profile.banners.length < 2}>
+                    <div className="mb-6 ml-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
                         {lang === 'th' ? 'สูงสุด 2 รูป (บน 1, ล่าง 1)' : 'Max 2 banners (top 1, bottom 1)'}
                     </div>
 
                     <div className="space-y-6">
                         {profile.banners.map((bn, i) => (
-                            <div key={i} className="bg-foreground/5 rounded-2xl border border-foreground/10 overflow-hidden">
+                            <div key={i} className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
                                 {/* Banner Preview */}
                                 <div className="relative h-32 overflow-hidden">
                                     <img src={bn.url} alt={`Banner ${i + 1}`} className="w-full h-full object-cover" />
@@ -785,7 +785,7 @@ export default function ProfileEditorV2() {
                                         #{i + 1}
                                     </div>
                                     <div className="absolute top-2 right-2 flex gap-2">
-                                        <span className={`px-2 py-1 rounded-lg text-xs font-bold ${bn.display_position === 'bottom' ? 'bg-orange-500' : 'bg-blue-500'} text-white`}>
+                                        <span className={`rounded-lg px-2 py-1 text-xs font-bold text-white ${bn.display_position === 'bottom' ? 'bg-[#F97316]' : 'bg-[#2563EB]'}`}>
                                             {bn.display_position === 'bottom' ? '🔽 ล่าง' : '🔼 บน'}
                                         </span>
                                     </div>
@@ -801,7 +801,7 @@ export default function ProfileEditorV2() {
                                 <div className="p-4 space-y-4">
                                     {/* Position */}
                                     <div className="flex items-center gap-3">
-                                        <span className="text-xs font-bold text-foreground/50 w-16">{lang === 'th' ? 'ตำแหน่ง' : 'Position'}</span>
+                                        <span className="w-16 text-xs font-bold text-[#64748B]">{lang === 'th' ? 'ตำแหน่ง' : 'Position'}</span>
                                         <div className="flex gap-2 flex-1">
                                             {[
                                                 { value: 'top', label: lang === 'th' ? '🔼 บน' : '🔼 Top' },
@@ -816,8 +816,8 @@ export default function ProfileEditorV2() {
                                                     }}
                                                     className={`flex-1 px-3 py-2 rounded-lg text-xs font-bold transition-all ${
                                                         (bn.display_position || 'top') === opt.value
-                                                            ? 'bg-primary text-white'
-                                                            : 'bg-background text-foreground/50 hover:bg-foreground/10'
+                                                            ? 'bg-[#050579] text-white'
+                                                            : 'bg-white text-[#64748B] hover:bg-[#F6F8FF]'
                                                     }`}
                                                 >
                                                     {opt.label}
@@ -828,7 +828,7 @@ export default function ProfileEditorV2() {
 
                                     {/* Height */}
                                     <div className="flex items-center gap-3">
-                                        <span className="text-xs font-bold text-foreground/50 w-16">{lang === 'th' ? 'ความสูง' : 'Height'}</span>
+                                        <span className="w-16 text-xs font-bold text-[#64748B]">{lang === 'th' ? 'ความสูง' : 'Height'}</span>
                                         <div className="flex gap-1 flex-1 flex-wrap">
                                             {[
                                                 { value: '200px', label: 'S' },
@@ -845,8 +845,8 @@ export default function ProfileEditorV2() {
                                                     }}
                                                     className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
                                                         (bn.height || '320px') === opt.value
-                                                            ? 'bg-primary text-white'
-                                                            : 'bg-background text-foreground/50 hover:bg-foreground/10'
+                                                            ? 'bg-[#050579] text-white'
+                                                            : 'bg-white text-[#64748B] hover:bg-[#F6F8FF]'
                                                     }`}
                                                 >
                                                     {opt.label}
@@ -857,7 +857,7 @@ export default function ProfileEditorV2() {
 
                                     {/* Link URL */}
                                     <div className="flex items-center gap-3">
-                                        <span className="text-xs font-bold text-foreground/50 w-16">{lang === 'th' ? 'ลิงก์' : 'Link'}</span>
+                                        <span className="w-16 text-xs font-bold text-[#64748B]">{lang === 'th' ? 'ลิงก์' : 'Link'}</span>
                                         <input
                                             type="url"
                                             value={bn.link_url || ''}
@@ -867,7 +867,7 @@ export default function ProfileEditorV2() {
                                                 setProfile(p => ({ ...p, banners: newBanners }));
                                             }}
                                             placeholder={lang === 'th' ? 'https://example.com (คลิกโคเวอร์แล้วเปิด)' : 'https://example.com (Click to open)'}
-                                            className="flex-1 bg-background border border-foreground/10 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary transition-colors"
+                                            className="flex-1 rounded-lg border border-[#D9E1F2] bg-white px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
                                         />
                                     </div>
                                 </div>
@@ -879,9 +879,9 @@ export default function ProfileEditorV2() {
                             <button
                                 onClick={() => triggerUpload('banner')}
                                 disabled={uploading}
-                                className={`w-full h-32 rounded-2xl border-2 border-dashed border-foreground/10 flex flex-col items-center justify-center gap-3 hover:bg-foreground/5 transition-all text-foreground/20 hover:text-primary ${uploadingSection === 'banner' ? 'animate-pulse bg-primary/5' : ''}`}
+                                className={`flex h-32 w-full flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed border-[#D9E1F2] text-[#94A3B8] transition-all hover:bg-[#F8FAFF] hover:text-[#F97316] ${uploadingSection === 'banner' ? 'animate-pulse bg-[#FFF7F1]' : ''}`}
                             >
-                                {uploadingSection === 'banner' ? <Loader2 size={32} className="animate-spin text-primary" /> : <Plus size={32} />}
+                                {uploadingSection === 'banner' ? <Loader2 size={32} className="animate-spin text-[#F97316]" /> : <Plus size={32} />}
                                 <span className="text-[10px] font-black uppercase tracking-widest">{uploadingSection === 'banner' ? 'กำลังอัปโหลด...' : 'เพิ่มโคเวอร์'}</span>
                             </button>
                         )}
@@ -889,12 +889,12 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Video */}
-                <Section title="วิดีโอแนะนำ" icon={<Video size={22} className="text-primary" />}>
+                <Section title="วิดีโอแนะนำ" icon={<Video size={22} className="text-[#050579]" />}>
                     <div className="space-y-4">
-                        <p className="text-sm text-foreground/60 mb-6">อัพโหลดวิดีโอแนะนำตัวเองหรือผลงาน สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
+                        <p className="mb-6 text-sm text-[#475569]">อัพโหลดวิดีโอแนะนำตัวเองหรือผลงาน สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
 
                         {!hasPremiumVideo && (
-                            <div className="rounded-2xl border border-amber-400/30 bg-amber-500/10 p-4 text-sm text-amber-700 dark:text-amber-300">
+                            <div className="rounded-2xl border border-[#F6D5BF] bg-[#FFF7F1] p-4 text-sm text-[#C2410C]">
                                 ฟีเจอร์วิดีโอแนะนำสำหรับบัญชีพรีเมี่ยมเท่านั้น กรุณาอัปเกรดเพื่อปลดล็อคการใช้งาน
                             </div>
                         )}
@@ -912,60 +912,60 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Websites */}
-                <Section sectionId="sec-links" title={t.websiteLinks} icon={<Globe size={22} className="text-primary" />} onAdd={addWebsite} canAdd={profile.websites.length < 10}>
+                <Section sectionId="sec-links" title={t.websiteLinks} icon={<Globe size={22} className="text-[#050579]" />} onAdd={addWebsite} canAdd={profile.websites.length < 10}>
                     <div className="space-y-4">
                         {profile.websites.map((item, i) => (
-                            <div key={i} className="flex items-center gap-4 group p-2 rounded-2xl hover:bg-foreground/[0.02] transition-colors border border-transparent hover:border-foreground/5">
-                                <input type="text" placeholder="ชื่อหัวข้อ (เช่น Portfolio, Website)" value={item.label} onChange={e => setProfile(p => ({ ...p, websites: p.websites.map((w, j) => j === i ? { ...w, label: e.target.value } : w) }))} className="w-1/3 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                                <input type="url" placeholder="URL (เช่น https://...)" value={item.url} onChange={e => setProfile(p => ({ ...p, websites: p.websites.map((w, j) => j === i ? { ...w, url: e.target.value } : w) }))} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                                <button onClick={() => removeWebsite(i)} className="text-foreground/20 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>
+                            <div key={i} className="group flex items-center gap-4 rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-3 transition-colors hover:bg-white">
+                                <input type="text" placeholder="ชื่อหัวข้อ (เช่น Portfolio, Website)" value={item.label} onChange={e => setProfile(p => ({ ...p, websites: p.websites.map((w, j) => j === i ? { ...w, label: e.target.value } : w) }))} className="w-1/3 rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/20" />
+                                <input type="url" placeholder="URL (เช่น https://...)" value={item.url} onChange={e => setProfile(p => ({ ...p, websites: p.websites.map((w, j) => j === i ? { ...w, url: e.target.value } : w) }))} className="flex-1 rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/20" />
+                                <button onClick={() => removeWebsite(i)} className="p-2 text-[#CBD5E1] transition-all group-hover:scale-110 hover:text-red-500"><Trash2 size={20} /></button>
                             </div>
                         ))}
                     </div>
                 </Section>
 
                 {/* About Me */}
-                <Section title={t.aboutMe} icon={<Heart size={22} className="text-primary" />}>
-                    <textarea value={profile.about_me} onChange={e => setProfile(p => ({ ...p, about_me: e.target.value }))} placeholder={t.aboutMePlaceholder} className="w-full bg-foreground/5 border border-foreground/10 rounded-[24px] px-4 md:px-6 py-4 md:py-5 min-h-[200px] md:min-h-[250px] resize-y focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-foreground/20 text-base md:text-lg leading-relaxed" />
+                <Section title={t.aboutMe} icon={<Heart size={22} className="text-[#050579]" />}>
+                    <textarea value={profile.about_me} onChange={e => setProfile(p => ({ ...p, about_me: e.target.value }))} placeholder={t.aboutMePlaceholder} className="min-h-[200px] w-full resize-y rounded-[24px] border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-4 text-base leading-relaxed text-[#0F172A] transition-all placeholder:text-[#94A3B8] focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 md:min-h-[250px] md:px-6 md:py-5 md:text-lg" />
                 </Section>
 
                 {/* Interests */}
-                <Section title={t.interests} icon={<Heart size={22} className="text-primary" />}>
+                <Section title={t.interests} icon={<Heart size={22} className="text-[#050579]" />}>
                     <div className="flex flex-wrap gap-2 mb-6">
                         {profile.interests.map((tag, i) => (
-                            <span key={i} className="bg-primary/10 text-primary px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:scale-105 transition-transform cursor-default border border-primary/20">
+                            <span key={i} className="flex cursor-default items-center gap-2 rounded-xl border border-[#F6D5BF] bg-[#FFF7F1] px-4 py-2 text-xs font-black uppercase tracking-widest text-[#C2410C] transition-transform hover:scale-105">
                                 {tag}
-                                <button onClick={() => removeInterest(i)} className="p-1 hover:bg-primary/20 rounded-md transition-colors"><X size={12} /></button>
+                                <button onClick={() => removeInterest(i)} className="rounded-md p-1 transition-colors hover:bg-[#FFF1E8]"><X size={12} /></button>
                             </span>
                         ))}
-                        {profile.interests.length === 0 && <span className="text-foreground/20 text-sm font-medium ml-1">ยังไม่มีความสนใจที่เลือก</span>}
+                        {profile.interests.length === 0 && <span className="ml-1 text-sm font-medium text-[#94A3B8]">ยังไม่มีความสนใจที่เลือก</span>}
                     </div>
                     <div className="flex gap-3 max-w-md">
-                        <input type="text" value={newInterest} onChange={e => setNewInterest(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addInterest())} placeholder={t.interestsPlaceholder} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                        <button onClick={addInterest} className="bg-foreground text-background font-black uppercase tracking-widest px-6 py-3 rounded-xl text-[10px] hover:opacity-90 active:scale-95 transition-all shadow-lg shadow-foreground/5">เพิ่ม</button>
+                        <input type="text" value={newInterest} onChange={e => setNewInterest(e.target.value)} onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addInterest())} placeholder={t.interestsPlaceholder} className="flex-1 rounded-xl border border-[#D9E1F2] bg-[#F8FAFF] px-5 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/20" />
+                        <button onClick={addInterest} className="rounded-xl bg-[#F97316] px-6 py-3 text-[10px] font-black uppercase tracking-widest text-white shadow-[0_14px_30px_-18px_rgba(249,115,22,0.42)] transition-colors hover:bg-[#EA580C] active:scale-95">เพิ่ม</button>
                     </div>
                 </Section>
 
                 {/* Social Links */}
-                <Section title={t.socialLinks} icon={<Globe size={22} className="text-primary" />} onAdd={() => setProfile(p => ({ ...p, social_links_json: [...p.social_links_json, { platform: 'website', url: '' }] }))} canAdd={profile.social_links_json.length < 20}>
+                <Section title={t.socialLinks} icon={<Globe size={22} className="text-[#050579]" />} onAdd={() => setProfile(p => ({ ...p, social_links_json: [...p.social_links_json, { platform: 'website', url: '' }] }))} canAdd={profile.social_links_json.length < 20}>
                     <div className="space-y-4">
                         {profile.social_links_json.map((link, i) => {
                             const IconComponent = SOCIAL_ICONS[link.platform] || Globe;
                             const option = SOCIAL_OPTIONS.find(o => o.value === link.platform);
                             return (
-                                <div key={i} className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 group p-3 sm:p-2 rounded-2xl bg-foreground/[0.02] sm:bg-transparent hover:bg-foreground/[0.03] transition-colors border border-foreground/5 sm:border-transparent hover:border-foreground/5">
+                                <div key={i} className="group flex flex-col gap-3 rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-3 transition-colors hover:bg-white sm:flex-row sm:items-center sm:gap-4 sm:p-3">
                                     <div className="flex items-center gap-3">
                                         <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center shadow-lg shrink-0" style={{ backgroundColor: option?.color || 'var(--primary)' }}>
                                             <IconComponent size={20} className="text-white sm:hidden" />
                                             <IconComponent size={24} className="text-white hidden sm:block" />
                                         </div>
-                                        <select value={link.platform} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, platform: e.target.value } : l) }))} className="flex-1 sm:flex-none bg-foreground/5 border border-foreground/10 rounded-xl px-3 sm:px-4 py-2.5 sm:py-3 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all">
+                                        <select value={link.platform} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, platform: e.target.value } : l) }))} className="flex-1 rounded-xl border border-[#D9E1F2] bg-white px-3 py-2.5 text-sm font-bold focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 sm:flex-none sm:px-4 sm:py-3">
                                             {SOCIAL_OPTIONS.map(opt => <option key={opt.value} value={opt.value} className="bg-background text-foreground">{opt.label}</option>)}
                                         </select>
-                                        <button onClick={() => setProfile(p => ({ ...p, social_links_json: p.social_links_json.filter((_, j) => j !== i) }))} className="sm:hidden text-foreground/20 hover:text-red-500 p-2"><Trash2 size={18} /></button>
+                                        <button onClick={() => setProfile(p => ({ ...p, social_links_json: p.social_links_json.filter((_, j) => j !== i) }))} className="p-2 text-[#94A3B8] hover:text-red-500 sm:hidden"><Trash2 size={18} /></button>
                                     </div>
-                                    <input type="url" placeholder="ใส่ชื่อผู้ใช้หรือลิงก์ URL..." value={link.url} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, url: e.target.value } : l) }))} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-2.5 sm:py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                                    <button onClick={() => setProfile(p => ({ ...p, social_links_json: p.social_links_json.filter((_, j) => j !== i) }))} className="hidden sm:block text-foreground/20 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>
+                                    <input type="url" placeholder="ใส่ชื่อผู้ใช้หรือลิงก์ URL..." value={link.url} onChange={e => setProfile(p => ({ ...p, social_links_json: p.social_links_json.map((l, j) => j === i ? { ...l, url: e.target.value } : l) }))} className="flex-1 rounded-xl border border-[#D9E1F2] bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 sm:py-3" />
+                                    <button onClick={() => setProfile(p => ({ ...p, social_links_json: p.social_links_json.filter((_, j) => j !== i) }))} className="hidden p-2 text-[#CBD5E1] transition-all group-hover:scale-110 hover:text-red-500 sm:block"><Trash2 size={20} /></button>
                                 </div>
                             );
                         })}
@@ -973,15 +973,15 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Theme Customization */}
-                <Section sectionId="sec-theme" title={t.themeCustomization} icon={<Palette size={22} className="text-primary" />}>
+                <Section sectionId="sec-theme" title={t.themeCustomization} icon={<Palette size={22} className="text-[#050579]" />}>
                     {/* Theme Mode */}
                     <div className="mb-10 space-y-4">
-                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">{t.colorMode} (Public Profile Only)</label>
-                        <div className="flex bg-foreground/5 p-1.5 rounded-2xl w-fit border border-foreground/5 gap-1.5">
-                            <button onClick={() => updateTheme('display_theme', 'light')} className={`px-6 py-3 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${profile.layout_config.display_theme !== 'dark' ? 'bg-background text-foreground shadow-xl scale-105' : 'text-foreground/30 hover:text-foreground/60'}`}>
+                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">{t.colorMode} (Public Profile Only)</label>
+                        <div className="flex w-fit gap-1.5 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] p-1.5">
+                            <button onClick={() => updateTheme('display_theme', 'light')} className={`flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black transition-all ${profile.layout_config.display_theme !== 'dark' ? 'scale-105 bg-white text-[#050579] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'}`}>
                                 ☀️ {t.light}
                             </button>
-                            <button onClick={() => updateTheme('display_theme', 'dark')} className={`px-6 py-3 rounded-xl text-sm font-black flex items-center gap-2 transition-all ${profile.layout_config.display_theme === 'dark' ? 'bg-background text-foreground shadow-xl scale-105' : 'text-foreground/30 hover:text-foreground/60'}`}>
+                            <button onClick={() => updateTheme('display_theme', 'dark')} className={`flex items-center gap-2 rounded-xl px-6 py-3 text-sm font-black transition-all ${profile.layout_config.display_theme === 'dark' ? 'scale-105 bg-white text-[#050579] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'}`}>
                                 🌙 {t.dark}
                             </button>
                         </div>
@@ -989,20 +989,20 @@ export default function ProfileEditorV2() {
 
                     {/* Primary Color */}
                     <div className="mb-10 space-y-4">
-                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">{t.primaryColor}</label>
+                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">{t.primaryColor}</label>
                         <div className="flex flex-wrap gap-4 mb-6">
                             {['#6366F1', '#EC4899', '#10B981', '#F59E0B', '#EF4444', '#3B82F6', '#8B5CF6'].map(color => (
                                 <button
                                     key={color}
                                     onClick={() => updateTheme('primary_color', color)}
-                                    className={`w-12 h-12 rounded-[18px] border-4 transition-all hover:scale-110 shadow-lg ${profile.layout_config.primary_color === color ? 'border-primary scale-110 ring-4 ring-primary/20' : 'border-background shadow-foreground/5'}`}
+                                    className={`h-12 w-12 rounded-[18px] border-4 shadow-lg transition-all hover:scale-110 ${profile.layout_config.primary_color === color ? 'scale-110 border-[#050579] ring-4 ring-[#EEF2FF]' : 'border-white shadow-slate-200/40'}`}
                                     style={{ backgroundColor: color }}
                                 >
                                     {profile.layout_config.primary_color === color && <Check className="text-white mx-auto" size={24} />}
                                 </button>
                             ))}
                         </div>
-                        <div className="flex items-center gap-4 bg-foreground/5 p-4 rounded-2xl border border-foreground/5 w-fit">
+                        <div className="flex w-fit items-center gap-4 rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-4">
                             <input
                                 type="color"
                                 value={profile.layout_config.primary_color || '#6366F1'}
@@ -1013,20 +1013,20 @@ export default function ProfileEditorV2() {
                                 type="text"
                                 value={profile.layout_config.primary_color || '#6366F1'}
                                 onChange={e => updateTheme('primary_color', e.target.value)}
-                                className="bg-background border border-foreground/10 rounded-lg px-4 py-2 text-xs font-black uppercase w-32 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all tracking-widest"
+                                className="w-32 rounded-lg border border-[#D9E1F2] bg-white px-4 py-2 text-xs font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#F97316]/20"
                             />
                         </div>
                     </div>
 
                     {/* Font */}
                     <div className="space-y-4">
-                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] ml-1">{t.font}</label>
+                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">{t.font}</label>
                         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                             {['Inter', 'Kanit', 'Sarabun', 'Roboto', 'Playfair Display'].map(font => (
                                 <button
                                     key={font}
                                     onClick={() => updateTheme('font_family', font)}
-                                    className={`px-5 py-4 rounded-2xl border-2 text-sm font-bold transition-all ${profile.layout_config.font_family === font ? 'border-primary bg-primary/5 text-primary shadow-inner scale-105' : 'border-foreground/5 bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:border-foreground/20'}`}
+                                    className={`rounded-2xl border-2 px-5 py-4 text-sm font-bold transition-all ${profile.layout_config.font_family === font ? 'scale-105 border-[#F6D5BF] bg-[#FFF7F1] text-[#C2410C] shadow-inner' : 'border-[#E7ECF7] bg-[#F8FAFF] text-[#64748B] hover:border-[#D9E1F2] hover:bg-white'}`}
                                     style={{ fontFamily: font }}
                                 >
                                     {font}
@@ -1037,22 +1037,22 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* QR Code Section */}
-                <Section title={t.qrCode} icon={<QrCode size={22} className="text-primary" />}>
-                    <div className="flex flex-col md:flex-row items-center gap-10 bg-foreground/[0.02] p-8 rounded-[40px] border border-foreground/5 group">
-                        <div className="bg-white p-4 rounded-[32px] shadow-2xl group-hover:rotate-6 transition-transform duration-500">
+                <Section title={t.qrCode} icon={<QrCode size={22} className="text-[#050579]" />}>
+                    <div className="group flex flex-col items-center gap-10 rounded-[40px] border border-[#E7ECF7] bg-[#F8FAFF] p-8 md:flex-row">
+                        <div className="rounded-[32px] bg-white p-4 shadow-[0_22px_50px_-32px_rgba(15,23,42,0.22)] transition-transform duration-500 group-hover:rotate-3">
                              <QrCodeImage url={`${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/${profile.url_prefix || 'p'}/${uid}`} size={160} />
                         </div>
                         <div className="space-y-6 flex-1 text-center md:text-left">
-                            <h4 className="text-2xl font-black tracking-tight">{t.qrCodeDescription}</h4>
-                            <div className="bg-foreground/5 p-4 rounded-2xl font-mono text-[11px] text-primary break-all border border-foreground/5">
+                            <h4 className="text-2xl font-black tracking-tight text-[#050579]">{t.qrCodeDescription}</h4>
+                            <div className="break-all rounded-2xl border border-[#D9E1F2] bg-white p-4 font-mono text-[11px] text-[#050579]">
                                 {`${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/${profile.url_prefix || 'p'}/${uid}`}
                             </div>
                             <div className="flex flex-wrap justify-center md:justify-start gap-4">
                                 <button onClick={() => {
                                     navigator.clipboard.writeText(`${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/${profile.url_prefix || 'p'}/${uid}`);
                                     alert('คัดลอกลิงก์แล้ว!');
-                                }} className="px-6 py-2.5 bg-foreground text-background rounded-xl text-xs font-black uppercase tracking-widest hover:opacity-90 active:scale-95 transition-all">Copy Link</button>
-                                <p className="text-[10px] font-bold text-foreground/30 flex items-center gap-2">💡 {t.qrCodeHint}</p>
+                                }} className="rounded-xl bg-[#F97316] px-6 py-2.5 text-xs font-black uppercase tracking-widest text-white transition-colors hover:bg-[#EA580C] active:scale-95">Copy Link</button>
+                                <p className="flex items-center gap-2 text-[10px] font-bold text-[#64748B]">💡 {t.qrCodeHint}</p>
                             </div>
                         </div>
                     </div>
@@ -1063,7 +1063,7 @@ export default function ProfileEditorV2() {
                 </div>
             </main>
             
-            <footer className="py-20 text-center opacity-20 text-[10px] font-black uppercase tracking-[0.3em]">
+            <footer className="py-20 text-center text-[10px] font-black uppercase tracking-[0.3em] text-[#94A3B8]">
                 NEX Solution © 2024 • THE PREMIUM DIGITAL EXPERIENCE
             </footer>
         </div>
@@ -1075,19 +1075,19 @@ function Section({ sectionId, title, icon, children, onAdd, canAdd = true }: { s
     const [collapsed, setCollapsed] = useState(false);
 
     return (
-        <section id={sectionId} className="bg-card-bg border border-glass-border rounded-[32px] p-5 md:p-8 glass-card scroll-mt-36">
+        <section id={sectionId} className="scroll-mt-36 rounded-[32px] border border-[#D9E1F2] bg-white p-5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)] md:p-8">
             <div className="flex flex-wrap justify-between items-center gap-3 mb-5 md:mb-6">
                 <button
                     type="button"
                     onClick={() => setCollapsed((prev) => !prev)}
                     className="flex items-center gap-3 text-left"
                 >
-                    <h2 className="text-xl md:text-2xl font-black flex items-center gap-3 tracking-tighter">{icon} {title}</h2>
-                    {collapsed ? <ChevronDown size={18} className="text-foreground/40" /> : <ChevronUp size={18} className="text-foreground/40" />}
+                    <h2 className="flex items-center gap-3 text-xl font-black tracking-tighter text-[#050579] md:text-2xl">{icon} {title}</h2>
+                    {collapsed ? <ChevronDown size={18} className="text-[#94A3B8]" /> : <ChevronUp size={18} className="text-[#94A3B8]" />}
                 </button>
                 <div className="flex items-center gap-2">
                     {onAdd && canAdd && !collapsed && (
-                        <button onClick={onAdd} className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-xl text-xs font-black uppercase tracking-widest flex items-center gap-2 shadow-lg shadow-primary/10 transition-all active:scale-95">
+                        <button onClick={onAdd} className="flex items-center gap-2 rounded-xl bg-[#F97316] px-4 py-2 text-xs font-black uppercase tracking-widest text-white transition-colors hover:bg-[#EA580C] active:scale-95">
                             <Plus size={16} /> {UI_TEXT['th'].add}
                         </button>
                     )}
@@ -1104,13 +1104,13 @@ function I18nInput({ item, languages, onChange, onRemove }: { item: I18nField; l
     return (
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 group">
             <div className="flex items-center justify-between sm:justify-start">
-                <div className="w-20 sm:w-28 flex items-center gap-2 text-xs font-black text-foreground/30 uppercase tracking-widest shrink-0">
+                <div className="w-20 shrink-0 items-center gap-2 text-xs font-black uppercase tracking-widest text-[#64748B] sm:w-28">
                     <span className="text-lg">{lang?.flag}</span> {lang?.code}
                 </div>
-                {onRemove && <button onClick={onRemove} className="sm:hidden text-foreground/20 hover:text-red-500 p-2"><Trash2 size={18} /></button>}
+                {onRemove && <button onClick={onRemove} className="p-2 text-[#94A3B8] hover:text-red-500 sm:hidden"><Trash2 size={18} /></button>}
             </div>
-            <input type="text" value={item.value} onChange={e => onChange(e.target.value)} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-            {onRemove && <button onClick={onRemove} className="hidden sm:block text-foreground/10 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>}
+            <input type="text" value={item.value} onChange={e => onChange(e.target.value)} className="flex-1 rounded-xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 sm:px-5 sm:py-3.5" />
+            {onRemove && <button onClick={onRemove} className="hidden p-2 text-[#CBD5E1] transition-all group-hover:scale-110 hover:text-red-500 sm:block"><Trash2 size={20} /></button>}
         </div>
     );
 }
@@ -1120,11 +1120,11 @@ function ContactInput({ item, placeholder, onLabelChange, onValueChange, onRemov
     return (
         <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 group">
             <div className="flex items-center gap-2">
-                <input type="text" placeholder="หัวข้อ" value={item.label} onChange={e => onLabelChange(e.target.value)} className="w-24 sm:w-28 bg-foreground/5 border border-foreground/10 rounded-xl px-3 sm:px-4 py-3 sm:py-3.5 text-xs font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-                {onRemove && <button onClick={onRemove} className="sm:hidden text-foreground/20 hover:text-red-500 p-2"><Trash2 size={18} /></button>}
+                <input type="text" placeholder="หัวข้อ" value={item.label} onChange={e => onLabelChange(e.target.value)} className="w-24 rounded-xl border border-[#D9E1F2] bg-[#F8FAFF] px-3 py-3 text-xs font-black uppercase tracking-widest focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 sm:w-28 sm:px-4 sm:py-3.5" />
+                {onRemove && <button onClick={onRemove} className="p-2 text-[#94A3B8] hover:text-red-500 sm:hidden"><Trash2 size={18} /></button>}
             </div>
-            <input type="text" placeholder={placeholder} value={item.value} onChange={e => onValueChange(e.target.value)} className="flex-1 bg-foreground/5 border border-foreground/10 rounded-xl px-4 sm:px-5 py-3 sm:py-3.5 text-base font-medium focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
-            {onRemove && <button onClick={onRemove} className="hidden sm:block text-foreground/10 hover:text-red-500 p-2 transform group-hover:scale-110 transition-all"><Trash2 size={20} /></button>}
+            <input type="text" placeholder={placeholder} value={item.value} onChange={e => onValueChange(e.target.value)} className="flex-1 rounded-xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 sm:px-5 sm:py-3.5" />
+            {onRemove && <button onClick={onRemove} className="hidden p-2 text-[#CBD5E1] transition-all group-hover:scale-110 hover:text-red-500 sm:block"><Trash2 size={20} /></button>}
         </div>
     );
 }

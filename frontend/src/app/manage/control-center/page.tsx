@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Image from 'next/image';
 import Cookies from 'js-cookie';
 import {
-  LogOut, Globe, BookOpen, CreditCard, ArrowRight,
-  Users, BarChart3, ShieldCheck, Mail,
-  Smartphone, UserCircle, QrCode, Layout, Video, Image as ImageIcon, Loader2, Lock, Gift,
+  LogOut, BookOpen, CreditCard, ArrowRight,
+  Users, BarChart3, ShieldCheck,
+  Smartphone, UserCircle, QrCode, Layout, Image as ImageIcon, Loader2, Lock, Gift,
   CheckCircle, XCircle, Crown, Zap, Star, Copy, ExternalLink, Check, Eye, Share2, Settings
 } from 'lucide-react';
 import { QrCodeImage } from '@/components/QrCode';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface FeatureConfig {
   catalog: boolean;
@@ -22,6 +22,8 @@ interface FeatureConfig {
   profile: boolean;
   referrals: boolean;
 }
+
+type FeatureTone = 'navy' | 'orange' | 'green' | 'blue';
 
 interface UserData {
   id: number;
@@ -54,7 +56,7 @@ const FEATURE_LIST = [
     description: 'จัดการ Profile นามบัตรดิจิทัล แก้ไขข้อมูลแบบ Real-time เพิ่มลิงก์โซเชียล และธีมส่วนตัว',
     icon: Smartphone,
     href: '/manage/profile',
-    gradient: 'from-blue-500 to-indigo-600',
+    tone: 'navy' as FeatureTone,
     tags: ['Real-time', 'ธีม', 'vCard']
   },
   {
@@ -63,7 +65,7 @@ const FEATURE_LIST = [
     description: 'สร้างแคตตาล็อกสินค้าออนไลน์ และเลือกรูปแบบการแสดงผลแบบพรีเมียม เพื่อส่งต่อให้ลูกค้า',
     icon: BookOpen,
     href: '/manage',
-    gradient: 'from-orange-500 to-rose-600',
+    tone: 'orange' as FeatureTone,
     tags: ['PDF Book', 'แคตตาล็อก']
   },
   {
@@ -72,7 +74,7 @@ const FEATURE_LIST = [
     description: 'สร้างหน้าแคมเปญการตลาดแบบครบวงจร รองรับระบบลากวาง (Drag & Drop) และฟอร์มโต้ตอบ',
     icon: Layout,
     href: '/manage/landing-pages',
-    gradient: 'from-fuchsia-600 to-rose-500',
+    tone: 'navy' as FeatureTone,
     tags: ['แคมเปญ', 'ลากวาง']
   },
   {
@@ -81,7 +83,7 @@ const FEATURE_LIST = [
     description: 'ดูรายชื่อลูกค้าที่สนใจติดต่อกลับจากหน้าโปรไฟล์ของคุณ พร้อมข้อมูลเบอร์โทร สังกัด และอาชีพ',
     icon: Users,
     href: '/manage/leads',
-    gradient: 'from-emerald-500 to-teal-600',
+    tone: 'green' as FeatureTone,
     tags: ['ข้อมูลลูกค้า', 'ใหม่']
   },
   {
@@ -90,7 +92,7 @@ const FEATURE_LIST = [
     description: 'วิเคราะห์ยอดผู้เข้าชมโปรไฟล์ สถิติการแชร์ และพฤติกรรมการคลิกของลูกค้าแบบละเอียด',
     icon: BarChart3,
     href: '/manage/dashboard',
-    gradient: 'from-amber-500 to-yellow-600',
+    tone: 'blue' as FeatureTone,
     tags: ['ข้อมูลเชิงลึก', 'ยอดชม']
   },
   {
@@ -99,7 +101,7 @@ const FEATURE_LIST = [
     description: 'ออกแบบนามบัตรกระดาษจำลอง ใส่ QR Code และโลโก้ ดาวน์โหลดเป็นไฟล์ภาพสำหรับสั่งพิมพ์',
     icon: CreditCard,
     href: '/manage/namecard',
-    gradient: 'from-purple-500 to-pink-600',
+    tone: 'navy' as FeatureTone,
     tags: ['ไฟล์ภาพ PNG', 'เลย์เอาท์']
   },
   {
@@ -108,7 +110,7 @@ const FEATURE_LIST = [
     description: 'ทดลองเลือกสีพื้นหลัง/ลาย QR และวางโลโก้ตรงกลาง เพื่อใช้กับเพจและฟอร์มของคุณ',
     icon: QrCode,
     href: '/manage/qr',
-    gradient: 'from-sky-500 to-cyan-500',
+    tone: 'blue' as FeatureTone,
     tags: ['Custom QR', 'โลโก้กลาง']
   },
   {
@@ -117,7 +119,7 @@ const FEATURE_LIST = [
     description: 'เลือกเทมเพลตงานกราฟิกสำหรับโพสต์ขายสินค้า โปรโมชัน และกิจกรรม พร้อมใช้งานทันที',
     icon: ImageIcon,
     href: '/manage/create-lite',
-    gradient: 'from-violet-500 to-indigo-600',
+    tone: 'orange' as FeatureTone,
     tags: ['Templates', 'Creative']
   },
   {
@@ -126,15 +128,56 @@ const FEATURE_LIST = [
     description: 'แชร์ลิงก์แนะนำเพื่อนและรับค่าคอมมิชชั่น 10% ต่อเนื่องสูงสุด 10 ชั้น',
     icon: Gift,
     href: '/manage/referrals',
-    gradient: 'from-pink-500 to-rose-600',
+    tone: 'green' as FeatureTone,
     tags: ['คอมมิชชั่น', 'แนะนำเพื่อน']
   },
 ];
 
+const TONE_STYLES: Record<FeatureTone, {
+  iconWrap: string;
+  iconColor: string;
+  softBg: string;
+  border: string;
+  text: string;
+  glow: string;
+}> = {
+  navy: {
+    iconWrap: 'bg-[#EEF2FF]',
+    iconColor: 'text-[#050579]',
+    softBg: 'bg-[#F6F8FF]',
+    border: 'border-[#D9E1F2]',
+    text: 'text-[#050579]',
+    glow: 'bg-[radial-gradient(circle,rgba(5,5,121,0.12),transparent_68%)]',
+  },
+  orange: {
+    iconWrap: 'bg-[#FFF1E8]',
+    iconColor: 'text-[#F97316]',
+    softBg: 'bg-[#FFF7F1]',
+    border: 'border-[#F6D5BF]',
+    text: 'text-[#C2410C]',
+    glow: 'bg-[radial-gradient(circle,rgba(249,115,22,0.14),transparent_68%)]',
+  },
+  green: {
+    iconWrap: 'bg-[#EEFBEF]',
+    iconColor: 'text-[#16A34A]',
+    softBg: 'bg-[#F3FCF5]',
+    border: 'border-[#CFE9D6]',
+    text: 'text-[#166534]',
+    glow: 'bg-[radial-gradient(circle,rgba(22,163,74,0.14),transparent_68%)]',
+  },
+  blue: {
+    iconWrap: 'bg-[#EAF4FF]',
+    iconColor: 'text-[#2563EB]',
+    softBg: 'bg-[#F4F8FF]',
+    border: 'border-[#D6E4FF]',
+    text: 'text-[#1D4ED8]',
+    glow: 'bg-[radial-gradient(circle,rgba(37,99,235,0.14),transparent_68%)]',
+  },
+};
+
 export default function ControlCenterPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [leadCount, setLeadCount] = useState(0);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
@@ -220,7 +263,7 @@ export default function ControlCenterPage() {
         window.history.pushState(null, '', window.location.pathname + window.location.search + '#app');
       }
 
-      const handlePopState = (e: PopStateEvent) => {
+      const handlePopState = () => {
         if (window.location.hash !== '#app') {
           // User pressed back button
           setShowLogoutConfirm(true);
@@ -243,15 +286,14 @@ export default function ControlCenterPage() {
     }
 
     // Fetch user profile
-    fetch('/api/users/me', {
-      headers: { 'Authorization': `Bearer ${token}` }
-    })
+      fetch('/api/users/me', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
       .then(res => res.json())
       .then(data => {
         setUser(data);
-        setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch(() => null);
 
     // Fetch lead count
     fetch('/api/leads/unread-count', {
@@ -277,25 +319,25 @@ export default function ControlCenterPage() {
 
   return (
     <div
-      className="min-h-screen bg-background text-foreground transition-colors duration-500 selection:bg-primary/30 relative"
+      className="relative min-h-screen overflow-x-hidden bg-[#EEF0FF] text-[#0F172A] selection:bg-[#F97316]/20"
       style={{ fontFamily: "'Plus Jakarta Sans', 'Sarabun', sans-serif" }}
     >
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm px-4">
-          <div className="bg-background border border-foreground/10 rounded-2xl p-6 max-w-sm w-full relative animate-in fade-in zoom-in-95 duration-200">
-            <h3 className="text-xl font-bold mb-4 text-center">ยืนยันการออกจากระบบ</h3>
-            <p className="text-foreground/70 text-center text-sm mb-6">คุณได้กดปุ่มย้อนกลับ ต้องการออกจากระบบหรือไม่?</p>
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/38 backdrop-blur-sm px-4">
+          <div className="relative w-full max-w-sm rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_30px_90px_-48px_rgba(15,23,42,0.35)] animate-in fade-in zoom-in-95 duration-200">
+            <h3 className="mb-4 text-center text-xl font-black text-[#050579]">ยืนยันการออกจากระบบ</h3>
+            <p className="mb-6 text-center text-sm text-[#475569]">คุณได้กดปุ่มย้อนกลับ ต้องการออกจากระบบหรือไม่?</p>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowLogoutConfirm(false)}
-                className="flex-1 py-3 rounded-xl bg-foreground/10 hover:bg-foreground/20 text-foreground font-bold transition-colors text-sm"
+                className="flex-1 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] py-3 text-sm font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF]"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleLogout}
-                className="flex-1 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-bold transition-colors text-sm flex items-center justify-center gap-2"
+                className="flex flex-1 items-center justify-center gap-2 rounded-2xl bg-[#DC2626] py-3 text-sm font-bold text-white transition-colors hover:bg-[#B91C1C]"
               >
                 <LogOut size={16} /> ออกจากระบบ
               </button>
@@ -306,31 +348,32 @@ export default function ControlCenterPage() {
 
       <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
 
-      {/* Background Glow */}
-      <div className="fixed top-[-120px] left-[8%] w-[420px] h-[420px] bg-primary/12 rounded-full blur-[120px] -z-10 opacity-45" />
-      <div className="fixed bottom-[-160px] right-[6%] w-[460px] h-[460px] bg-secondary/12 rounded-full blur-[130px] -z-10 opacity-40" />
+      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.35),transparent_42%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.07),transparent_26%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_52%,#e8eeff_100%)]" />
+      <div className="pointer-events-none fixed left-[-8rem] top-12 h-80 w-80 rounded-full bg-sky-300/20 blur-[120px]" />
+      <div className="pointer-events-none fixed right-[-7rem] top-40 h-72 w-72 rounded-full bg-orange-200/20 blur-[110px]" />
 
       {/* Navbar */}
-      <nav className="border-b border-foreground/10 bg-background/75 backdrop-blur-2xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+      <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-2xl">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
           <Link href="/" className="flex items-center">
-            <img
+            <Image
               src="/nex_logo_nobg.png"
               alt="NEX Solution"
-              style={{ height: '52px', width: 'auto', display: 'block' }}
+              width={160}
+              height={64}
+              className="h-16 w-auto"
+              unoptimized
             />
           </Link>
           
           <div className="flex items-center gap-4">
              {user?.role === 'super_admin' && (
-               <Link href="/admin/dashboard" className="text-xs font-bold text-foreground/40 hover:text-foreground flex items-center gap-2 transition-colors uppercase tracking-widest hidden md:flex">
+               <Link href="/admin/dashboard" className="hidden items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#64748B] transition-colors hover:text-[#050579] md:flex">
                  <ShieldCheck size={16} /> Admin Panel
                </Link>
              )}
-             <div className="h-6 w-px bg-foreground/10 mx-2 hidden md:block" />
-             <ThemeToggle />
-             <button onClick={() => setShowLogoutConfirm(true)} className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-red-500/10 flex items-center justify-center transition-all group">
-               <LogOut size={18} className="text-foreground/40 group-hover:text-red-500 transition-colors" />
+             <button onClick={() => setShowLogoutConfirm(true)} className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-[#FEF2F2]">
+               <LogOut size={18} className="text-[#64748B] transition-colors group-hover:text-[#DC2626]" />
              </button>
           </div>
         </div>
@@ -340,23 +383,23 @@ export default function ControlCenterPage() {
       <main className="max-w-7xl mx-auto px-6 py-8 md:py-12">
         
         {/* User Summary Header */}
-        <div className="mb-12 rounded-[28px] border border-foreground/10 bg-card-bg/70 p-6 md:p-7 shadow-xl">
+        <div className="mb-12 rounded-[32px] border border-[#D9E1F2] bg-white/92 p-6 shadow-[0_30px_90px_-48px_rgba(15,23,42,0.24)] backdrop-blur-sm md:p-7">
           <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-3 flex-wrap">
-                <span className={`px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${
+                <span className={`rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-widest ${
                   user?.subscription_tier === 'premium'
-                    ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20'
-                    : 'bg-primary/10 text-primary border border-primary/20'
+                    ? 'border-[#F6D5BF] bg-[#FFF1E8] text-[#F97316]'
+                    : 'border-[#D9E1F2] bg-[#F6F8FF] text-[#050579]'
                 }`}>
                   {user?.subscription_tier || 'Free'} Plan
                 </span>
-                <div className="w-1.5 h-1.5 rounded-full bg-foreground/10" />
-                <span className="text-foreground/45 text-sm font-medium">{user?.email}</span>
+                <div className="h-1.5 w-1.5 rounded-full bg-[#CBD5E1]" />
+                <span className="text-sm font-medium text-[#64748B]">{user?.email}</span>
               </div>
               <div>
-                <h1 className="text-2xl md:text-3xl font-black tracking-tight">Control Center</h1>
-                <p className="text-sm text-foreground/55 mt-1">จัดการเครื่องมือขายดิจิทัลของคุณจากหน้าควบคุมเดียว</p>
+                <h1 className="text-3xl font-black tracking-tight text-[#050579] md:text-4xl">Control Center</h1>
+                <p className="mt-2 text-sm text-[#475569] md:text-base">จัดการเครื่องมือขายดิจิทัลของคุณจากหน้าควบคุมเดียว</p>
               </div>
             </div>
 
@@ -364,32 +407,32 @@ export default function ControlCenterPage() {
               <button
                 onClick={handleOpenProfile}
                 disabled={!user?.uid || !user?.url_prefix}
-                className="h-fit self-start bg-foreground/5 border border-foreground/10 text-foreground/70 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] min-h-[60px] hover:bg-foreground/10 active:bg-primary/10 active:border-primary/30 active:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex min-h-[68px] min-w-[180px] h-fit self-start items-center gap-3 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3 text-left text-[#0F172A] transition-colors hover:border-[#C7D2E5] hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
               >
-                <div className="w-10 h-10 rounded-xl bg-foreground/10 flex items-center justify-center">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#050579]">
                   <Eye size={20} />
                 </div>
                 <div className="text-left">
-                  <div className="text-[9px] uppercase font-black tracking-widest opacity-70">โปรไฟล์</div>
-                  <div className="text-sm font-black leading-tight">โชว์นามบัตร</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">โปรไฟล์</div>
+                  <div className="text-sm font-black leading-tight text-[#050579]">ดูหน้าโปรไฟล์</div>
                 </div>
               </button>
-              <div className="h-fit self-start bg-foreground/5 border border-foreground/10 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] hover:border-primary/30 transition-colors group">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Smartphone size={20} className="text-primary" />
+              <div className="group flex min-h-[68px] min-w-[180px] h-fit self-start items-center gap-3 rounded-2xl border border-[#F6D5BF] bg-[#FFF7F1] px-4 py-3 transition-colors hover:bg-white">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1E8] text-[#F97316] transition-transform group-hover:scale-105">
+                  <Smartphone size={20} />
                 </div>
                 <div>
-                  <div className="text-[9px] text-foreground/30 uppercase font-black tracking-widest">บัตรของฉัน</div>
-                  <div className="text-xl font-black tabular-nums leading-tight">1 / {user?.max_cards || 1}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">บัตรของฉัน</div>
+                  <div className="text-xl font-black tabular-nums leading-tight text-[#C2410C]">1 / {user?.max_cards || 1}</div>
                 </div>
               </div>
-              <div className="h-fit self-start bg-foreground/5 border border-foreground/10 px-4 py-2.5 rounded-xl flex items-center gap-3 min-w-[170px] hover:border-secondary/30 transition-colors group">
-                <div className="w-10 h-10 rounded-xl bg-secondary/10 flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <Users size={20} className="text-secondary" />
+              <div className="group flex min-h-[68px] min-w-[180px] h-fit self-start items-center gap-3 rounded-2xl border border-[#CFE9D6] bg-[#F3FCF5] px-4 py-3 transition-colors hover:bg-white">
+                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEFBEF] text-[#16A34A] transition-transform group-hover:scale-105">
+                  <Users size={20} />
                 </div>
                 <div>
-                  <div className="text-[9px] text-foreground/30 uppercase font-black tracking-widest">รายชื่อลูกค้า</div>
-                  <div className="text-xl font-black tabular-nums leading-tight">{leadCount > 0 ? leadCount : '--'}</div>
+                  <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">รายชื่อลูกค้า</div>
+                  <div className={`text-xl font-black tabular-nums leading-tight ${leadCount > 0 ? 'text-[#166534]' : 'text-[#94A3B8]'}`}>{leadCount > 0 ? leadCount : '--'}</div>
                 </div>
               </div>
             </div>
@@ -397,7 +440,7 @@ export default function ControlCenterPage() {
         </div>
 
         {/* Feature Sections */}
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
           {FEATURE_LIST.map((feature) => {
             // Check if feature is enabled (default to true for backward compatibility)
             const configKey = FEATURE_CONFIG_MAP[feature.id];
@@ -408,19 +451,19 @@ export default function ControlCenterPage() {
               return (
                 <div
                   key={feature.id}
-                  className="group relative bg-card-bg border border-foreground/5 p-6 rounded-[28px] overflow-hidden shadow-xl"
+                  className="group relative overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_24px_70px_-45px_rgba(15,23,42,0.2)]"
                 >
                   {/* Lock Overlay */}
-                  <div className="absolute inset-0 bg-background/80 backdrop-blur-sm z-10 flex items-center justify-center">
+                  <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/82 backdrop-blur-sm">
                     <div className="text-center px-6">
-                      <div className="w-16 h-16 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center mx-auto mb-4">
-                        <Lock size={28} className="text-amber-500" />
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full border border-[#F6D5BF] bg-[#FFF1E8]">
+                        <Lock size={28} className="text-[#F97316]" />
                       </div>
-                      <p className="text-foreground/60 text-sm font-bold mb-1">ฟีเจอร์นี้ถูกล็อค</p>
-                      <p className="text-foreground/40 text-xs mb-4">อัพเกรดเป็น Premium หรือติดต่อผู้ดูแลระบบ</p>
+                      <p className="mb-1 text-sm font-bold text-[#0F172A]">ฟีเจอร์นี้ถูกล็อค</p>
+                      <p className="mb-4 text-xs text-[#64748B]">อัพเกรดเป็น Premium หรือติดต่อผู้ดูแลระบบ</p>
                       <button
                         onClick={() => setShowUpgradeModal(true)}
-                        className="px-5 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl text-xs font-bold uppercase tracking-wider hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-amber-500/20"
+                        className="rounded-2xl bg-[#F97316] px-5 py-2.5 text-xs font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#EA580C]"
                       >
                         <Crown size={14} className="inline mr-2 -mt-0.5" />
                         ปลดล็อคเลย
@@ -430,22 +473,21 @@ export default function ControlCenterPage() {
 
                   {/* Feature Icon */}
                   <div className="flex items-start gap-4">
-                    <div className={`shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl
-                                      bg-gradient-to-br ${feature.gradient} shadow-xl grayscale opacity-50`}>
-                      <feature.icon size={24} className="text-white" />
+                    <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl grayscale opacity-60 ${TONE_STYLES[feature.tone].iconWrap} ${TONE_STYLES[feature.tone].iconColor}`}>
+                      <feature.icon size={24} />
                     </div>
                     <div className="min-w-0">
                       <div className="flex gap-2 mb-2">
                         {feature.tags.map(tag => (
-                          <span key={tag} className="px-2.5 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                          <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
                             {tag}
                           </span>
                         ))}
                       </div>
-                      <h2 className="text-2xl font-black mb-2 tracking-tight text-foreground/30">
+                      <h2 className="mb-2 text-2xl font-black tracking-tight text-[#94A3B8]">
                         {feature.title}
                       </h2>
-                      <p className="text-foreground/25 text-sm leading-relaxed line-clamp-2">
+                      <p className="line-clamp-2 text-sm leading-relaxed text-[#94A3B8]">
                         {feature.description}
                       </p>
                     </div>
@@ -469,48 +511,47 @@ export default function ControlCenterPage() {
                   }}
                   role="button"
                   tabIndex={0}
-                  className="group relative bg-card-bg border border-foreground/5 p-6 rounded-[28px] overflow-hidden shadow-2xl glass-card hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 hover:shadow-primary/5 active:scale-[0.99] cursor-pointer"
+                  className="group relative cursor-pointer overflow-hidden rounded-[32px] border border-[#D9E1F2] bg-white p-7 shadow-[0_34px_90px_-50px_rgba(15,23,42,0.24)] transition-all duration-500 hover:-translate-y-1 hover:border-[#F6D5BF] hover:shadow-[0_40px_95px_-54px_rgba(249,115,22,0.2)] active:scale-[0.99] md:col-span-2 xl:col-span-2"
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-5">
+                  <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_132px]">
                     <div className="min-w-0">
-                      <div className="flex items-start gap-4 mb-4">
-                        <div className={`shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl
-                                          bg-gradient-to-br ${feature.gradient} shadow-xl`}>
-                          <feature.icon size={24} className="text-white" />
+                      <div className="mb-5 flex items-start gap-4">
+                        <div className={`inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] ${TONE_STYLES[feature.tone].iconWrap} ${TONE_STYLES[feature.tone].iconColor}`}>
+                          <feature.icon size={28} />
                         </div>
                         <div className="min-w-0">
-                          <div className="flex gap-2 mb-2">
+                          <div className="mb-3 flex flex-wrap gap-2">
                             {feature.tags.map(tag => (
-                              <span key={tag} className="px-2.5 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                              <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
                                 {tag}
                               </span>
                             ))}
                           </div>
-                          <h2 className="text-2xl font-black mb-2 tracking-tight group-hover:text-primary transition-colors">
+                          <h2 className="mb-2 text-[2rem] font-black tracking-tight text-[#050579] transition-colors group-hover:text-[#F97316]">
                             {feature.title}
                           </h2>
-                          <p className="text-foreground/55 text-sm leading-relaxed line-clamp-2 group-hover:text-foreground/70 transition-colors">
+                          <p className="max-w-2xl text-base leading-7 text-[#475569] transition-colors group-hover:text-[#334155]">
                             {feature.description}
                           </p>
                         </div>
                       </div>
 
                       {/* Profile URL */}
-                      <div className="bg-foreground/5 rounded-xl p-3 mb-3">
-                        <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">ลิงก์โปรไฟล์ของคุณ</p>
-                        <p className="text-xs text-foreground/70 truncate font-mono">{profileUrl || 'กำลังโหลด...'}</p>
+                      <div className="mb-4 rounded-[22px] border border-[#E7ECF7] bg-[#F6F8FF] p-4">
+                        <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">ลิงก์โปรไฟล์ของคุณ</p>
+                        <p className="truncate font-mono text-sm text-[#475569]">{profileUrl || 'กำลังโหลด...'}</p>
                       </div>
 
                       {/* Action Buttons */}
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex flex-wrap gap-2.5">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCopyUrl();
                           }}
-                          className="flex items-center gap-2 px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-xs font-bold transition-colors"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 py-2.5 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF]"
                         >
-                          {copied ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          {copied ? <Check size={14} className="text-[#16A34A]" /> : <Copy size={14} />}
                           {copied ? 'คัดลอกแล้ว!' : 'คัดลอก URL'}
                         </button>
                         <a
@@ -518,7 +559,7 @@ export default function ControlCenterPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-2 px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-xs font-bold transition-colors"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 py-2.5 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF]"
                         >
                           <ExternalLink size={14} />
                           ดูหน้าโปรไฟล์
@@ -526,7 +567,7 @@ export default function ControlCenterPage() {
                         <Link
                           href={feature.href}
                           onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-bold transition-colors"
+                          className="flex items-center gap-2 rounded-2xl bg-[#F97316] px-4 py-2.5 text-xs font-bold text-white transition-colors hover:bg-[#EA580C]"
                         >
                           <ArrowRight size={14} />
                           แก้ไขโปรไฟล์
@@ -537,13 +578,15 @@ export default function ControlCenterPage() {
                     {/* QR Code Section */}
                     {profileUrl && (
                       <div className="sm:justify-self-end">
-                        <QrCodeImage url={profileUrl} size={112} />
+                        <div className="rounded-[24px] border border-[#D9E1F2] bg-white p-2 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                          <QrCodeImage url={profileUrl} size={120} />
+                        </div>
                       </div>
                     )}
                   </div>
 
                   {/* Decorative accent */}
-                  <div className={`absolute bottom-0 right-0 w-28 h-28 bg-gradient-to-br ${feature.gradient} opacity-10 group-hover:opacity-20 blur-[70px] transition-opacity`} />
+                  <div className={`absolute bottom-0 right-0 h-28 w-28 ${TONE_STYLES[feature.tone].glow} opacity-50 transition-opacity group-hover:opacity-80`} />
                 </div>
               );
             }
@@ -564,27 +607,26 @@ export default function ControlCenterPage() {
                   }}
                   role="button"
                   tabIndex={0}
-                  className="group relative bg-card-bg border border-foreground/5 p-6 rounded-[28px] overflow-hidden shadow-2xl glass-card hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 hover:shadow-primary/5 active:scale-[0.99] cursor-pointer"
+                  className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.22)] transition-all duration-500 hover:-translate-y-1 hover:border-[#CFE9D6] hover:shadow-[0_34px_80px_-48px_rgba(22,163,74,0.16)] active:scale-[0.99]"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-5">
                     <div className="min-w-0">
                       <div className="flex items-start gap-4 mb-4">
-                        <div className={`shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl
-                                          bg-gradient-to-br ${feature.gradient} shadow-xl`}>
-                          <feature.icon size={24} className="text-white" />
+                        <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${TONE_STYLES[feature.tone].iconWrap} ${TONE_STYLES[feature.tone].iconColor}`}>
+                          <feature.icon size={24} />
                         </div>
                         <div className="min-w-0">
                           <div className="flex gap-2 mb-2">
                             {feature.tags.map(tag => (
-                              <span key={tag} className="px-2.5 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                              <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
                                 {tag}
                               </span>
                             ))}
                           </div>
-                          <h2 className="text-2xl font-black mb-2 tracking-tight group-hover:text-primary transition-colors">
+                          <h2 className="mb-2 text-2xl font-black tracking-tight text-[#050579] transition-colors group-hover:text-[#16A34A]">
                             {feature.title}
                           </h2>
-                          <p className="text-foreground/55 text-sm leading-relaxed line-clamp-2 group-hover:text-foreground/70 transition-colors">
+                          <p className="line-clamp-2 text-sm leading-relaxed text-[#475569] transition-colors group-hover:text-[#334155]">
                             {feature.description}
                           </p>
                         </div>
@@ -592,19 +634,19 @@ export default function ControlCenterPage() {
 
                       {/* Referral code & link */}
                       <div className="space-y-3">
-                        <div className="bg-foreground/5 rounded-xl p-3">
-                          <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">
+                        <div className="rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3">
+                          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">
                             รหัสแนะนำของคุณ
                           </p>
-                          <p className="text-base font-mono text-foreground/80 tracking-widest">
+                          <p className="text-base font-mono tracking-widest text-[#0F172A]">
                             {user?.referral_code || 'ยังไม่มีรหัสแนะนำ — กดจัดการเพื่อสร้าง'}
                           </p>
                         </div>
-                        <div className="bg-foreground/5 rounded-xl p-3">
-                          <p className="text-[10px] text-foreground/40 uppercase font-bold tracking-widest mb-1">
+                        <div className="rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3">
+                          <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">
                             ลิงก์สำหรับแชร์สมัครสมาชิก
                           </p>
-                          <p className="text-xs text-foreground/70 truncate font-mono">
+                          <p className="truncate font-mono text-xs text-[#475569]">
                             {referralUrl || 'กำลังโหลด...'}
                           </p>
                         </div>
@@ -618,9 +660,9 @@ export default function ControlCenterPage() {
                             handleCopyReferral();
                           }}
                           disabled={!hasCode}
-                          className="flex items-center gap-2 px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF] disabled:cursor-not-allowed disabled:opacity-50"
                         >
-                          {copiedReferral ? <Check size={14} className="text-green-500" /> : <Copy size={14} />}
+                          {copiedReferral ? <Check size={14} className="text-[#16A34A]" /> : <Copy size={14} />}
                           {copiedReferral ? 'คัดลอกลิงก์แล้ว!' : 'คัดลอกลิงก์'}
                         </button>
                         <button
@@ -629,7 +671,7 @@ export default function ControlCenterPage() {
                             handleOpenReferralLink();
                           }}
                           disabled={!hasCode}
-                          className="flex items-center gap-2 px-3 py-2 bg-foreground/5 hover:bg-foreground/10 rounded-xl text-xs font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <ExternalLink size={14} />
                           เปิดหน้าลงทะเบียน
@@ -637,7 +679,7 @@ export default function ControlCenterPage() {
                         <Link
                           href={feature.href}
                           onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-2 px-3 py-2 bg-primary text-white hover:bg-primary/90 rounded-xl text-xs font-bold transition-colors"
+                          className="flex items-center gap-2 rounded-2xl bg-[#F97316] px-3 py-2 text-xs font-bold text-white transition-colors hover:bg-[#EA580C]"
                         >
                           <ArrowRight size={14} />
                           จัดการระบบแนะนำ
@@ -655,7 +697,7 @@ export default function ControlCenterPage() {
                             handleCopyReferral();
                           }}
                           disabled={!hasCode}
-                          className="flex items-center gap-1 px-2 py-1.5 bg-foreground/5 hover:bg-foreground/10 rounded-lg text-[10px] font-bold uppercase tracking-widest transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="flex items-center gap-1 rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0F172A] transition-colors hover:bg-[#EEF0FF] disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Share2 size={12} />
                           แชร์ QR
@@ -665,7 +707,7 @@ export default function ControlCenterPage() {
                   </div>
 
                   {/* Decorative accent */}
-                  <div className={`absolute bottom-0 right-0 w-28 h-28 bg-gradient-to-br ${feature.gradient} opacity-10 group-hover:opacity-20 blur-[70px] transition-opacity`} />
+                  <div className={`absolute bottom-0 right-0 h-28 w-28 ${TONE_STYLES[feature.tone].glow} opacity-50 transition-opacity group-hover:opacity-80`} />
                 </div>
               );
             }
@@ -675,73 +717,71 @@ export default function ControlCenterPage() {
               <Link
                 key={feature.id}
                 href={feature.href}
-                className="group relative bg-card-bg border border-foreground/5 p-6 rounded-[28px] overflow-hidden
-                           hover:border-primary/30 transition-all duration-500 hover:-translate-y-1 shadow-2xl hover:shadow-primary/5 active:scale-[0.99] glass-card"
+                className={`group relative overflow-hidden rounded-[28px] border bg-white p-5 shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.99] ${TONE_STYLES[feature.tone].border} hover:shadow-[0_24px_56px_-38px_rgba(15,23,42,0.16)]`}
               >
-                <div className="flex items-start gap-4">
+                <div className="flex items-start gap-3.5">
                   {/* Feature Icon */}
-                  <div className={`shrink-0 inline-flex items-center justify-center w-14 h-14 rounded-2xl
-                                    bg-gradient-to-br ${feature.gradient} shadow-xl group-hover:scale-105 transition-transform duration-300`}>
-                    <feature.icon size={24} className="text-white" />
+                  <div className={`inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl transition-transform duration-300 group-hover:scale-105 ${TONE_STYLES[feature.tone].iconWrap} ${TONE_STYLES[feature.tone].iconColor}`}>
+                    <feature.icon size={20} />
                   </div>
 
                   <div className="min-w-0 flex-1">
                     {/* Tags */}
-                    <div className="flex gap-2 mb-2">
+                    <div className="mb-2 flex flex-wrap gap-2">
                       {feature.tags.map(tag => (
-                        <span key={tag} className="px-2.5 py-1 rounded-lg bg-foreground/5 text-[10px] text-foreground/40 font-black uppercase tracking-widest">
+                        <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
                           {tag}
                         </span>
                       ))}
                     </div>
 
-                    <h2 className="text-2xl font-black mb-2 group-hover:text-primary transition-colors tracking-tight">
+                    <h2 className={`mb-2 text-[1.7rem] font-black leading-tight tracking-tight text-[#050579] transition-colors ${TONE_STYLES[feature.tone].text}`}>
                       {feature.title}
                     </h2>
-                    <p className="text-foreground/55 text-sm leading-relaxed line-clamp-2 mb-3 group-hover:text-foreground/70 transition-colors">
+                    <p className="mb-3 line-clamp-2 text-sm leading-6 text-[#475569] transition-colors group-hover:text-[#334155]">
                       {feature.description}
                     </p>
-                    <div className="flex items-center gap-2 text-foreground/70 text-xs font-black uppercase tracking-widest">
-                      เริ่มเข้าใช้งาน <ArrowRight size={16} className="text-primary" />
+                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B]">
+                      เริ่มเข้าใช้งาน <ArrowRight size={16} className={TONE_STYLES[feature.tone].iconColor} />
                     </div>
                   </div>
                 </div>
                 {/* Decorative accent */}
-                <div className={`absolute bottom-0 right-0 w-28 h-28 bg-gradient-to-br ${feature.gradient} opacity-0 group-hover:opacity-10 blur-[70px] transition-opacity duration-500`} />
+                <div className={`absolute bottom-0 right-0 h-24 w-24 opacity-0 transition-opacity duration-500 group-hover:opacity-60 ${TONE_STYLES[feature.tone].glow}`} />
               </Link>
             );
           })}
 
           {/* Upgrade Card */}
-          <div className="group relative bg-gradient-to-br from-amber-500 via-orange-500 to-rose-500 text-white p-6 rounded-[28px] overflow-hidden flex flex-col justify-center text-center shadow-2xl">
+          <div className="group relative flex flex-col justify-center overflow-hidden rounded-[28px] border border-[#E7ECF7] bg-[#FCFDFE] p-5 text-center shadow-[0_16px_40px_-30px_rgba(15,23,42,0.12)]">
              {/* Decorative elements */}
-             <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full blur-3xl" />
-             <div className="absolute bottom-0 left-0 w-32 h-32 bg-white/10 rounded-full blur-3xl" />
+             <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-orange-50 blur-3xl" />
+             <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-sky-50 blur-3xl" />
 
              <div className="relative z-10">
-               <div className="mb-4 flex justify-center">
-                 <div className="w-14 h-14 rounded-full bg-white/20 flex items-center justify-center border-2 border-white/30 group-hover:scale-105 transition-transform">
-                   <Crown size={28} className="text-white" />
+               <div className="mb-3 flex justify-center">
+                 <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#F6D5BF] bg-[#FFF7F1] transition-transform group-hover:scale-105">
+                   <Crown size={22} className="text-[#F97316]" />
                  </div>
                </div>
 
                {/* Feature Count */}
-               <div className="flex justify-center gap-5 mb-4">
+               <div className="mb-4 flex justify-center gap-5">
                  <div className="text-center">
-                   <div className="text-2xl font-black">{getFeatureCounts().enabled}</div>
-                   <div className="text-[10px] uppercase tracking-widest text-white/70">ใช้งานได้</div>
+                   <div className="text-xl font-black text-[#050579]">{getFeatureCounts().enabled}</div>
+                   <div className="text-[10px] uppercase tracking-widest text-[#64748B]">ใช้งานได้</div>
                  </div>
-                 <div className="w-px bg-white/20" />
+                 <div className="w-px bg-[#D9E1F2]" />
                  <div className="text-center">
-                   <div className="text-2xl font-black">{getFeatureCounts().locked}</div>
-                   <div className="text-[10px] uppercase tracking-widest text-white/70">ถูกล็อค</div>
+                   <div className="text-xl font-black text-[#F97316]">{getFeatureCounts().locked}</div>
+                   <div className="text-[10px] uppercase tracking-widest text-[#64748B]">ถูกล็อค</div>
                  </div>
                </div>
 
-               <h3 className="text-xl font-black mb-2 uppercase tracking-tight">
+               <h3 className="mb-2 text-lg font-black tracking-tight text-[#050579]">
                  {user?.subscription_tier === 'premium' ? 'Premium Member' : 'อัพเกรดเป็น Premium'}
                </h3>
-               <p className="text-white/85 text-sm mb-5 leading-relaxed">
+               <p className="mb-4 text-sm leading-6 text-[#64748B]">
                  {user?.subscription_tier === 'premium'
                    ? 'คุณเป็นสมาชิก Premium แล้ว! เข้าถึงทุกฟีเจอร์ได้เต็มที่'
                    : 'ปลดล็อคทุกฟีเจอร์ ใช้งานแคตตาล็อกไม่จำกัด ไม่มีลายน้ำ'}
@@ -750,15 +790,15 @@ export default function ControlCenterPage() {
                {user?.subscription_tier !== 'premium' && (
                  <button
                    onClick={() => setShowUpgradeModal(true)}
-                   className="w-full py-3.5 bg-white text-amber-600 rounded-xl text-sm font-black uppercase tracking-wider hover:scale-[1.01] active:scale-[0.99] transition-all shadow-lg flex items-center justify-center gap-2"
+                   className="mx-auto flex w-full max-w-[220px] items-center justify-center gap-2 rounded-2xl border border-[#F6D5BF] bg-[#FFF7F1] py-3 text-sm font-black uppercase tracking-wider text-[#F97316] transition-colors hover:bg-[#FFF1E8]"
                  >
                    <Zap size={16} />
-                   Upgrade Now
+                   อัพเกรดตอนนี้
                  </button>
                )}
 
                {user?.subscription_tier === 'premium' && (
-                 <div className="flex items-center justify-center gap-2 text-white/90">
+                 <div className="flex items-center justify-center gap-2 text-[#16A34A]">
                    <CheckCircle size={20} />
                    <span className="font-bold">Active Premium</span>
                  </div>
@@ -769,50 +809,50 @@ export default function ControlCenterPage() {
 
         {/* Status Section */}
         <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-5 px-2">
-           <div className="p-6 rounded-[28px] bg-foreground/5 border border-foreground/10 hover:border-primary/20 transition-colors group">
-              <h3 className="text-lg font-black mb-4 flex items-center gap-2.5 tracking-tight">
-                <Smartphone size={20} className="text-primary" /> Quick Share
+           <div className="group rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.18)] transition-colors hover:border-[#C7D2E5]">
+              <h3 className="mb-4 flex items-center gap-2.5 text-lg font-black tracking-tight text-[#050579]">
+                <Smartphone size={20} className="text-[#050579]" /> แชร์โปรไฟล์อย่างรวดเร็ว
               </h3>
               <div className="flex flex-col lg:flex-row gap-4 mt-2">
                   <div className="flex-grow space-y-3">
-                    <div className="text-xs text-foreground/30 font-black uppercase tracking-widest ml-1">โปรไฟล์สาธารณะของคุณ</div>
-                    <div className="p-3.5 rounded-2xl bg-foreground/5 border border-foreground/5 font-mono text-xs text-primary flex items-center justify-between group-hover:bg-foreground/10 transition-colors">
+                    <div className="ml-1 text-xs font-black uppercase tracking-widest text-[#64748B]">โปรไฟล์สาธารณะของคุณ</div>
+                    <div className="flex items-center justify-between rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3.5 font-mono text-xs text-[#050579] transition-colors group-hover:bg-white">
                        <span className="truncate mr-4">{user ? `nexsolution.cloud/${user.url_prefix || 'p'}/${user.uid}` : 'กำลังโหลด...'}</span>
-                       <Link href={user ? `/${user.url_prefix || 'p'}/${user.uid}` : '#'} className="text-[10px] font-black uppercase tracking-widest bg-foreground text-background whitespace-nowrap px-4 py-2 rounded-xl hover:opacity-90 transition-all active:scale-95">
-                         Go Public
+                       <Link href={user ? `/${user.url_prefix || 'p'}/${user.uid}` : '#'} className="whitespace-nowrap rounded-xl bg-[#050579] px-4 py-2 text-[10px] font-black uppercase tracking-widest text-white transition-colors hover:bg-[#07079A]">
+                         เปิดดูหน้าเว็บ
                        </Link>
                     </div>
                   </div>
-                  <div className="w-24 h-24 bg-white p-2.5 rounded-2xl flex items-center justify-center shadow-xl group-hover:scale-105 transition-transform shrink-0 self-center">
+                  <div className="flex h-24 w-24 shrink-0 self-center items-center justify-center rounded-2xl border border-[#D9E1F2] bg-white p-2.5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.25)] transition-transform group-hover:scale-105">
                      <QrCode size={72} className="text-black" />
                   </div>
               </div>
            </div>
 
-           <div className="p-6 rounded-[28px] bg-foreground/5 border border-foreground/10 hover:border-secondary/20 transition-colors group">
-              <h3 className="text-lg font-black mb-4 flex items-center gap-2.5 tracking-tight">
-                <BarChart3 size={20} className="text-secondary" /> Activity Snap
+           <div className="group rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.18)] transition-colors hover:border-[#C7D2E5]">
+              <h3 className="mb-4 flex items-center gap-2.5 text-lg font-black tracking-tight text-[#050579]">
+                <BarChart3 size={20} className="text-[#2563EB]" /> ภาพรวมการใช้งาน
               </h3>
               <div className="grid grid-cols-2 gap-4">
-                 <div className="p-4 rounded-[20px] bg-foreground/5 border border-foreground/5 text-center group-hover:bg-foreground/10 transition-colors">
-                    <div className="text-2xl font-black text-foreground tabular-nums">0</div>
-                    <div className="text-[10px] text-foreground/30 uppercase font-black tracking-widest mt-2">Today Views</div>
+                 <div className="rounded-[20px] border border-[#D6E4FF] bg-[#F4F8FF] p-4 text-center transition-colors group-hover:bg-white">
+                    <div className="text-2xl font-black tabular-nums text-[#1D4ED8]">0</div>
+                    <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">ยอดเข้าชมวันนี้</div>
                  </div>
-                 <div className="p-4 rounded-[20px] bg-foreground/5 border border-foreground/5 text-center group-hover:bg-foreground/10 transition-colors">
-                    <div className="text-2xl font-black text-foreground tabular-nums">{leadCount > 0 ? leadCount : '--'}</div>
-                    <div className="text-[10px] text-foreground/30 uppercase font-black tracking-widest mt-2">Leads Recieved</div>
+                 <div className="rounded-[20px] border border-[#CFE9D6] bg-[#F3FCF5] p-4 text-center transition-colors group-hover:bg-white">
+                    <div className={`text-2xl font-black tabular-nums ${leadCount > 0 ? 'text-[#166534]' : 'text-[#94A3B8]'}`}>{leadCount > 0 ? leadCount : '--'}</div>
+                    <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">รายชื่อใหม่</div>
                  </div>
               </div>
-              <Link href="/manage/dashboard" className="block w-full text-center mt-6 text-xs font-black uppercase tracking-widest text-foreground/30 hover:text-primary transition-all underline underline-offset-8 decoration-foreground/10 hover:decoration-primary/30">
-                View Full Analytics Report
+              <Link href="/manage/dashboard" className="mt-6 block w-full text-center text-xs font-black uppercase tracking-widest text-[#64748B] underline decoration-[#D9E1F2] underline-offset-8 transition-all hover:text-[#050579] hover:decoration-[#F97316]/40">
+                ดูรายงานแบบเต็ม
               </Link>
            </div>
         </div>
 
         {/* Feature Status Section */}
-        <div className="mt-16 p-8 md:p-10 rounded-[32px] bg-card-bg/70 border border-foreground/10 shadow-xl">
-          <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-tight">
-            <Star size={24} className="text-amber-500" /> สถานะฟีเจอร์ของคุณ
+        <div className="mt-16 rounded-[32px] border border-[#D9E1F2] bg-white/92 p-8 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.18)] md:p-10">
+          <h3 className="mb-8 flex items-center gap-3 text-xl font-black tracking-tight text-[#050579]">
+            <Star size={24} className="text-[#F97316]" /> สถานะฟีเจอร์ของคุณ
           </h3>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
             {FEATURE_LIST.map((feature) => {
@@ -823,20 +863,20 @@ export default function ControlCenterPage() {
                   key={feature.id}
                   className={`p-4 rounded-2xl border text-center transition-all ${
                     isEnabled
-                      ? 'bg-green-500/10 border-green-500/20'
-                      : 'bg-foreground/5 border-foreground/10'
+                      ? 'border-[#CFE9D6] bg-[#F3FCF5]'
+                      : 'border-[#E7ECF7] bg-[#F6F8FF]'
                   }`}
                 >
-                  <div className={`w-10 h-10 rounded-xl mx-auto mb-3 flex items-center justify-center ${
-                    isEnabled ? 'bg-green-500/20' : 'bg-foreground/10'
+                  <div className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${
+                    isEnabled ? 'bg-[#EEFBEF]' : 'bg-[#EEF2FF]'
                   }`}>
                     {isEnabled ? (
-                      <CheckCircle size={20} className="text-green-500" />
+                      <CheckCircle size={20} className="text-[#16A34A]" />
                     ) : (
-                      <Lock size={18} className="text-foreground/40" />
+                      <Lock size={18} className="text-[#94A3B8]" />
                     )}
                   </div>
-                  <p className={`text-xs font-bold truncate ${isEnabled ? 'text-foreground' : 'text-foreground/40'}`}>
+                  <p className={`truncate text-xs font-bold ${isEnabled ? 'text-[#0F172A]' : 'text-[#64748B]'}`}>
                     {feature.title.split(' ')[0]}
                   </p>
                 </div>
@@ -845,12 +885,12 @@ export default function ControlCenterPage() {
           </div>
           {getFeatureCounts().locked > 0 && (
             <div className="mt-8 text-center">
-              <p className="text-foreground/50 text-sm mb-4">
+              <p className="mb-4 text-sm text-[#475569]">
                 คุณมี {getFeatureCounts().locked} ฟีเจอร์ที่ยังถูกล็อค
               </p>
               <button
                 onClick={() => setShowUpgradeModal(true)}
-                className="px-8 py-3 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-xl font-bold uppercase tracking-wider hover:scale-105 active:scale-95 transition-transform shadow-lg shadow-amber-500/20"
+                className="rounded-2xl bg-[#F97316] px-8 py-3 font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#EA580C]"
               >
                 <Crown size={16} className="inline mr-2 -mt-0.5" />
                 ปลดล็อคทั้งหมด
@@ -863,22 +903,22 @@ export default function ControlCenterPage() {
 
       {/* Upgrade Modal */}
       {showUpgradeModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-in fade-in duration-300">
-          <div className="bg-background border border-foreground/10 rounded-[32px] p-8 max-w-lg w-full shadow-2xl animate-in zoom-in-95 duration-300 relative">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/42 p-4 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-lg rounded-[32px] border border-[#D9E1F2] bg-white p-8 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.38)] animate-in zoom-in-95 duration-300">
             <button 
               onClick={() => setShowUpgradeModal(false)}
-              className="absolute top-4 right-4 w-9 h-9 rounded-full bg-foreground/5 hover:bg-foreground/10 flex items-center justify-center transition-colors"
+              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-[#EEF0FF]"
             >
-              <XCircle size={20} className="text-foreground/40" />
+              <XCircle size={20} className="text-[#64748B]" />
             </button>
 
             {/* Header */}
             <div className="text-center mb-8">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center mx-auto mb-6 shadow-xl shadow-amber-500/30">
-                <Crown size={40} className="text-white" />
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-[#F6D5BF] bg-[#FFF1E8] shadow-[0_18px_40px_-24px_rgba(249,115,22,0.25)]">
+                <Crown size={40} className="text-[#F97316]" />
               </div>
-              <h3 className="text-2xl font-black mb-2 tracking-tight">อัพเกรดเป็น Premium</h3>
-              <p className="text-foreground/50 text-sm">ปลดล็อคทุกฟีเจอร์และใช้งานได้เต็มที่ไม่มีข้อจำกัด</p>
+              <h3 className="mb-2 text-2xl font-black tracking-tight text-[#050579]">อัพเกรดเป็น Premium</h3>
+              <p className="text-sm text-[#475569]">ปลดล็อคทุกฟีเจอร์และใช้งานได้เต็มที่ไม่มีข้อจำกัด</p>
             </div>
 
             {/* Features List */}
@@ -891,32 +931,32 @@ export default function ControlCenterPage() {
                 'ระบบ Landing Pages แบบลากวาง',
                 'ระบบแนะนำสมาชิกและคอมมิชชั่น',
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 p-3 rounded-xl bg-foreground/5 border border-foreground/5">
-                  <CheckCircle size={18} className="text-green-500 shrink-0" />
-                  <span className="text-sm font-bold opacity-80">{item}</span>
+                <div key={i} className="flex items-center gap-3 rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3">
+                  <CheckCircle size={18} className="shrink-0 text-[#16A34A]" />
+                  <span className="text-sm font-bold text-[#0F172A]">{item}</span>
                 </div>
               ))}
             </div>
 
             {/* Pricing */}
-            <div className="text-center mb-8 p-6 rounded-3xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 border border-amber-500/20 shadow-inner">
-              <div className="text-[10px] uppercase tracking-[0.2em] font-black text-amber-600 dark:text-amber-400 mb-2">ราคาพิเศษช่วงแนะนำ</div>
-              <div className="text-4xl font-black text-amber-500">฿299<span className="text-lg font-bold text-foreground/40 ml-1">/เดือน</span></div>
-              <div className="text-[10px] font-black uppercase text-foreground/30 mt-2 tracking-widest">หรือ ฿2,499/ปี (ประหยัดกว่า 30%)</div>
+            <div className="mb-8 rounded-[28px] border border-[#F6D5BF] bg-[#FFF7F1] p-6 text-center shadow-inner">
+              <div className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#F97316]">ราคาพิเศษช่วงแนะนำ</div>
+              <div className="text-4xl font-black text-[#C2410C]">฿299<span className="ml-1 text-lg font-bold text-[#64748B]">/เดือน</span></div>
+              <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">หรือ ฿2,499/ปี (ประหยัดกว่า 30%)</div>
             </div>
 
             {/* Actions */}
             <div className="flex gap-4">
               <button
                 onClick={() => setShowUpgradeModal(false)}
-                className="flex-1 py-4 bg-foreground/5 hover:bg-foreground/10 rounded-2xl font-black text-sm uppercase tracking-widest transition-all"
+                className="flex-1 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] py-4 text-sm font-black uppercase tracking-widest text-[#0F172A] transition-colors hover:bg-[#EEF0FF]"
               >
                 ยกเลิก
               </button>
               <button
                 onClick={handleUpgradeRequest}
                 disabled={upgradeLoading}
-                className="flex-[2] py-4 bg-gradient-to-r from-amber-500 to-orange-500 text-white rounded-2xl font-black text-sm uppercase tracking-widest hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-amber-500/20 flex items-center justify-center gap-2 disabled:opacity-50"
+                className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-4 text-sm font-black uppercase tracking-widest text-white transition-colors hover:bg-[#EA580C] disabled:opacity-50"
               >
                 {upgradeLoading ? (
                   <Loader2 size={20} className="animate-spin" />
@@ -931,10 +971,10 @@ export default function ControlCenterPage() {
 
             {/* Contact Admin Option */}
             <div className="mt-6 text-center">
-              <p className="text-foreground/40 text-[10px] font-black uppercase tracking-widest mb-1">
+              <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
                 มีคำถามเพิ่มเติม?
               </p>
-              <a href="mailto:support@dpattown.com" className="text-primary text-sm font-black hover:underline tracking-tight">
+              <a href="mailto:support@dpattown.com" className="text-sm font-black tracking-tight text-[#050579] hover:underline">
                    support@dpattown.com
               </a>
             </div>
@@ -943,25 +983,25 @@ export default function ControlCenterPage() {
       )}
 
       {/* Quick Access Control Menu (Moved as requested) */}
-      <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-[60] w-[calc(100%-48px)] max-w-lg animate-in slide-in-from-bottom-5 duration-500">
-        <div id="app" className="bg-[#fdfcf9]/95 dark:bg-[#1a1614]/95 backdrop-blur-xl border border-[#e5e0d8] dark:border-[#2d2825] rounded-[32px] p-3 shadow-2xl overflow-hidden ring-1 ring-black/5">
+      <div className="fixed bottom-6 left-1/2 z-[60] w-[calc(100%-64px)] max-w-md -translate-x-1/2 animate-in slide-in-from-bottom-5 duration-500">
+        <div id="app" className="overflow-hidden rounded-[30px] border border-[#D9E1F2] bg-white/80 p-2.5 shadow-[0_16px_36px_-24px_rgba(15,23,42,0.18)] ring-1 ring-[#E7ECF7]/70 backdrop-blur-lg">
           <div className="flex items-center justify-around px-2">
             <Link 
               href="/manage/dashboard" 
-              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+              className="group flex flex-col items-center gap-1 px-3 py-1.5 text-[#64748B] transition-all hover:text-[#050579]"
             >
-              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                <BarChart3 size={20} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#F6F8FF] transition-all group-hover:bg-[#EEF2FF] group-hover:text-[#050579]">
+                <BarChart3 size={18} />
               </div>
-              <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">สถิติ</span>
+              <span className="text-[10px] font-black uppercase tracking-widest opacity-80 group-hover:opacity-100">สถิติ</span>
             </Link>
 
             <Link 
               href="/manage/profile" 
-              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+              className="group flex flex-col items-center gap-1 px-3 py-1.5 text-[#64748B] transition-all hover:text-[#050579]"
             >
-              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                <UserCircle size={20} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#F6F8FF] transition-all group-hover:bg-[#EEF2FF] group-hover:text-[#050579]">
+                <UserCircle size={18} />
               </div>
               <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">แก้ไขโปรไฟล์</span>
             </Link>
@@ -969,20 +1009,20 @@ export default function ControlCenterPage() {
             <Link 
               href={getProfileUrl()} 
               target="_blank"
-              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+              className="group flex flex-col items-center gap-1 px-3 py-1.5 text-[#64748B] transition-all hover:text-[#F97316]"
             >
-              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                <ExternalLink size={20} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#FFF7F1] transition-all group-hover:bg-[#FFF1E8] group-hover:text-[#F97316]">
+                <ExternalLink size={18} />
               </div>
               <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">ดูเว็บ</span>
             </Link>
 
             <Link 
               href="/manage/account" 
-              className="flex flex-col items-center gap-1 px-4 py-2 text-[#7c7267] dark:text-[#a09489] hover:text-primary dark:hover:text-primary transition-all group"
+              className="group flex flex-col items-center gap-1 px-3 py-1.5 text-[#64748B] transition-all hover:text-[#050579]"
             >
-              <div className="w-10 h-10 rounded-2xl bg-foreground/5 flex items-center justify-center group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                <Settings size={20} />
+              <div className="flex h-9 w-9 items-center justify-center rounded-2xl bg-[#F6F8FF] transition-all group-hover:bg-[#EEF2FF] group-hover:text-[#050579]">
+                <Settings size={18} />
               </div>
               <span className="text-[10px] uppercase font-black tracking-widest opacity-80 group-hover:opacity-100">บัญชี</span>
             </Link>
