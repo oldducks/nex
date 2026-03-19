@@ -11,7 +11,6 @@ import {
 } from 'lucide-react';
 import { QrCodeImage } from '@/components/QrCode';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface FeatureConfig {
   catalog: boolean;
@@ -260,7 +259,6 @@ export default function ControlCenterPage() {
                </Link>
              )}
              <div className="h-6 w-px bg-foreground/10 mx-2 hidden md:block" />
-             <ThemeToggle />
              <button onClick={handleLogout} className="w-10 h-10 rounded-xl bg-foreground/5 hover:bg-red-500/10 flex items-center justify-center transition-all group">
                <LogOut size={18} className="text-foreground/40 group-hover:text-red-500 transition-colors" />
              </button>

@@ -6,7 +6,6 @@ import {
   ChevronRight, MessageSquare, Package, Layout, Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { LeadForm } from '@/components/LeadForm';
 import { LogoInline, LogoFooter } from '@/components/Logo';
 import Cookies from 'js-cookie';
@@ -76,6 +75,9 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
     const bg = theme.bg_color || '#EFF6FF';
     const isLight = bg === '#ffffff' || bg === '#EFF6FF';
 
+    console.log('LandingPageClient rendering, content_blocks count:', page.content_blocks?.length);
+    console.log('Content blocks types:', page.content_blocks?.map((b: Block) => b.type));
+
     return (
         <div className="relative min-h-screen overflow-hidden transition-colors duration-500" style={{ fontFamily: theme.font_family || 'inherit', backgroundColor: '#EFF6FF', color: '#0F172A' }}>
             {/* Background gradients matching homepage */}
@@ -87,12 +89,11 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
             
             <nav className="fixed top-0 left-0 w-full h-16 backdrop-blur-xl flex items-center justify-between px-6 z-50" style={{ backgroundColor: 'rgba(255,255,255,0.75)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
                 <LogoInline />
-                <ThemeToggle />
             </nav>
 
-            <main className="max-w-4xl mx-auto px-6 pt-28 pb-20 md:pt-40 md:pb-32 flex flex-col gap-0">
+            <main className="max-w-4xl mx-auto px-6 pt-28 pb-20 md:pt-40 md:pb-32 flex flex-col gap-2.5">
                 {page.content_blocks.map(block => (
-                    <div key={block.id} className={block.type === 'video' ? '' : 'animate-in fade-in slide-in-from-bottom-10 duration-1000'} style={block.type === 'video' ? { display: 'block', visibility: 'visible', opacity: 1 } : undefined}>
+                    <div key={block.id} style={{ opacity: 1, visibility: 'visible' }}>
                         <PublicBlock 
                             block={block} 
                             theme={theme} 
@@ -105,10 +106,10 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                     </div>
                 ))}
 
-                {/* Lead Form - ฝากข้อมูลติดต่อกลับ */}
-                {page.owner_uid && page.theme_config?.show_lead_form !== false && (
+                {/* Lead Form - ฝากข้อมูลติดต่อกลับ (Disabled/Removed to use block-based form instead) */}
+                {/* {page.owner_uid && page.theme_config?.show_lead_form !== false && (
                     <LeadForm targetUid={page.owner_uid} />
-                )}
+                )} */}
 
                 {/* Footer / Social Sharing */}
                 <footer className="pt-16 text-center" style={{ borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}` }}>
@@ -160,6 +161,7 @@ function ShareButton({ icon: Icon, href, isLight }: { icon: any, href: string, i
 }
 
 function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, contentBlocks }: { block: Block, theme: any, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string, contentBlocks: Block[] }) {
+    console.log('PublicBlock rendering block.type:', block.type, 'block.id:', block.id);
     const primary = theme.primary_color || '#050579';
     const accent = '#F97316';
     
@@ -265,6 +267,8 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                 </div>
             );
         case 'form':
+            // Debug logging
+            console.log('Form block detected:', block.content);
             // โหมดดั้งเดิม: ปุ่มเปิด external form
             if (!block.content?.mode || block.content.mode === 'external') {
                 return (
@@ -299,6 +303,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
 }
 
 function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { block: Block, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string }) {
+    console.log('InternalLandingForm rendering, block.content:', block.content);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -307,10 +312,40 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+    const [formFields, setFormFields] = useState<any[]>([]);
+    const [loadingForm, setLoadingForm] = useState(false);
+
+    useEffect(() => {
+        if (block.content.mode === 'internal' && block.content.form_id) {
+            fetchFormFields();
+        }
+    }, [block.content.form_id]);
+
+    const fetchFormFields = async () => {
+        setLoadingForm(true);
+        try {
+            const res = await fetch(`${API_URL}/public/forms/${block.content.form_id}`);
+            if (res.ok) {
+                const data = await res.json();
+                setFormFields(data.fields || []);
+            }
+        } catch (err) {
+            console.error('Failed to fetch form fields:', err);
+        } finally {
+            setLoadingForm(false);
+        }
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!ownerUid) return;
+
+        // สำหรับโหมด internal ต้องเลือกฟอร์มก่อน
+        if (block.content.mode === 'internal' && !block.content.form_id) {
+            setError('ฟอร์มนี้ยังไม่ได้กำหนดค่า (ยังไม่ได้เลือกฟอร์มจากระบบ)');
+            return;
+        }
+
         if (!consent) {
             setError('กรุณายืนยันการยินยอมให้จัดเก็บข้อมูล (PDPA)');
             return;
@@ -318,10 +353,24 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
         setSubmitting(true);
         setError(null);
         try {
-            const res = await fetch(`${API_URL}/contact/${ownerUid}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
+            const endpoint = block.content.mode === 'internal' 
+                ? `${API_URL}/public/forms/${block.content.form_id}/submit`
+                : `${API_URL}/contact/${ownerUid}`;
+
+            const submissionData = block.content.mode === 'internal'
+                ? {
+                    data: {
+                        name,
+                        email,
+                        phone,
+                        message,
+                    },
+                    source: {
+                        referrer: pageSlug,
+                        utm_source: 'landing_page',
+                    }
+                  }
+                : {
                     name,
                     email,
                     phone,
@@ -330,7 +379,12 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                     source_type: 'landing_page',
                     source_id: pageId,
                     source_url: pageSlug,
-                }),
+                };
+
+            const res = await fetch(endpoint, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(submissionData),
             });
             if (!res.ok) {
                 throw new Error('ส่งข้อมูลไม่สำเร็จ');
@@ -382,54 +436,73 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
         }
     };
 
+    console.log('InternalLandingForm: checking condition, mode=', block.content?.mode, 'form_id=', block.content?.form_id);
+
+    if (block.content.mode === 'internal' && !block.content.form_id) {
+        console.log('InternalLandingForm: returning "not configured" message');
+        return (
+            <div className="max-w-3xl mx-auto">
+                <div className={`p-12 md:p-16 rounded-[56px] border text-center ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-[#0a0a0a] border-white/5'}`}>
+                    <MessageSquare size={40} className="mx-auto mb-4 text-gray-400" />
+                    <p className="text-gray-500 font-medium">ฟอร์มนี้ยังไม่ได้เลือกรายการจากระบบ</p>
+                </div>
+            </div>
+        );
+    }
+
+    console.log('InternalLandingForm: returning form UI');
     return (
-        <div className="max-w-3xl mx-auto">
-            <div className={`p-12 md:p-20 rounded-[56px] border ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-[#0a0a0a] border-white/5'}`}>
-                <MessageSquare size={48} className="mx-auto mb-8 text-primary" />
-                <h3 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-center">ติดต่อเราทันที</h3>
+        <div className="max-w-3xl mx-auto relative z-20">
+            <div className={`p-12 md:p-20 rounded-[56px] border ${isLight ? 'bg-white border-gray-200' : 'bg-[#0a0a0a] border-white/5'}`}>
+                <MessageSquare size={48} className="mx-auto mb-8 text-[#050579]" />
+                <h3 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-center text-gray-900">ติดต่อเราทันที</h3>
                 {success ? (
-                    <p className={`text-lg md:text-xl text-center ${isLight ? 'text-gray-600' : 'text-gray-300'}`}>
+                    <p className={`text-lg md:text-xl text-center ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>
                         {success}
                     </p>
                 ) : (
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="space-y-1">
-                                <label className={`text-xs font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>ชื่อ-นามสกุล *</label>
+                                <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>ชื่อ-นามสกุล *</label>
                                 <input
                                     required
                                     value={name}
                                     onChange={(e) => setName(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-2xl bg-black/10 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                                    className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500"
+                                    placeholder="กรอกชื่อ-นามสกุล"
                                 />
                             </div>
                             <div className="space-y-1">
-                                <label className={`text-xs font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>อีเมล *</label>
+                                <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>อีเมล *</label>
                                 <input
                                     required
                                     type="email"
                                     value={email}
                                     onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-2xl bg-black/10 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                                    className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500"
+                                    placeholder="กรอกอีเมล"
                                 />
                             </div>
                         </div>
                         <div className="space-y-1">
-                            <label className={`text-xs font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>เบอร์โทรศัพท์</label>
+                            <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>เบอร์โทรศัพท์</label>
                             <input
                                 value={phone}
                                 onChange={(e) => setPhone(e.target.value)}
-                                className="w-full px-4 py-3 rounded-2xl bg-black/10 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm"
+                                className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500"
+                                placeholder="กรอกเบอร์โทรศัพท์"
                             />
                         </div>
                         <div className="space-y-1">
-                            <label className={`text-xs font-semibold ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>รายละเอียดที่ต้องการสอบถาม *</label>
+                            <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>รายละเอียดที่ต้องการสอบถาม *</label>
                             <textarea
                                 required
                                 value={message}
                                 onChange={(e) => setMessage(e.target.value)}
                                 rows={4}
-                                className="w-full px-4 py-3 rounded-2xl bg-black/10 border border-white/10 focus:outline-none focus:ring-2 focus:ring-primary/40 text-sm resize-none"
+                                className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500 resize-none"
+                                placeholder="กรอกรายละเอียดที่ต้องการสอบถาม"
                             />
                         </div>
                         <div className="flex items-start gap-2">
@@ -438,22 +511,22 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                 type="checkbox"
                                 checked={consent}
                                 onChange={(e) => setConsent(e.target.checked)}
-                                className="mt-1"
+                                className="mt-1 w-4 h-4 accent-[#050579]"
                             />
-                            <label htmlFor="pdpa-consent" className={`text-xs ${isLight ? 'text-gray-700' : 'text-gray-300'}`}>
+                            <label htmlFor="pdpa-consent" className={`text-xs ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>
                                 ฉันยินยอมให้จัดเก็บและใช้ข้อมูลนี้เพื่อการติดต่อกลับ ตามนโยบายความเป็นส่วนตัว (PDPA)
                             </label>
                         </div>
                         {error && (
-                            <p className="text-xs text-red-400">{error}</p>
+                            <p className="text-sm text-red-600 font-medium">{error}</p>
                         )}
                         <div className="pt-2">
                             <button
                                 type="submit"
                                 disabled={submitting || !ownerUid}
                                 className={`w-full inline-flex items-center justify-center gap-3 px-12 py-4 font-black rounded-[32px] text-lg transition-all ${
-                                    isLight ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'
-                                } disabled:opacity-60`}
+                                    isLight ? 'bg-[#050579] text-white hover:bg-[#04045f]' : 'bg-white text-black hover:bg-gray-200'
+                                } disabled:opacity-60 shadow-lg`}
                             >
                                 {submitting ? 'กำลังส่งข้อมูล...' : 'ส่งข้อมูลให้ทีมงานติดต่อกลับ'}
                             </button>

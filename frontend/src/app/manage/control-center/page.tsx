@@ -140,6 +140,9 @@ const TONE_STYLES: Record<FeatureTone, {
   border: string;
   text: string;
   glow: string;
+  chip: string;
+  action: string;
+  hoverBorder: string;
 }> = {
   navy: {
     iconWrap: 'bg-[#EEF2FF]',
@@ -148,6 +151,9 @@ const TONE_STYLES: Record<FeatureTone, {
     border: 'border-[#D9E1F2]',
     text: 'text-[#050579]',
     glow: 'bg-[radial-gradient(circle,rgba(5,5,121,0.12),transparent_68%)]',
+    chip: 'border-[#E7ECF7] bg-[#F6F8FF] text-[#64748B]',
+    action: 'text-[#050579]',
+    hoverBorder: 'hover:border-[#C7D2E5]',
   },
   orange: {
     iconWrap: 'bg-[#FFF1E8]',
@@ -156,6 +162,9 @@ const TONE_STYLES: Record<FeatureTone, {
     border: 'border-[#F6D5BF]',
     text: 'text-[#C2410C]',
     glow: 'bg-[radial-gradient(circle,rgba(249,115,22,0.14),transparent_68%)]',
+    chip: 'border-[#FCE1D1] bg-[#FFF7F1] text-[#9A3412]',
+    action: 'text-[#C2410C]',
+    hoverBorder: 'hover:border-[#F0C5A7]',
   },
   green: {
     iconWrap: 'bg-[#EEFBEF]',
@@ -164,6 +173,9 @@ const TONE_STYLES: Record<FeatureTone, {
     border: 'border-[#CFE9D6]',
     text: 'text-[#166534]',
     glow: 'bg-[radial-gradient(circle,rgba(22,163,74,0.14),transparent_68%)]',
+    chip: 'border-[#DCEFE0] bg-[#F3FCF5] text-[#166534]',
+    action: 'text-[#166534]',
+    hoverBorder: 'hover:border-[#B8DFC2]',
   },
   blue: {
     iconWrap: 'bg-[#EAF4FF]',
@@ -172,6 +184,9 @@ const TONE_STYLES: Record<FeatureTone, {
     border: 'border-[#D6E4FF]',
     text: 'text-[#1D4ED8]',
     glow: 'bg-[radial-gradient(circle,rgba(37,99,235,0.14),transparent_68%)]',
+    chip: 'border-[#DDEAFF] bg-[#F4F8FF] text-[#1D4ED8]',
+    action: 'text-[#1D4ED8]',
+    hoverBorder: 'hover:border-[#C3D7FF]',
   },
 };
 
@@ -256,30 +271,6 @@ export default function ControlCenterPage() {
   };
 
   useEffect(() => {
-    // Intercept browser back button using hash strategy
-    if (typeof window !== 'undefined') {
-      if (window.location.hash !== '#app') {
-        window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        window.history.pushState(null, '', window.location.pathname + window.location.search + '#app');
-      }
-
-      const handlePopState = () => {
-        if (window.location.hash !== '#app') {
-          // User pressed back button
-          setShowLogoutConfirm(true);
-          // Push hash back so they stay trapped inside Control Center
-          window.history.pushState(null, '', window.location.pathname + window.location.search + '#app');
-        }
-      };
-
-      window.addEventListener('popstate', handlePopState);
-      return () => {
-        window.removeEventListener('popstate', handlePopState);
-      };
-    }
-  }, []);
-
-  useEffect(() => {
     if (!token) {
       router.push('/login');
       return;
@@ -320,12 +311,19 @@ export default function ControlCenterPage() {
   return (
     <div
       className="relative min-h-screen overflow-x-hidden bg-[#EEF0FF] text-[#0F172A] selection:bg-[#F97316]/20"
-      style={{ fontFamily: "'Plus Jakarta Sans', 'Sarabun', sans-serif" }}
+      style={{ fontFamily: "var(--font-sans), 'Sarabun', sans-serif" }}
     >
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_32%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.34),transparent_40%),linear-gradient(180deg,#f8faff_0%,#eef0ff_50%,#e8eeff_100%)]" />
+        <div className="absolute left-[-7rem] top-10 h-80 w-80 rounded-full bg-sky-300/16 blur-[120px]" />
+        <div className="absolute right-[-6rem] top-28 h-72 w-72 rounded-full bg-[#050579]/8 blur-[120px]" />
+        <div className="absolute inset-x-0 top-0 mx-auto h-[24rem] max-w-6xl rounded-full bg-white/32 blur-[120px]" />
+      </div>
+
       {/* Logout Confirmation Modal */}
       {showLogoutConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/38 backdrop-blur-sm px-4">
-          <div className="relative w-full max-w-sm rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_30px_90px_-48px_rgba(15,23,42,0.35)] animate-in fade-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/28 px-4 backdrop-blur-sm">
+          <div className="relative w-full max-w-sm rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_30px_90px_-48px_rgba(15,23,42,0.3)] animate-in fade-in zoom-in-95 duration-200">
             <h3 className="mb-4 text-center text-xl font-black text-[#050579]">ยืนยันการออกจากระบบ</h3>
             <p className="mb-6 text-center text-sm text-[#475569]">คุณได้กดปุ่มย้อนกลับ ต้องการออกจากระบบหรือไม่?</p>
             <div className="flex gap-3">
@@ -345,48 +343,48 @@ export default function ControlCenterPage() {
           </div>
         </div>
       )}
-
-      <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400&family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
-
-      <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.35),transparent_42%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.07),transparent_26%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_52%,#e8eeff_100%)]" />
-      <div className="pointer-events-none fixed left-[-8rem] top-12 h-80 w-80 rounded-full bg-sky-300/20 blur-[120px]" />
-      <div className="pointer-events-none fixed right-[-7rem] top-40 h-72 w-72 rounded-full bg-orange-200/20 blur-[110px]" />
-
       {/* Navbar */}
-      <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-2xl">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between px-6">
-          <Link href="/" className="flex items-center">
-            <Image
-              src="/nex_logo_nobg.png"
-              alt="NEX Solution"
-              width={160}
-              height={64}
-              className="h-16 w-auto"
-              unoptimized
-            />
+      <nav className="sticky top-0 z-50 px-4 pt-4 sm:px-6">
+        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between rounded-[28px] border border-[#D9E1F2] bg-white/84 px-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
+          <Link href="/" className="flex items-center gap-4">
+            <div className="relative h-14 w-20 sm:h-16 sm:w-24">
+              <Image
+                src="/nex_logo_nobg.png"
+                alt="NEX Solution"
+                fill
+                className="object-contain"
+                unoptimized
+              />
+            </div>
+            <div className="hidden sm:block">
+              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B]">NEX Solution</div>
+              <div className="text-sm font-semibold text-[#050579]">Control Center</div>
+            </div>
           </Link>
-          
-          <div className="flex items-center gap-4">
+
+          <div className="flex items-center gap-3 sm:gap-4">
              {user?.role === 'super_admin' && (
-               <Link href="/admin/dashboard" className="hidden items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-[#64748B] transition-colors hover:text-[#050579] md:flex">
+               <Link href="/admin/dashboard" className="hidden items-center gap-2 rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#475569] transition-colors hover:border-[#C7D2E5] hover:bg-white hover:text-[#050579] md:flex">
                  <ShieldCheck size={16} /> Admin Panel
                </Link>
              )}
-             <button onClick={() => setShowLogoutConfirm(true)} className="group flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-[#FEF2F2]">
+             <button onClick={() => setShowLogoutConfirm(true)} className="group flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 transition-colors hover:border-[#F3C3C3] hover:bg-[#FEF2F2]">
                <LogOut size={18} className="text-[#64748B] transition-colors group-hover:text-[#DC2626]" />
+               <span className="hidden text-sm font-bold text-[#475569] transition-colors group-hover:text-[#B91C1C] sm:inline">ออกจากระบบ</span>
              </button>
           </div>
         </div>
       </nav>
 
       {/* Main Content */}
-      <main className="max-w-7xl mx-auto px-6 py-8 md:py-12">
+      <main className="relative z-10 mx-auto max-w-7xl px-6 py-8 md:py-10">
         
         {/* User Summary Header */}
-        <div className="mb-12 rounded-[32px] border border-[#D9E1F2] bg-white/92 p-6 shadow-[0_30px_90px_-48px_rgba(15,23,42,0.24)] backdrop-blur-sm md:p-7">
-          <div className="flex flex-col md:flex-row items-start md:items-end justify-between gap-8">
-            <div className="space-y-4">
-              <div className="flex items-center gap-3 flex-wrap">
+        <div className="relative mb-12 overflow-hidden rounded-[36px] border border-[#D9E1F2] bg-white/92 p-6 shadow-[0_34px_100px_-54px_rgba(15,23,42,0.28)] backdrop-blur-sm md:p-8">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(5,5,121,0.06),transparent_32%)]" />
+          <div className="relative flex flex-col items-start justify-between gap-8 xl:flex-row xl:items-end">
+            <div className="max-w-2xl space-y-5">
+              <div className="flex flex-wrap items-center gap-3">
                 <span className={`rounded-full border px-4 py-1.5 text-[10px] font-black uppercase tracking-widest ${
                   user?.subscription_tier === 'premium'
                     ? 'border-[#F6D5BF] bg-[#FFF1E8] text-[#F97316]'
@@ -394,20 +392,24 @@ export default function ControlCenterPage() {
                 }`}>
                   {user?.subscription_tier || 'Free'} Plan
                 </span>
-                <div className="h-1.5 w-1.5 rounded-full bg-[#CBD5E1]" />
-                <span className="text-sm font-medium text-[#64748B]">{user?.email}</span>
+                <span className="rounded-full border border-[#D9E1F2] bg-white/80 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] text-[#64748B]">
+                  {getFeatureCounts().enabled} เครื่องมือพร้อมใช้งาน
+                </span>
               </div>
               <div>
+                <div className="mb-2 text-sm font-medium text-[#64748B]">{user?.email}</div>
                 <h1 className="text-3xl font-black tracking-tight text-[#050579] md:text-4xl">Control Center</h1>
-                <p className="mt-2 text-sm text-[#475569] md:text-base">จัดการเครื่องมือขายดิจิทัลของคุณจากหน้าควบคุมเดียว</p>
+                <p className="mt-3 max-w-xl text-sm leading-7 text-[#475569] md:text-base">
+                  จัดการโปรไฟล์ ลิงก์ขาย ระบบรายชื่อลูกค้า และเครื่องมือดิจิทัลทั้งหมดจากหน้าควบคุมเดียว
+                </p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full md:w-auto">
+            <div className="grid w-full grid-cols-1 gap-4 sm:grid-cols-3 xl:w-auto">
               <button
                 onClick={handleOpenProfile}
                 disabled={!user?.uid || !user?.url_prefix}
-                className="flex min-h-[68px] min-w-[180px] h-fit self-start items-center gap-3 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3 text-left text-[#0F172A] transition-colors hover:border-[#C7D2E5] hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
+                className="flex min-h-[88px] min-w-[190px] items-center gap-3 rounded-[24px] border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-4 text-left text-[#0F172A] transition-colors hover:border-[#C7D2E5] hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#050579]">
                   <Eye size={20} />
@@ -417,22 +419,24 @@ export default function ControlCenterPage() {
                   <div className="text-sm font-black leading-tight text-[#050579]">ดูหน้าโปรไฟล์</div>
                 </div>
               </button>
-              <div className="group flex min-h-[68px] min-w-[180px] h-fit self-start items-center gap-3 rounded-2xl border border-[#F6D5BF] bg-[#FFF7F1] px-4 py-3 transition-colors hover:bg-white">
+              <div className="group flex min-h-[88px] min-w-[190px] items-center gap-3 rounded-[24px] border border-[#F6D5BF] bg-[#FFF7F1] px-4 py-4 transition-colors hover:bg-white">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1E8] text-[#F97316] transition-transform group-hover:scale-105">
                   <Smartphone size={20} />
                 </div>
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">บัตรของฉัน</div>
                   <div className="text-xl font-black tabular-nums leading-tight text-[#C2410C]">1 / {user?.max_cards || 1}</div>
+                  <div className="mt-1 text-xs text-[#78716C]">จำนวนบัตรที่ใช้งานได้</div>
                 </div>
               </div>
-              <div className="group flex min-h-[68px] min-w-[180px] h-fit self-start items-center gap-3 rounded-2xl border border-[#CFE9D6] bg-[#F3FCF5] px-4 py-3 transition-colors hover:bg-white">
+              <div className="group flex min-h-[88px] min-w-[190px] items-center gap-3 rounded-[24px] border border-[#CFE9D6] bg-[#F3FCF5] px-4 py-4 transition-colors hover:bg-white">
                 <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEFBEF] text-[#16A34A] transition-transform group-hover:scale-105">
                   <Users size={20} />
                 </div>
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">รายชื่อลูกค้า</div>
                   <div className={`text-xl font-black tabular-nums leading-tight ${leadCount > 0 ? 'text-[#166534]' : 'text-[#94A3B8]'}`}>{leadCount > 0 ? leadCount : '--'}</div>
+                  <div className="mt-1 text-xs text-[#64748B]">รายการใหม่ที่ยังไม่ได้อ่าน</div>
                 </div>
               </div>
             </div>
@@ -479,7 +483,7 @@ export default function ControlCenterPage() {
                     <div className="min-w-0">
                       <div className="flex gap-2 mb-2">
                         {feature.tags.map(tag => (
-                          <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
+                          <span key={tag} className={`rounded-xl border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${TONE_STYLES[feature.tone].chip}`}>
                             {tag}
                           </span>
                         ))}
@@ -511,10 +515,11 @@ export default function ControlCenterPage() {
                   }}
                   role="button"
                   tabIndex={0}
-                  className="group relative cursor-pointer overflow-hidden rounded-[32px] border border-[#D9E1F2] bg-white p-7 shadow-[0_34px_90px_-50px_rgba(15,23,42,0.24)] transition-all duration-500 hover:-translate-y-1 hover:border-[#F6D5BF] hover:shadow-[0_40px_95px_-54px_rgba(249,115,22,0.2)] active:scale-[0.99] md:col-span-2 xl:col-span-2"
+                  className="group relative cursor-pointer overflow-hidden rounded-[32px] border border-[#D9E1F2] bg-white p-7 shadow-[0_34px_90px_-50px_rgba(15,23,42,0.24)] transition-all duration-500 hover:-translate-y-1 hover:border-[#C7D2E5] hover:shadow-[0_40px_95px_-54px_rgba(15,23,42,0.2)] active:scale-[0.99] md:col-span-2 xl:col-span-2"
                 >
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(5,5,121,0.06),transparent_30%)]" />
                   <div className="grid grid-cols-1 gap-6 sm:grid-cols-[1fr_132px]">
-                    <div className="min-w-0">
+                    <div className="relative min-w-0">
                       <div className="mb-5 flex items-start gap-4">
                         <div className={`inline-flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] ${TONE_STYLES[feature.tone].iconWrap} ${TONE_STYLES[feature.tone].iconColor}`}>
                           <feature.icon size={28} />
@@ -522,15 +527,15 @@ export default function ControlCenterPage() {
                         <div className="min-w-0">
                           <div className="mb-3 flex flex-wrap gap-2">
                             {feature.tags.map(tag => (
-                              <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
+                              <span key={tag} className={`rounded-xl border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${TONE_STYLES[feature.tone].chip}`}>
                                 {tag}
                               </span>
                             ))}
                           </div>
-                          <h2 className="mb-2 text-[2rem] font-black tracking-tight text-[#050579] transition-colors group-hover:text-[#F97316]">
+                          <h2 className="mb-2 text-[2rem] font-black tracking-tight text-[#050579]">
                             {feature.title}
                           </h2>
-                          <p className="max-w-2xl text-base leading-7 text-[#475569] transition-colors group-hover:text-[#334155]">
+                          <p className="max-w-2xl text-base leading-7 text-[#475569]">
                             {feature.description}
                           </p>
                         </div>
@@ -549,7 +554,7 @@ export default function ControlCenterPage() {
                             e.stopPropagation();
                             handleCopyUrl();
                           }}
-                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 py-2.5 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF]"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 py-2.5 text-xs font-bold text-[#0F172A] transition-colors hover:bg-white"
                         >
                           {copied ? <Check size={14} className="text-[#16A34A]" /> : <Copy size={14} />}
                           {copied ? 'คัดลอกแล้ว!' : 'คัดลอก URL'}
@@ -559,7 +564,7 @@ export default function ControlCenterPage() {
                           target="_blank"
                           rel="noopener noreferrer"
                           onClick={(e) => e.stopPropagation()}
-                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 py-2.5 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF]"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 py-2.5 text-xs font-bold text-[#0F172A] transition-colors hover:bg-white"
                         >
                           <ExternalLink size={14} />
                           ดูหน้าโปรไฟล์
@@ -577,8 +582,11 @@ export default function ControlCenterPage() {
 
                     {/* QR Code Section */}
                     {profileUrl && (
-                      <div className="sm:justify-self-end">
-                        <div className="rounded-[24px] border border-[#D9E1F2] bg-white p-2 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                      <div className="relative sm:justify-self-end">
+                        <div className="rounded-[24px] border border-[#D9E1F2] bg-white p-3 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                          <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B]">
+                            Scan Profile
+                          </div>
                           <QrCodeImage url={profileUrl} size={120} />
                         </div>
                       </div>
@@ -586,7 +594,7 @@ export default function ControlCenterPage() {
                   </div>
 
                   {/* Decorative accent */}
-                  <div className={`absolute bottom-0 right-0 h-28 w-28 ${TONE_STYLES[feature.tone].glow} opacity-50 transition-opacity group-hover:opacity-80`} />
+                  <div className={`absolute bottom-0 right-0 h-28 w-28 ${TONE_STYLES[feature.tone].glow} opacity-40 transition-opacity group-hover:opacity-60`} />
                 </div>
               );
             }
@@ -607,9 +615,10 @@ export default function ControlCenterPage() {
                   }}
                   role="button"
                   tabIndex={0}
-                  className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.22)] transition-all duration-500 hover:-translate-y-1 hover:border-[#CFE9D6] hover:shadow-[0_34px_80px_-48px_rgba(22,163,74,0.16)] active:scale-[0.99]"
+                  className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.22)] transition-all duration-500 hover:-translate-y-1 hover:border-[#B8DFC2] hover:shadow-[0_34px_80px_-48px_rgba(15,23,42,0.18)] active:scale-[0.99]"
                 >
-                  <div className="grid grid-cols-1 sm:grid-cols-[1fr_120px] gap-5">
+                  <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(22,163,74,0.08),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(5,5,121,0.05),transparent_30%)]" />
+                  <div className="relative grid grid-cols-1 gap-5 sm:grid-cols-[1fr_120px]">
                     <div className="min-w-0">
                       <div className="flex items-start gap-4 mb-4">
                         <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${TONE_STYLES[feature.tone].iconWrap} ${TONE_STYLES[feature.tone].iconColor}`}>
@@ -618,15 +627,15 @@ export default function ControlCenterPage() {
                         <div className="min-w-0">
                           <div className="flex gap-2 mb-2">
                             {feature.tags.map(tag => (
-                              <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
+                              <span key={tag} className={`rounded-xl border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${TONE_STYLES[feature.tone].chip}`}>
                                 {tag}
                               </span>
                             ))}
                           </div>
-                          <h2 className="mb-2 text-2xl font-black tracking-tight text-[#050579] transition-colors group-hover:text-[#16A34A]">
+                          <h2 className="mb-2 text-2xl font-black tracking-tight text-[#050579]">
                             {feature.title}
                           </h2>
-                          <p className="line-clamp-2 text-sm leading-relaxed text-[#475569] transition-colors group-hover:text-[#334155]">
+                          <p className="line-clamp-2 text-sm leading-relaxed text-[#475569]">
                             {feature.description}
                           </p>
                         </div>
@@ -634,7 +643,7 @@ export default function ControlCenterPage() {
 
                       {/* Referral code & link */}
                       <div className="space-y-3">
-                        <div className="rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3">
+                        <div className="rounded-[22px] border border-[#E7ECF7] bg-[#F6F8FF] p-3.5">
                           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">
                             รหัสแนะนำของคุณ
                           </p>
@@ -642,7 +651,7 @@ export default function ControlCenterPage() {
                             {user?.referral_code || 'ยังไม่มีรหัสแนะนำ — กดจัดการเพื่อสร้าง'}
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3">
+                        <div className="rounded-[22px] border border-[#E7ECF7] bg-[#F6F8FF] p-3.5">
                           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">
                             ลิงก์สำหรับแชร์สมัครสมาชิก
                           </p>
@@ -660,7 +669,7 @@ export default function ControlCenterPage() {
                             handleCopyReferral();
                           }}
                           disabled={!hasCode}
-                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-xs font-bold text-[#0F172A] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           {copiedReferral ? <Check size={14} className="text-[#16A34A]" /> : <Copy size={14} />}
                           {copiedReferral ? 'คัดลอกลิงก์แล้ว!' : 'คัดลอกลิงก์'}
@@ -671,7 +680,7 @@ export default function ControlCenterPage() {
                             handleOpenReferralLink();
                           }}
                           disabled={!hasCode}
-                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-xs font-bold text-[#0F172A] transition-colors hover:bg-[#EEF0FF] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-xs font-bold text-[#0F172A] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <ExternalLink size={14} />
                           เปิดหน้าลงทะเบียน
@@ -689,15 +698,18 @@ export default function ControlCenterPage() {
 
                     {/* QR Code Section */}
                     {referralUrl && (
-                      <div className="sm:justify-self-end flex flex-col items-center gap-2">
-                        <QrCodeImage url={referralUrl} size={112} />
+                      <div className="sm:justify-self-end flex flex-col items-center gap-2 rounded-[22px] border border-[#D9E1F2] bg-white p-3 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                        <div className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B]">
+                          Referral QR
+                        </div>
+                        <QrCodeImage url={referralUrl} size={104} />
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleCopyReferral();
                           }}
                           disabled={!hasCode}
-                          className="flex items-center gap-1 rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0F172A] transition-colors hover:bg-[#EEF0FF] disabled:cursor-not-allowed disabled:opacity-50"
+                          className="flex items-center gap-1 rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-2 py-1.5 text-[10px] font-bold uppercase tracking-widest text-[#0F172A] transition-colors hover:bg-white disabled:cursor-not-allowed disabled:opacity-50"
                         >
                           <Share2 size={12} />
                           แชร์ QR
@@ -707,7 +719,7 @@ export default function ControlCenterPage() {
                   </div>
 
                   {/* Decorative accent */}
-                  <div className={`absolute bottom-0 right-0 h-28 w-28 ${TONE_STYLES[feature.tone].glow} opacity-50 transition-opacity group-hover:opacity-80`} />
+                  <div className={`absolute bottom-0 right-0 h-28 w-28 ${TONE_STYLES[feature.tone].glow} opacity-40 transition-opacity group-hover:opacity-60`} />
                 </div>
               );
             }
@@ -717,7 +729,7 @@ export default function ControlCenterPage() {
               <Link
                 key={feature.id}
                 href={feature.href}
-                className={`group relative overflow-hidden rounded-[28px] border bg-white p-5 shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.99] ${TONE_STYLES[feature.tone].border} hover:shadow-[0_24px_56px_-38px_rgba(15,23,42,0.16)]`}
+                className={`group relative overflow-hidden rounded-[28px] border bg-white p-5 shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] transition-all duration-300 hover:-translate-y-0.5 active:scale-[0.99] ${TONE_STYLES[feature.tone].border} ${TONE_STYLES[feature.tone].hoverBorder} hover:shadow-[0_24px_56px_-38px_rgba(15,23,42,0.16)]`}
               >
                 <div className="flex items-start gap-3.5">
                   {/* Feature Icon */}
@@ -729,7 +741,7 @@ export default function ControlCenterPage() {
                     {/* Tags */}
                     <div className="mb-2 flex flex-wrap gap-2">
                       {feature.tags.map(tag => (
-                        <span key={tag} className="rounded-xl border border-[#E7ECF7] bg-[#F6F8FF] px-2.5 py-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
+                        <span key={tag} className={`rounded-xl border px-2.5 py-1 text-[10px] font-black uppercase tracking-widest ${TONE_STYLES[feature.tone].chip}`}>
                           {tag}
                         </span>
                       ))}
@@ -741,26 +753,24 @@ export default function ControlCenterPage() {
                     <p className="mb-3 line-clamp-2 text-sm leading-6 text-[#475569] transition-colors group-hover:text-[#334155]">
                       {feature.description}
                     </p>
-                    <div className="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B]">
+                    <div className={`flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.18em] ${TONE_STYLES[feature.tone].action}`}>
                       เริ่มเข้าใช้งาน <ArrowRight size={16} className={TONE_STYLES[feature.tone].iconColor} />
                     </div>
                   </div>
                 </div>
                 {/* Decorative accent */}
-                <div className={`absolute bottom-0 right-0 h-24 w-24 opacity-0 transition-opacity duration-500 group-hover:opacity-60 ${TONE_STYLES[feature.tone].glow}`} />
+                <div className={`absolute bottom-0 right-0 h-24 w-24 opacity-0 transition-opacity duration-500 group-hover:opacity-50 ${TONE_STYLES[feature.tone].glow}`} />
               </Link>
             );
           })}
 
           {/* Upgrade Card */}
-          <div className="group relative flex flex-col justify-center overflow-hidden rounded-[28px] border border-[#E7ECF7] bg-[#FCFDFE] p-5 text-center shadow-[0_16px_40px_-30px_rgba(15,23,42,0.12)]">
-             {/* Decorative elements */}
-             <div className="absolute right-0 top-0 h-32 w-32 rounded-full bg-orange-50 blur-3xl" />
-             <div className="absolute bottom-0 left-0 h-24 w-24 rounded-full bg-sky-50 blur-3xl" />
+          <div className="group relative flex flex-col justify-center overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 text-center shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)]">
+             <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(5,5,121,0.05),transparent_30%)]" />
 
              <div className="relative z-10">
-               <div className="mb-3 flex justify-center">
-                 <div className="flex h-12 w-12 items-center justify-center rounded-full border border-[#F6D5BF] bg-[#FFF7F1] transition-transform group-hover:scale-105">
+               <div className="mb-4 flex justify-center">
+                 <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-[#F6D5BF] bg-[#FFF7F1] transition-transform group-hover:scale-105">
                    <Crown size={22} className="text-[#F97316]" />
                  </div>
                </div>
@@ -781,7 +791,7 @@ export default function ControlCenterPage() {
                <h3 className="mb-2 text-lg font-black tracking-tight text-[#050579]">
                  {user?.subscription_tier === 'premium' ? 'Premium Member' : 'อัพเกรดเป็น Premium'}
                </h3>
-               <p className="mb-4 text-sm leading-6 text-[#64748B]">
+               <p className="mb-5 text-sm leading-6 text-[#64748B]">
                  {user?.subscription_tier === 'premium'
                    ? 'คุณเป็นสมาชิก Premium แล้ว! เข้าถึงทุกฟีเจอร์ได้เต็มที่'
                    : 'ปลดล็อคทุกฟีเจอร์ ใช้งานแคตตาล็อกไม่จำกัด ไม่มีลายน้ำ'}
@@ -790,7 +800,7 @@ export default function ControlCenterPage() {
                {user?.subscription_tier !== 'premium' && (
                  <button
                    onClick={() => setShowUpgradeModal(true)}
-                   className="mx-auto flex w-full max-w-[220px] items-center justify-center gap-2 rounded-2xl border border-[#F6D5BF] bg-[#FFF7F1] py-3 text-sm font-black uppercase tracking-wider text-[#F97316] transition-colors hover:bg-[#FFF1E8]"
+                   className="mx-auto flex w-full max-w-[220px] items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-3 text-sm font-black uppercase tracking-wider text-white transition-colors hover:bg-[#EA580C]"
                  >
                    <Zap size={16} />
                    อัพเกรดตอนนี้
@@ -808,12 +818,12 @@ export default function ControlCenterPage() {
         </div>
 
         {/* Status Section */}
-        <div className="mt-14 grid grid-cols-1 md:grid-cols-2 gap-5 px-2">
+        <div className="mt-14 grid grid-cols-1 gap-5 px-2 md:grid-cols-2">
            <div className="group rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_24px_60px_-42px_rgba(15,23,42,0.18)] transition-colors hover:border-[#C7D2E5]">
               <h3 className="mb-4 flex items-center gap-2.5 text-lg font-black tracking-tight text-[#050579]">
                 <Smartphone size={20} className="text-[#050579]" /> แชร์โปรไฟล์อย่างรวดเร็ว
               </h3>
-              <div className="flex flex-col lg:flex-row gap-4 mt-2">
+              <div className="mt-2 flex flex-col gap-4 lg:flex-row">
                   <div className="flex-grow space-y-3">
                     <div className="ml-1 text-xs font-black uppercase tracking-widest text-[#64748B]">โปรไฟล์สาธารณะของคุณ</div>
                     <div className="flex items-center justify-between rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3.5 font-mono text-xs text-[#050579] transition-colors group-hover:bg-white">
@@ -823,8 +833,12 @@ export default function ControlCenterPage() {
                        </Link>
                     </div>
                   </div>
-                  <div className="flex h-24 w-24 shrink-0 self-center items-center justify-center rounded-2xl border border-[#D9E1F2] bg-white p-2.5 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.25)] transition-transform group-hover:scale-105">
-                     <QrCode size={72} className="text-black" />
+                  <div className="flex shrink-0 self-center items-center justify-center rounded-[22px] border border-[#D9E1F2] bg-white p-3 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.25)] transition-transform group-hover:scale-105">
+                     {user?.uid && user?.url_prefix ? (
+                       <QrCodeImage url={getProfileUrl()} size={96} />
+                     ) : (
+                       <QrCode size={72} className="text-black" />
+                     )}
                   </div>
               </div>
            </div>
@@ -854,14 +868,14 @@ export default function ControlCenterPage() {
           <h3 className="mb-8 flex items-center gap-3 text-xl font-black tracking-tight text-[#050579]">
             <Star size={24} className="text-[#F97316]" /> สถานะฟีเจอร์ของคุณ
           </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
             {FEATURE_LIST.map((feature) => {
               const configKey = FEATURE_CONFIG_MAP[feature.id];
               const isEnabled = !user?.feature_config || user.feature_config[configKey] !== false;
               return (
                 <div
                   key={feature.id}
-                  className={`p-4 rounded-2xl border text-center transition-all ${
+                  className={`rounded-2xl border p-4 text-center transition-all ${
                     isEnabled
                       ? 'border-[#CFE9D6] bg-[#F3FCF5]'
                       : 'border-[#E7ECF7] bg-[#F6F8FF]'
@@ -903,8 +917,8 @@ export default function ControlCenterPage() {
 
       {/* Upgrade Modal */}
       {showUpgradeModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/42 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-lg rounded-[32px] border border-[#D9E1F2] bg-white p-8 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.38)] animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/32 p-4 backdrop-blur-sm animate-in fade-in duration-300">
+          <div className="relative w-full max-w-lg rounded-[32px] border border-[#D9E1F2] bg-white p-8 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 duration-300">
             <button 
               onClick={() => setShowUpgradeModal(false)}
               className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-[#EEF0FF]"
@@ -913,8 +927,8 @@ export default function ControlCenterPage() {
             </button>
 
             {/* Header */}
-            <div className="text-center mb-8">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full border border-[#F6D5BF] bg-[#FFF1E8] shadow-[0_18px_40px_-24px_rgba(249,115,22,0.25)]">
+            <div className="mb-8 text-center">
+              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] border border-[#F6D5BF] bg-[#FFF1E8] shadow-[0_18px_40px_-24px_rgba(249,115,22,0.18)]">
                 <Crown size={40} className="text-[#F97316]" />
               </div>
               <h3 className="mb-2 text-2xl font-black tracking-tight text-[#050579]">อัพเกรดเป็น Premium</h3>
@@ -922,7 +936,7 @@ export default function ControlCenterPage() {
             </div>
 
             {/* Features List */}
-            <div className="space-y-2 mb-8">
+            <div className="mb-8 space-y-2">
               {[
                 'ปลดล็อคทุกฟีเจอร์ทันที',
                 'สร้างแคตตาล็อกได้ไม่จำกัด',
@@ -931,7 +945,7 @@ export default function ControlCenterPage() {
                 'ระบบ Landing Pages แบบลากวาง',
                 'ระบบแนะนำสมาชิกและคอมมิชชั่น',
               ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-2xl border border-[#E7ECF7] bg-[#F6F8FF] p-3">
+                <div key={i} className="flex items-center gap-3 rounded-2xl border border-[#DCEFE0] bg-[#F3FCF5] p-3">
                   <CheckCircle size={18} className="shrink-0 text-[#16A34A]" />
                   <span className="text-sm font-bold text-[#0F172A]">{item}</span>
                 </div>
@@ -939,7 +953,7 @@ export default function ControlCenterPage() {
             </div>
 
             {/* Pricing */}
-            <div className="mb-8 rounded-[28px] border border-[#F6D5BF] bg-[#FFF7F1] p-6 text-center shadow-inner">
+            <div className="mb-8 rounded-[28px] border border-[#F6D5BF] bg-[#FFF7F1] p-6 text-center">
               <div className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#F97316]">ราคาพิเศษช่วงแนะนำ</div>
               <div className="text-4xl font-black text-[#C2410C]">฿299<span className="ml-1 text-lg font-bold text-[#64748B]">/เดือน</span></div>
               <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">หรือ ฿2,499/ปี (ประหยัดกว่า 30%)</div>
@@ -974,8 +988,8 @@ export default function ControlCenterPage() {
               <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
                 มีคำถามเพิ่มเติม?
               </p>
-              <a href="mailto:support@dpattown.com" className="text-sm font-black tracking-tight text-[#050579] hover:underline">
-                   support@dpattown.com
+              <a href="mailto:support@nexsolution.cloud" className="text-sm font-black tracking-tight text-[#050579] hover:underline">
+                   support@nexsolution.cloud
               </a>
             </div>
           </div>
@@ -983,8 +997,8 @@ export default function ControlCenterPage() {
       )}
 
       {/* Quick Access Control Menu (Moved as requested) */}
-      <div className="fixed bottom-6 left-1/2 z-[60] w-[calc(100%-64px)] max-w-md -translate-x-1/2 animate-in slide-in-from-bottom-5 duration-500">
-        <div id="app" className="overflow-hidden rounded-[30px] border border-[#D9E1F2] bg-white/80 p-2.5 shadow-[0_16px_36px_-24px_rgba(15,23,42,0.18)] ring-1 ring-[#E7ECF7]/70 backdrop-blur-lg">
+      <div className="fixed bottom-6 left-1/2 z-[60] w-[calc(100%-64px)] max-w-md -translate-x-1/2 animate-in slide-in-from-bottom-5 duration-500 md:hidden">
+        <div className="overflow-hidden rounded-[30px] border border-[#D9E1F2] bg-white/84 p-2.5 shadow-[0_16px_36px_-24px_rgba(15,23,42,0.18)] ring-1 ring-[#E7ECF7]/70 backdrop-blur-lg">
           <div className="flex items-center justify-around px-2">
             <Link 
               href="/manage/dashboard" 
@@ -1032,6 +1046,7 @@ export default function ControlCenterPage() {
 
       {/* Spacer for bottom menu on mobile */}
       <div className="h-24 md:hidden" />
+
     </div>
   );
 }

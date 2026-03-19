@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, User, LayoutDashboard, Pencil, Share2, Copy, Check, X, Download, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { QrCodeImage } from '@/components/QrCode';
 import { LogoInline } from '@/components/Logo';
 
@@ -206,7 +205,6 @@ export default function Dashboard() {
                     </div>
 
                     <div className="flex items-center gap-2 sm:gap-4">
-                        <ThemeToggle />
                         <div className="h-6 w-px bg-foreground/10 mx-1" />
                         <button onClick={handleLogout} className="w-10 h-10 rounded-xl hover:bg-red-500/5 hover:text-red-500 text-foreground/40 transition-all flex items-center justify-center" title="ออกจากระบบ">
                             <LogOut size={20} />

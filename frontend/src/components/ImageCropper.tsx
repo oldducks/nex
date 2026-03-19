@@ -109,6 +109,10 @@ export function ImageCropper({
                             transform: `scale(${position.scale})`,
                         }}
                         draggable={false}
+                        onError={(e) => {
+                            console.error('Image failed to load:', imageUrl);
+                            (e.target as HTMLImageElement).style.display = 'none';
+                        }}
                     />
                 ) : (
                     <div className="w-full h-full flex items-center justify-center text-gray-500">

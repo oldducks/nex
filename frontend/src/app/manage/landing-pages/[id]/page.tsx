@@ -12,7 +12,6 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { VideoUpload } from '@/components/VideoUpload';
 import { Toast, ToastType } from '@/components/Toast';
 import { getEmbedUrl } from '@/lib/videoUtils';
@@ -274,8 +273,8 @@ export default function LandingPageEditor() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-            <Loader2 className="animate-spin text-primary" size={32} />
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] flex items-center justify-center">
+            <Loader2 className="animate-spin text-[#F97316]" size={32} />
         </div>
     );
     if (!page) return <div>ไม่พบข้อมูลหน้านี้</div>;
@@ -283,43 +282,58 @@ export default function LandingPageEditor() {
     const publicUrl = `${SITE_URL}/lp/${page.slug}`;
 
     return (
-        <div className="h-screen bg-background text-foreground flex flex-col overflow-hidden transition-colors duration-500">
+        <div className="flex h-screen flex-col overflow-hidden bg-[#EEF0FF] text-[#0F172A] transition-colors duration-500">
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_32%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.34),transparent_40%),linear-gradient(180deg,#f8faff_0%,#eef0ff_50%,#e8eeff_100%)]" />
+                <div className="absolute left-[-7rem] top-10 h-80 w-80 rounded-full bg-sky-300/16 blur-[120px]" />
+                <div className="absolute right-[-6rem] top-24 h-72 w-72 rounded-full bg-[#050579]/8 blur-[120px]" />
+            </div>
             {/* Top Editor Bar */}
-            <header className="h-16 border-b border-foreground/5 bg-background/50 backdrop-blur-xl flex items-center justify-between px-6 shrink-0 z-50">
+            <header className="z-50 mx-4 mt-4 flex h-20 shrink-0 items-center justify-between rounded-[28px] border border-[#D9E1F2] bg-white/84 px-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.28)] backdrop-blur-xl sm:mx-6">
                 <div className="flex items-center gap-4">
-                    <Link href="/manage/landing-pages" className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group">
-                        <ArrowLeft size={18} className="text-foreground/40 group-hover:text-foreground transition-all" />
+                    <Link href="/manage/landing-pages" className="group flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] transition-all hover:bg-white">
+                        <ArrowLeft size={18} className="text-[#64748B] group-hover:text-[#050579] transition-all" />
                     </Link>
-                    <div className="h-6 w-[1px] bg-foreground/10 mx-2"></div>
+                    <div className="mx-2 hidden h-6 w-[1px] bg-[#D9E1F2] sm:block"></div>
                     <div className="hidden sm:block">
+                        <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B]">Landing Page Editor</div>
                         <input 
-                            className="bg-transparent font-black text-sm focus:outline-none border-b border-transparent focus:border-primary px-1 transition-all"
+                            className="bg-transparent font-black text-sm text-[#050579] focus:outline-none border-b border-transparent focus:border-[#F97316] px-1 transition-all"
                             value={page.title}
                             onChange={e => setPage({...page, title: e.target.value})}
                         />
-                        <div className="text-xs text-foreground/50 font-bold uppercase tracking-widest mt-0.5 ml-1">SLUG: /lp/{page.slug}</div>
+                        <div className="flex items-center gap-2 mt-0.5 ml-1">
+                            <div className="text-[10px] text-foreground/50 font-black uppercase tracking-widest">SLUG: /lp/{page.slug}</div>
+                            <a 
+                                href={publicUrl} 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                className="flex items-center gap-1 text-[10px] font-black uppercase tracking-widest text-[#050579] hover:text-[#F97316] transition-colors bg-[#F6F8FF] px-2 py-0.5 rounded-md border border-[#D9E1F2]"
+                            >
+                                <ExternalLink size={10} />
+                                ดูหน้าเว็บ (Live)
+                            </a>
+                        </div>
                     </div>
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="flex bg-foreground/5 rounded-xl p-1 border border-foreground/5">
+                    <div className="flex rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] p-1">
                         <button 
                             onClick={() => setPreviewMode('desktop')}
-                            className={`p-2 rounded-lg transition-all ${previewMode === 'desktop' ? 'bg-background text-foreground shadow-sm' : 'text-foreground/30 hover:text-foreground/60'}`}
+                            className={`p-2 rounded-lg transition-all ${previewMode === 'desktop' ? 'bg-white text-[#050579] shadow-sm' : 'text-[#94A3B8] hover:text-[#475569]'}`}
                         >
                             <Monitor size={18} />
                         </button>
                         <button 
                             onClick={() => setPreviewMode('mobile')}
-                            className={`p-2 rounded-lg transition-all ${previewMode === 'mobile' ? 'bg-background text-foreground shadow-sm' : 'text-foreground/30 hover:text-foreground/60'}`}
+                            className={`p-2 rounded-lg transition-all ${previewMode === 'mobile' ? 'bg-white text-[#050579] shadow-sm' : 'text-[#94A3B8] hover:text-[#475569]'}`}
                         >
                             <Smartphone size={18} />
                         </button>
                     </div>
 
-                    <div className="h-6 w-[1px] bg-foreground/10 mx-1 hidden sm:block"></div>
-                    
-                    <ThemeToggle />
+                    <div className="mx-1 hidden h-6 w-[1px] bg-[#D9E1F2] sm:block"></div>
 
                     <div className="flex flex-col items-end gap-1">
                         <button 
@@ -328,7 +342,7 @@ export default function LandingPageEditor() {
                             className={`px-6 py-2.5 rounded-xl font-black text-xs uppercase tracking-widest flex items-center gap-2 transition-all shadow-lg active:scale-95 disabled:opacity-50 ${
                                 saveStatus.type === 'success' ? 'bg-emerald-500 shadow-emerald-500/20' : 
                                 saveStatus.type === 'error' ? 'bg-red-500 shadow-red-500/20' : 
-                                'bg-primary shadow-primary/20 hover:bg-primary/90'
+                                'bg-[#F97316] shadow-[0_18px_40px_-26px_rgba(249,115,22,0.45)] hover:bg-[#EA580C]'
                             }`}
                         >
                             {saving ? <Loader2 className="animate-spin" size={16} /> : 
@@ -341,7 +355,7 @@ export default function LandingPageEditor() {
                                  'บันทึกหน้าแคมเปญ'}
                             </span>
                         </button>
-                        <span className={`text-xs font-medium transition-colors ${saveStatus.type === 'error' ? 'text-red-500' : saveStatus.type === 'success' ? 'text-emerald-500' : 'text-foreground/50'}`}>
+                        <span className={`text-xs font-medium transition-colors ${saveStatus.type === 'error' ? 'text-red-500' : saveStatus.type === 'success' ? 'text-emerald-500' : 'text-[#64748B]'}`}>
                             {saveStatus.message || (autoSaving ? 'กำลังบันทึกอัตโนมัติ...' : 'ระบบจะบันทึกอัตโนมัติระหว่างแก้ไข')}
                         </span>
                     </div>

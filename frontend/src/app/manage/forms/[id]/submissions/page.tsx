@@ -11,7 +11,6 @@ import {
   Filter,
 } from "lucide-react";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 interface FormSubmission {
   id: number;
@@ -143,7 +142,6 @@ export default function FormSubmissionsPage() {
                 ดาวน์โหลด CSV
               </button>
             )}
-            <ThemeToggle />
           </div>
         </div>
       </header>

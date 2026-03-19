@@ -1,20 +1,7 @@
 @import "tailwindcss";
 
 :root {
-  /* Ultra-Premium Midnight theme to match NEX logo */
-  --background: #02040a; 
-  --foreground: #ffffff;
-  --primary: #00d2ff; /* Nex Cyan */
-  --secondary: #3a7bd5; /* Nex Blue */
-  --accent: #fdbb2d; /* Nex Gold */
-  --glass: rgba(2, 4, 10, 0.75);
-  --glass-border: rgba(0, 210, 255, 0.15);
-  --glow: rgba(0, 210, 255, 0.2);
-  --card-bg: rgba(6, 12, 32, 0.85);
-}
-
-:root[data-theme='light'] {
-  /* Light variant that still follows NEX brand accents */
+  /* Default: Light theme — safe for all pages */
   --background: #f5f7ff;
   --foreground: #050b1e;
   --primary: #00bcd4;
@@ -24,6 +11,32 @@
   --glass-border: rgba(0, 20, 80, 0.08);
   --glow: rgba(0, 188, 212, 0.18);
   --card-bg: rgba(255, 255, 255, 0.96);
+}
+
+:root[data-theme='light'] {
+  /* Explicit light — same as :root default */
+  --background: #f5f7ff;
+  --foreground: #050b1e;
+  --primary: #00bcd4;
+  --secondary: #8a2be2;
+  --accent: #00bcd4;
+  --glass: rgba(255, 255, 255, 0.92);
+  --glass-border: rgba(0, 20, 80, 0.08);
+  --glow: rgba(0, 188, 212, 0.18);
+  --card-bg: rgba(255, 255, 255, 0.96);
+}
+
+:root[data-theme='dark'] {
+  /* Ultra-Premium Midnight theme to match NEX logo */
+  --background: #02040a;
+  --foreground: #ffffff;
+  --primary: #00d2ff; /* Nex Cyan */
+  --secondary: #3a7bd5; /* Nex Blue */
+  --accent: #fdbb2d; /* Nex Gold */
+  --glass: rgba(2, 4, 10, 0.75);
+  --glass-border: rgba(0, 210, 255, 0.15);
+  --glow: rgba(0, 210, 255, 0.2);
+  --card-bg: rgba(6, 12, 32, 0.85);
 }
 
 :root[data-theme='pastel'] {
@@ -75,16 +88,38 @@
   --font-display: var(--font-display);
 }
 
+html {
+  background:
+    radial-gradient(circle at top, color-mix(in srgb, var(--primary) 12%, transparent), transparent 38%),
+    linear-gradient(180deg, color-mix(in srgb, var(--background) 96%, white) 0%, var(--background) 100%);
+  scroll-behavior: smooth;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*::selection {
+  background: color-mix(in srgb, var(--primary) 24%, white);
+  color: var(--foreground);
+}
+
+*:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--primary) 55%, white);
+  outline-offset: 3px;
+}
+
 body {
-  background-color: var(--background);
+  background:
+    radial-gradient(circle at top left, color-mix(in srgb, var(--primary) 10%, transparent), transparent 28%),
+    radial-gradient(circle at top right, color-mix(in srgb, var(--accent) 10%, transparent), transparent 24%),
+    var(--background);
   color: var(--foreground);
   font-family: var(--font-sans), "Noto Sans Thai", "Segoe UI", system-ui, -apple-system, sans-serif;
   overflow-x: hidden;
   min-height: 100vh;
-}
-
-html {
-  background-color: var(--background);
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
 }
 
 h1,
@@ -94,18 +129,65 @@ h4,
 h5,
 h6 {
   font-family: var(--font-display), var(--font-sans), "Noto Sans Thai", sans-serif;
+  letter-spacing: -0.03em;
+  line-height: 0.98;
+}
+
+a,
+button,
+input,
+textarea,
+select {
+  transition:
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease,
+    transform 180ms ease,
+    opacity 180ms ease;
+}
+
+button:not(:disabled),
+a {
+  cursor: pointer;
+}
+
+button:disabled,
+input:disabled,
+textarea:disabled,
+select:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+input,
+textarea,
+select {
+  accent-color: var(--primary);
+}
+
+img {
+  user-select: none;
 }
 
 .glass-card {
-  background: var(--glass);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--glass) 86%, white) 0%, var(--glass) 100%);
   backdrop-filter: blur(20px) saturate(180%);
   border: 1px solid var(--glass-border);
   border-radius: 32px;
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  box-shadow:
+    0 24px 80px -40px rgba(15, 23, 42, 0.38),
+    inset 0 1px 0 rgba(255, 255, 255, 0.35);
 }
 
 .gradient-text {
-  background: linear-gradient(135deg, #fff 0%, var(--primary) 50%, var(--secondary) 100%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, white 70%, var(--primary)) 0%,
+    var(--primary) 42%,
+    color-mix(in srgb, var(--secondary) 78%, var(--accent)) 100%
+  );
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -128,7 +210,8 @@ h6 {
 
 .glow-hover:hover {
   box-shadow: 0 0 30px var(--glow);
-  border-color: rgba(167, 139, 250, 0.3);
+  border-color: color-mix(in srgb, var(--primary) 35%, white);
+  transform: translateY(-2px);
 }
 
 @keyframes float {
@@ -157,4 +240,43 @@ h6 {
 .animate-gradient-x {
   background-size: 200% 200%;
   animation: gradient-x 15s ease infinite;
+}
+
+.surface-panel {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--card-bg) 94%, white) 0%, var(--card-bg) 100%);
+  border: 1px solid color-mix(in srgb, var(--glass-border) 78%, white);
+  box-shadow: 0 28px 80px -48px rgba(15, 23, 42, 0.28);
+}
+
+.section-shell {
+  position: relative;
+  isolation: isolate;
+}
+
+.section-shell::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, white 80%, var(--primary)) 0%, transparent 46%),
+    linear-gradient(315deg, color-mix(in srgb, white 88%, var(--accent)) 0%, transparent 44%);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: -1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

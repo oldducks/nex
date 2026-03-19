@@ -7,11 +7,10 @@ import {
   Plus, ArrowLeft, Trash2, GripVertical, Image as ImageIcon,
   Package, Settings, Globe, ShoppingCart, Facebook,
   Palette, Type, RefreshCw, Eye, Save, QrCode as QrIcon,
-  ExternalLink, Download, FileJson, Layers, Sparkles, Loader2, X, Pencil, User, LayoutDashboard
+  ExternalLink, Download, FileJson, Layers, Sparkles, Loader2, X, Pencil, User, LayoutDashboard, Share2, Twitter, MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
-import { ThemeToggle } from '@/components/ThemeToggle';
 import { VideoUpload } from '@/components/VideoUpload';
 import ProductImageUpload from '@/components/ProductImageUpload';
 import { Video } from 'lucide-react';
@@ -57,6 +56,8 @@ export default function CatalogDetail() {
     const [showProductModal, setShowProductModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
     const [saving, setSaving] = useState(false);
+    const [showQrModal, setShowQrModal] = useState(false);
+    const [showShareModal, setShowShareModal] = useState(false);
     
     const [newProduct, setNewProduct] = useState({
         name: '', description: '', price: '', images: [] as string[],
@@ -339,7 +340,6 @@ export default function CatalogDetail() {
                         </div>
                     </div>
                     <div className="flex items-center gap-2 md:gap-4">
-                        <ThemeToggle />
                         <div className="h-6 w-[1px] bg-foreground/10 mx-1 hidden md:block"></div>
                         <Link 
                             href={`/catalog/${catalog?.custom_slug || catalog?.id}`} 
@@ -373,22 +373,6 @@ export default function CatalogDetail() {
                         </div>
                     </div>
                     
-                    <div className="bg-card-bg border border-glass-border p-8 rounded-[32px] flex items-center gap-6 glass-card shadow-2xl">
-                        <div className="w-16 h-16 bg-indigo-500/10 rounded-2xl flex items-center justify-center text-indigo-500 shadow-inner">
-                            <Globe size={28} />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="text-sm font-black truncate text-foreground/60">/{catalog?.custom_slug || catalog?.id}</div>
-                            <div className="text-[10px] text-foreground/30 font-black uppercase tracking-[0.2em]">Digital Link Mapping</div>
-                        </div>
-                        <button 
-                            onClick={() => {navigator.clipboard.writeText(publicUrl); alert('ลิ้งก์ถูกคัดลอกลงคลิปบอร์ดแล้ว!');}}
-                            className="w-10 h-10 hover:bg-foreground/5 rounded-xl text-foreground/20 hover:text-foreground transition-all flex items-center justify-center bg-foreground/[0.02]"
-                        >
-                            <RefreshCw size={14} />
-                        </button>
-                    </div>
-
                     <div className="bg-card-bg border border-glass-border p-8 rounded-[32px] flex items-center justify-between glass-card shadow-2xl group">
                          <div className="flex items-center gap-6">
                             <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 shadow-inner">
@@ -398,10 +382,26 @@ export default function CatalogDetail() {
                                 <div className="text-sm font-black tracking-tight">QR Access Point</div>
                                 <div className="text-[10px] text-foreground/30 font-black uppercase tracking-[0.2em]">Instant Share</div>
                             </div>
-                         </div>
-                         <div className="w-14 h-14 bg-white rounded-xl p-1.5 shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                            <QrCodeImage url={publicUrl} size={50} />
-                         </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                            <button 
+                                onClick={() => setShowQrModal(true)}
+                                className="w-10 h-10 hover:bg-foreground/5 rounded-xl text-foreground/20 hover:text-foreground transition-all flex items-center justify-center bg-foreground/[0.02]"
+                                title="QR Code"
+                            >
+                                <QrIcon size={16} />
+                            </button>
+                            <button 
+                                onClick={() => setShowShareModal(true)}
+                                className="w-10 h-10 hover:bg-foreground/5 rounded-xl text-foreground/20 hover:text-foreground transition-all flex items-center justify-center bg-foreground/[0.02]"
+                                title="Share"
+                            >
+                                <Share2 size={16} />
+                            </button>
+                            <div className="w-14 h-14 bg-white rounded-xl p-1.5 shadow-2xl group-hover:scale-110 transition-transform duration-500">
+                                <QrCodeImage url={publicUrl} size={50} />
+                            </div>
+                        </div>
                     </div>
                 </div>
 
@@ -874,6 +874,24 @@ export default function CatalogDetail() {
                 NEX Solution © 2024
             </footer>
 
+            {/* QR Code Modal */}
+            {showQrModal && (
+                <QrCodeModal 
+                    url={publicUrl}
+                    title={catalog?.title || 'Catalog'}
+                    onClose={() => setShowQrModal(false)}
+                />
+            )}
+
+            {/* Share Modal */}
+            {showShareModal && (
+                <ShareModal 
+                    url={publicUrl}
+                    title={catalog?.title || 'Catalog'}
+                    onClose={() => setShowShareModal(false)}
+                />
+            )}
+
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar {
                     width: 6px;
@@ -891,4 +909,117 @@ export default function CatalogDetail() {
             `}</style>
         </div>
     );
+}
+
+function QrCodeModal({ url, title, onClose }: { url: string, title: string, onClose: () => void }) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      
+      <div className="bg-[#101010] border border-white/10 rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-10 duration-500">
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-black/50 hover:bg-black rounded-full flex items-center justify-center text-white transition-colors border border-white/10">
+          <ArrowLeft size={24} />
+        </button>
+
+        <div className="p-8 text-center">
+          <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <QrIcon size={40} className="text-primary" />
+          </div>
+          
+          <h3 className="text-2xl font-black mb-4">QR Code</h3>
+          <p className="text-gray-400 mb-8">สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ</p>
+          
+          <div className="bg-white p-6 rounded-2xl mb-6">
+            <QrCodeImage 
+              url={url}
+              size={256}
+              className="w-full h-auto"
+            />
+          </div>
+          
+          <p className="text-sm text-gray-500 mb-2">{title}</p>
+          <p className="text-xs text-gray-600">{url}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ShareModal({ url, title, onClose }: { url: string, title: string, onClose: () => void }) {
+  const shareText = `ดูแคตตาล็อก ${title} สินค้าน่าสนใจมากมาย!`;
+
+  const shareLinks = [
+    {
+      name: 'Facebook',
+      icon: Facebook,
+      color: 'bg-blue-600',
+      href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`
+    },
+    {
+      name: 'Twitter',
+      icon: Twitter,
+      color: 'bg-sky-500',
+      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText)}`
+    },
+    {
+      name: 'LINE',
+      icon: MessageCircle,
+      color: 'bg-green-500',
+      href: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText)}`
+    }
+  ];
+
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      alert('คัดลอกลิงก์แล้ว!');
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      
+      <div className="bg-[#101010] border border-white/10 rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-10 duration-500">
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-black/50 hover:bg-black rounded-full flex items-center justify-center text-white transition-colors border border-white/10">
+          <ArrowLeft size={24} />
+        </button>
+
+        <div className="p-8">
+          <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
+            <Share2 size={40} className="text-primary" />
+          </div>
+          
+          <h3 className="text-2xl font-black mb-4">แชร์แคตตาล็อก</h3>
+          <p className="text-gray-400 mb-8">เชิญเพื่อนๆ มาชมสินค้าในแคตตาล็อกของคุณ</p>
+          
+          <div className="space-y-3 mb-6">
+            {shareLinks.map((link) => (
+              <a
+                key={link.name}
+                href={link.href}
+                target="_blank"
+                className="w-full flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all group"
+              >
+                <div className={`w-12 h-12 ${link.color} rounded-xl flex items-center justify-center text-white`}>
+                  <link.icon size={20} />
+                </div>
+                <span className="font-medium group-hover:text-primary transition-colors">{link.name}</span>
+              </a>
+            ))}
+          </div>
+          
+          <button
+            onClick={copyToClipboard}
+            className="w-full bg-primary hover:bg-primary/90 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3"
+          >
+            <ExternalLink size={20} />
+            คัดลอกลิงก์
+          </button>
+        </div>
+      </div>
+    </div>
+  );
 }

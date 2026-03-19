@@ -20,7 +20,6 @@ import {
   Check,
 } from "lucide-react";
 import Link from "next/link";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 type FieldType = "text" | "email" | "phone" | "dropdown" | "textarea" | "checkbox";
 
@@ -294,7 +293,6 @@ export default function FormBuilderPage() {
               {saving ? <Loader2 className="animate-spin" size={16} /> : null}
               บันทึกโครงฟอร์ม
             </button>
-            <ThemeToggle />
           </div>
         </div>
       </header>

@@ -18,7 +18,6 @@ import {
   Undo2,
   Redo2,
 } from "lucide-react";
-import { ThemeToggle } from "@/components/ThemeToggle";
 
 type TemplateCategory = "promotion" | "product" | "event" | "social";
 type ExportFormat = "png" | "jpg";
@@ -709,7 +708,6 @@ export default function CreateLitePage() {
               <p className="text-xs text-foreground/50">Advanced Editor + Export</p>
             </div>
           </div>
-          <ThemeToggle />
         </div>
       </header>
 

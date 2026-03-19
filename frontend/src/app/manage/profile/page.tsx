@@ -1,24 +1,29 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import Link from 'next/link';
 import Image from 'next/image';
 import {
-    User, Save, Plus, Trash2, GripVertical, ExternalLink, ArrowLeft,
+    User, Save, Plus, Trash2, ArrowLeft,
     Facebook, Instagram, Twitter, Linkedin, Youtube, Globe, Mail, Phone,
     MessageCircle, Github, Upload, X, Building2, Briefcase, Heart,
-    Image as ImageIcon, Loader2, ChevronUp, ChevronDown, QrCode, CreditCard,
-    Palette, Type, LayoutTemplate, Lock, Eye, EyeOff, Settings, Check
+    Image as ImageIcon, Loader2, ChevronUp, ChevronDown, QrCode,
+    Palette, Eye, Check, Copy
 } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
 import { ImageCropper } from '../../../components/ImageCropper';
 import { VideoUpload } from '@/components/VideoUpload';
 import { Video } from 'lucide-react';
 
+interface SocialLink {
+    platform: string;
+    url: string;
+}
+
 // Social icons mapping
-const SOCIAL_ICONS: Record<string, any> = {
+const SOCIAL_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
     facebook: Facebook, instagram: Instagram, twitter: Twitter,
     linkedin: Linkedin, youtube: Youtube, website: Globe,
     email: Mail, phone: Phone, line: MessageCircle, github: Github,
@@ -87,7 +92,7 @@ interface Profile {
     banners: BannerImage[];
     // Links
     websites: WebsiteLink[];
-    social_links_json: any[];
+    social_links_json: SocialLink[];
     // About
     about_me: string;
     interests: string[];
@@ -243,8 +248,11 @@ const UI_TEXT = {
     }
 };
 
+
+
 export default function ProfileEditorV2() {
     const router = useRouter();
+    const pageRef = useRef<HTMLDivElement>(null);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [loadError, setLoadError] = useState('');
@@ -256,6 +264,7 @@ export default function ProfileEditorV2() {
     const fileInputRef = useRef<HTMLInputElement>(null);
     const [uploadTarget, setUploadTarget] = useState<string>('profile');
     const [lang, setLang] = useState<'th' | 'en'>('th');
+
     const t = UI_TEXT[lang];
     const hasPremiumVideo = profile.subscription_tier === 'premium' || profile.feature_config?.video === true;
     const initialProfileSnapshotRef = useRef('');
@@ -271,13 +280,7 @@ export default function ProfileEditorV2() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
 
-    useEffect(() => {
-        if (!token) { router.push('/login'); return; }
-        setUid(Cookies.get('uid') || '');
-        fetchProfile();
-    }, [token]);
-
-    const fetchProfile = async () => {
+    const fetchProfile = useCallback(async () => {
         try {
             setLoadError('');
             const res = await fetch(`${API_URL}/profile/me`, {
@@ -325,7 +328,26 @@ export default function ProfileEditorV2() {
             setLoadError('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้ กรุณาลองใหม่');
         }
         finally { setLoading(false); }
-    };
+    }, [API_URL, token]);
+
+    useEffect(() => {
+        if (!token) { router.push('/login'); return; }
+        setUid(Cookies.get('uid') || '');
+        fetchProfile();
+    }, [fetchProfile, router, token]);
+
+
+
+    useEffect(() => {
+        if (loading || typeof document === 'undefined') return;
+        const active = document.activeElement as HTMLElement | null;
+        if (active && active !== document.body) {
+            active.blur();
+        }
+        pageRef.current?.focus({ preventScroll: true });
+    }, [loading]);
+
+
 
     useEffect(() => {
         if (!initialProfileSnapshotRef.current) return;
@@ -343,17 +365,22 @@ export default function ProfileEditorV2() {
         e.preventDefault();
         setSaving(true);
         try {
-            const { url_prefix, subscription_tier, feature_config, ...savePayload } = profile;
-            savePayload.layout_config = {
-                ...(savePayload.layout_config || {}),
-                profile_position: 'center',
+            const savePayload = {
+                ...profile,
+                layout_config: {
+                    ...(profile.layout_config || {}),
+                    profile_position: 'center' as const,
+                },
             };
+            delete savePayload.url_prefix;
+            delete savePayload.subscription_tier;
+            delete savePayload.feature_config;
             savePayload.backgrounds = Array.isArray(savePayload.backgrounds) && savePayload.backgrounds.length > 0
                 ? [savePayload.backgrounds[0]]
                 : [];
             const normalizedBanners = Array.isArray(savePayload.banners) ? savePayload.banners : [];
-            const topBanner = normalizedBanners.find((b: any) => (b.display_position || 'top') === 'top');
-            const bottomBanner = normalizedBanners.find((b: any) => b.display_position === 'bottom');
+            const topBanner = normalizedBanners.find((b: BannerImage) => (b.display_position || 'top') === 'top');
+            const bottomBanner = normalizedBanners.find((b: BannerImage) => b.display_position === 'bottom');
             savePayload.banners = [topBanner, bottomBanner].filter((b): b is BannerImage => Boolean(b));
             const res = await fetch(`${API_URL}/profile/me`, {
                 method: 'PUT',
@@ -391,11 +418,15 @@ export default function ProfileEditorV2() {
 
                 const status = await statusRes.json();
                 if (status.state === 'completed') {
-                    const url = status?.result?.url;
+                    let url = status?.result?.url;
                     if (!url) throw new Error('Upload finished but URL missing');
                     // Fix: Handle both absolute and relative URLs from API
                     if (url.startsWith('http://') || url.startsWith('https://')) {
                         return url;
+                    }
+                    // Fix: Remove leading /api if present to avoid duplication with API_URL
+                    if (url.startsWith('/api/')) {
+                        url = url.substring(4); // Remove '/api' prefix
                     }
                     return `${API_URL}${url}`;
                 }
@@ -460,9 +491,9 @@ export default function ProfileEditorV2() {
                     return { ...p, banners: newBanners };
                 });
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Upload error:', error);
-            alert(error?.message || 'Error uploading image. Please try again.');
+            alert(error instanceof Error ? error.message : 'Error uploading image. Please try again.');
         } finally {
             setUploading(false);
             setUploadingSection(null);
@@ -547,7 +578,7 @@ export default function ProfileEditorV2() {
     };
 
     // Profile position
-    const updateTheme = (key: string, value: any) => {
+    const updateTheme = <K extends keyof Profile['layout_config']>(key: K, value: Profile['layout_config'][K]) => {
         setProfile(p => ({
             ...p,
             layout_config: { ...p.layout_config, [key]: value }
@@ -560,20 +591,33 @@ export default function ProfileEditorV2() {
         </div>
     );
 
+    const publicProfileUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/${profile.url_prefix || 'p'}/${uid}`;
+    const primaryName = profile.names_i18n.find((item) => item.value.trim())?.value || 'ยังไม่ได้ตั้งชื่อ';
+    const primaryPosition = profile.positions_i18n.find((item) => item.value.trim())?.value || (lang === 'th' ? 'ยังไม่ได้ระบุตำแหน่ง' : 'Position pending');
+    const socialCount = profile.social_links_json.filter((link) => link?.url?.trim()).length;
+
     return (
-        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
-            <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.3),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
+        <div ref={pageRef} tabIndex={-1} className="relative min-h-screen bg-[#EEF0FF] text-[#0F172A] focus:outline-none">
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.3),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
+                <div className="absolute left-[-7rem] top-10 h-80 w-80 rounded-full bg-sky-300/16 blur-[120px]" />
+                <div className="absolute right-[-6rem] top-24 h-72 w-72 rounded-full bg-[#050579]/8 blur-[120px]" />
+                <div className="absolute inset-x-0 top-0 mx-auto h-[24rem] max-w-6xl rounded-full bg-white/28 blur-[120px]" />
+            </div>
             {/* Hidden file input */}
             <input type="file" ref={fileInputRef} onChange={handleFileSelect} accept="image/*" className="hidden" />
 
             {/* Navbar */}
-            <header className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-xl">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+            <header className="sticky top-0 z-50 px-4 pt-4 sm:px-6">
+                <div className="max-w-7xl mx-auto flex h-20 items-center justify-between rounded-[28px] border border-[#D9E1F2] bg-white/84 px-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.28)] backdrop-blur-xl">
                     <div className="flex items-center gap-4">
                         <button onClick={() => router.push('/manage/control-center')} className="group flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-white">
                             <ArrowLeft size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
                         </button>
-                        <h1 className="hidden text-xl font-black tracking-tight text-[#050579] sm:block">{t.header}</h1>
+                        <div>
+                            <div className="hidden text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B] sm:block">NEX Solution</div>
+                            <h1 className="hidden text-xl font-black tracking-tight text-[#050579] sm:block">{t.header}</h1>
+                        </div>
                     </div>
                     
                     <div className="flex gap-2 md:gap-4 items-center">
@@ -603,8 +647,76 @@ export default function ProfileEditorV2() {
                 </div>
             </header>
 
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
-                <div className="sticky top-20 z-40 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D9E1F2] bg-white/88 px-4 py-3 backdrop-blur">
+            <main className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
+                <section className="mb-6 rounded-[32px] border border-[#D9E1F2] bg-white/92 p-5 shadow-[0_28px_80px_-48px_rgba(15,23,42,0.22)] backdrop-blur-sm md:p-6">
+                    <div className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+                        <div className="space-y-4">
+                            <div className="flex flex-wrap items-center gap-3">
+                                <span className="rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#050579]">
+                                    {profile.subscription_tier || 'free'} Plan
+                                </span>
+                                <span className={`rounded-full border px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.16em] ${isDirty ? 'border-[#F6D5BF] bg-[#FFF7F1] text-[#C2410C]' : 'border-[#DCEFE0] bg-[#F3FCF5] text-[#166534]'}`}>
+                                    {isDirty ? (lang === 'th' ? 'มีการเปลี่ยนแปลง' : 'Unsaved changes') : (lang === 'th' ? 'พร้อมเผยแพร่' : 'Ready to publish')}
+                                </span>
+                            </div>
+                            <div>
+                                <div className="mb-2 text-sm font-medium text-[#64748B]">{primaryPosition}</div>
+                                <h2 className="text-3xl font-black tracking-tight text-[#050579] md:text-4xl">{primaryName}</h2>
+                                <p className="mt-3 max-w-2xl text-sm leading-7 text-[#475569] md:text-base">
+                                    {lang === 'th'
+                                        ? 'จัดการข้อมูลหลัก รูปภาพ ลิงก์ และธีมของนามบัตรดิจิทัลจากหน้าจอเดียว'
+                                        : 'Manage core profile details, media, links, and appearance from one editor.'}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                            <div className="flex min-h-[88px] items-center gap-3 rounded-[24px] border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-4">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#050579]">
+                                    <ImageIcon size={20} />
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">{lang === 'th' ? 'รูปภาพ' : 'Media'}</div>
+                                    <div className="text-xl font-black leading-tight text-[#050579]">{profile.profile_pic_url ? '1' : '0'}</div>
+                                    <div className="mt-1 text-xs text-[#64748B]">{lang === 'th' ? 'รูปโปรไฟล์พร้อมใช้' : 'Profile image ready'}</div>
+                                </div>
+                            </div>
+                            <div className="flex min-h-[88px] items-center gap-3 rounded-[24px] border border-[#CFE9D6] bg-[#F3FCF5] px-4 py-4">
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEFBEF] text-[#16A34A]">
+                                    <Globe size={20} />
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">{lang === 'th' ? 'ลิงก์โซเชียล' : 'Social links'}</div>
+                                    <div className="text-xl font-black leading-tight text-[#166534]">{socialCount}</div>
+                                    <div className="mt-1 text-xs text-[#64748B]">{lang === 'th' ? 'ช่องทางที่ใส่แล้ว' : 'Connected channels'}</div>
+                                </div>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => navigator.clipboard.writeText(publicProfileUrl)}
+                                className="flex min-h-[88px] items-center gap-3 rounded-[24px] border border-[#F6D5BF] bg-[#FFF7F1] px-4 py-4 text-left transition-colors hover:bg-white"
+                            >
+                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-[#FFF1E8] text-[#F97316]">
+                                    <Copy size={20} />
+                                </div>
+                                <div>
+                                    <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">{lang === 'th' ? 'ลิงก์สาธารณะ' : 'Public URL'}</div>
+                                    <div className="text-sm font-black leading-tight text-[#C2410C]">{lang === 'th' ? 'คัดลอกลิงก์' : 'Copy link'}</div>
+                                    <div className="mt-1 text-xs text-[#78716C]">{lang === 'th' ? 'พร้อมแชร์ทันที' : 'Ready to share'}</div>
+                                </div>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="mt-5 rounded-[22px] border border-[#E7ECF7] bg-[#F6F8FF] p-4">
+                        <div className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">
+                            {lang === 'th' ? 'ลิงก์โปรไฟล์สาธารณะ' : 'Public profile URL'}
+                        </div>
+                        <div className="truncate font-mono text-sm text-[#475569]">{publicProfileUrl}</div>
+                    </div>
+                </section>
+
+                <div className="sticky top-24 z-40 mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#D9E1F2] bg-white/88 px-4 py-3 backdrop-blur">
                     <div className="flex items-center gap-2 text-xs font-bold text-[#475569]">
                         <span className={`inline-block h-2.5 w-2.5 rounded-full ${loadError ? 'bg-red-500' : isDirty ? 'bg-amber-500' : 'bg-emerald-500'}`} />
                         {loadError
@@ -626,23 +738,8 @@ export default function ProfileEditorV2() {
                         ))}
                     </div>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] gap-6 lg:gap-8">
-                    <aside className="sticky top-40 hidden h-fit rounded-2xl border border-[#D9E1F2] bg-white/88 p-3 backdrop-blur lg:block">
-                        <div className="px-2 pb-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">Quick Nav</div>
-                        <div className="space-y-1">
-                            {quickSections.map((s) => (
-                                <button
-                                    key={s.id}
-                                    type="button"
-                                    onClick={() => scrollToSection(s.id)}
-                                    className="w-full rounded-lg px-3 py-2 text-left text-sm text-[#475569] transition hover:bg-[#F6F8FF] hover:text-[#050579]"
-                                >
-                                    {s.label}
-                                </button>
-                            ))}
-                        </div>
-                    </aside>
-                    <div className="space-y-8 sm:space-y-10">
+                <div className="mx-auto max-w-5xl rounded-[32px] border border-[#D9E1F2] bg-white/92 p-4 shadow-[0_28px_80px_-48px_rgba(15,23,42,0.22)] backdrop-blur-sm sm:p-6">
+                <div className="space-y-8 sm:space-y-10">
                 {/* Names */}
                 <Section sectionId="sec-basic" title={t.name} icon={<User size={22} className="text-[#050579]" />} onAdd={() => addI18n('names_i18n')} canAdd={profile.names_i18n.length < LANGUAGES.length}>
                     <div className="space-y-4">
@@ -729,7 +826,9 @@ export default function ProfileEditorV2() {
                     <div className="flex items-center gap-8">
                         <div className="group flex h-28 w-28 items-center justify-center overflow-hidden rounded-[24px] border border-[#D9E1F2] bg-[#F8FAFF] p-4 transition-colors hover:border-[#F6D5BF]">
                             {profile.logo?.url ? (
-                                <img src={profile.logo.url} alt="Logo" className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500" />
+                                <div className="relative h-full w-full">
+                                    <Image src={profile.logo.url} alt="Logo" fill className="object-contain group-hover:scale-110 transition-transform duration-500" unoptimized />
+                                </div>
                             ) : (
                                 <Building2 size={40} className="text-[#CBD5E1]" />
                             )}
@@ -749,7 +848,7 @@ export default function ProfileEditorV2() {
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         {profile.backgrounds?.[0] ? (
                             <div className="group relative aspect-[4/3] overflow-hidden rounded-2xl border border-[#D9E1F2]">
-                                <img src={profile.backgrounds[0].url} alt="Background" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                <Image src={profile.backgrounds[0].url} alt="Background" fill className="object-cover group-hover:scale-110 transition-transform duration-700" unoptimized />
                                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                     <button onClick={() => setProfile(p => ({ ...p, backgrounds: [] }))} className="bg-red-500 text-white p-2 rounded-xl hover:scale-110 transition-transform">
                                         <Trash2 size={18} />
@@ -780,7 +879,7 @@ export default function ProfileEditorV2() {
                             <div key={i} className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
                                 {/* Banner Preview */}
                                 <div className="relative h-32 overflow-hidden">
-                                    <img src={bn.url} alt={`Banner ${i + 1}`} className="w-full h-full object-cover" />
+                                    <Image src={bn.url} alt={`Banner ${i + 1}`} fill className="object-cover" unoptimized />
                                     <div className="absolute top-2 left-2 bg-black/60 text-white px-2 py-1 rounded-lg text-xs font-bold">
                                         #{i + 1}
                                     </div>
@@ -1059,13 +1158,14 @@ export default function ProfileEditorV2() {
                 </Section>
 
                 {/* Account Settings Moved to /manage/account */}
-                    </div>
+                </div>
                 </div>
             </main>
             
             <footer className="py-20 text-center text-[10px] font-black uppercase tracking-[0.3em] text-[#94A3B8]">
                 NEX Solution © 2024 • THE PREMIUM DIGITAL EXPERIENCE
             </footer>
+
         </div>
     );
 }
@@ -1126,115 +1226,5 @@ function ContactInput({ item, placeholder, onLabelChange, onValueChange, onRemov
             <input type="text" placeholder={placeholder} value={item.value} onChange={e => onValueChange(e.target.value)} className="flex-1 rounded-xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-base font-medium focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 sm:px-5 sm:py-3.5" />
             {onRemove && <button onClick={onRemove} className="hidden p-2 text-[#CBD5E1] transition-all group-hover:scale-110 hover:text-red-500 sm:block"><Trash2 size={20} /></button>}
         </div>
-    );
-}
-
-// Password change form component
-function PasswordChangeForm({ token }: { token: string | undefined }) {
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [showPasswords, setShowPasswords] = useState(false);
-    const [loading, setLoading] = useState(false);
-    const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-        setMessage(null);
-
-        // Validation
-        if (newPassword.length < 6) {
-            setMessage({ type: 'error', text: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร' });
-            return;
-        }
-        if (newPassword !== confirmPassword) {
-            setMessage({ type: 'error', text: 'รหัสผ่านใหม่ไม่ตรงกัน' });
-            return;
-        }
-
-        setLoading(true);
-        try {
-            const res = await fetch(`${API_URL}/auth/change-password`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `Bearer ${token}`
-                },
-                body: JSON.stringify({ currentPassword, newPassword })
-            });
-
-            if (res.ok) {
-                setMessage({ type: 'success', text: 'เปลี่ยนรหัสผ่านสำเร็จแล้ว' });
-                setCurrentPassword('');
-                setNewPassword('');
-                setConfirmPassword('');
-            } else {
-                const error = await res.json();
-                setMessage({ type: 'error', text: error.message || 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
-            }
-        } catch (error) {
-            setMessage({ type: 'error', text: 'เกิดข้อผิดพลาดในการเชื่อมต่อ' });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-6 max-w-md">
-            {message && (
-                <div className={`p-4 rounded-xl text-sm font-bold flex items-center gap-3 ${message.type === 'success' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-red-500/10 text-red-600'}`}>
-                    <div className={`w-2 h-2 rounded-full ${message.type === 'success' ? 'bg-emerald-500' : 'bg-red-500'}`} />
-                    {message.text}
-                </div>
-            )}
-            
-            <div className="space-y-2">
-                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">รหัสผ่านปัจจุบัน</label>
-                <div className="relative">
-                    <input
-                        type={showPasswords ? "text" : "password"}
-                        value={currentPassword}
-                        onChange={e => setCurrentPassword(e.target.value)}
-                        required
-                        className="w-full bg-background border border-foreground/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                    />
-                    <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/20 hover:text-foreground">
-                        {showPasswords ? <EyeOff size={18} /> : <Eye size={18} />}
-                    </button>
-                </div>
-            </div>
-
-            <div className="space-y-2">
-                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">รหัสผ่านใหม่</label>
-                <input
-                    type={showPasswords ? "text" : "password"}
-                    value={newPassword}
-                    onChange={e => setNewPassword(e.target.value)}
-                    required
-                    className="w-full bg-background border border-foreground/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-            </div>
-
-            <div className="space-y-2">
-                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">ยืนยันรหัสผ่านใหม่</label>
-                <input
-                    type={showPasswords ? "text" : "password"}
-                    value={confirmPassword}
-                    onChange={e => setConfirmPassword(e.target.value)}
-                    required
-                    className="w-full bg-background border border-foreground/10 rounded-2xl px-5 py-4 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
-                />
-            </div>
-
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 bg-foreground text-background rounded-2xl font-black uppercase tracking-widest text-xs hover:opacity-90 active:scale-[0.98] transition-all disabled:opacity-50"
-            >
-                {loading ? <Loader2 className="animate-spin mx-auto" size={18} /> : 'บันทึกการเปลี่ยนรหัสผ่าน'}
-            </button>
-        </form>
     );
 }

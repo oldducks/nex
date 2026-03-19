@@ -1,6 +1,6 @@
-import { getProfile, getCatalogsByUserId } from '../../../lib/api';
+import { getProfile } from '../../../lib/api';
 import { notFound } from 'next/navigation';
-import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2, ExternalLink } from 'lucide-react';
+import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2, ExternalLink, Briefcase, Sparkles } from 'lucide-react';
 
 // Helper function to ensure URL has protocol
 function ensureHttps(url: string): string {
@@ -13,13 +13,11 @@ function ensureHttps(url: string): string {
 }
 import { VcfDownloadButton } from '../../../components/VcfDownload';
 import { QrCodeImage } from '../../../components/QrCode';
-import { AnalyticsTracker } from '../../../components/AnalyticsTracker';
 import { NamecardDownloadButton } from '../../../components/NamecardDownload';
 import { ProfilePageClient } from '../../../components/ProfilePageClient';
 import { VideoEmbed } from '../../../components/VideoEmbed';
 import { Gallery } from '../../../components/Gallery';
 import { SocialLinksDisplay } from '../../../components/SocialLinksDisplay';
-import { CatalogsDisplay } from '../../../components/CatalogsDisplay';
 
 import { SaveToHomeButton } from '../../../components/SaveToHomeButton';
 import { Metadata } from 'next';
@@ -90,9 +88,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     if (!data) {
         notFound();
     }
-
-    // Fetch user's catalogs
-    const catalogs = await getCatalogsByUserId(data.user_id);
 
     // Validate URL Prefix for security
     // Only enforced if user has a prefix set (legacy support or strict?)
@@ -182,10 +177,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
     const profileImageUrl = getImageUrl(profile_pic_url || '');
     const profileThumbUrl = getThumbUrl(profile_pic_url || '');
-    const fallbackIconUrl = `${SITE_URL}/nex_logo_nobg.png`;
-    const iconUrl = profileThumbUrl || profileImageUrl || fallbackIconUrl;
     const logoUrl = logo?.url ? getImageUrl(logo.url) : '';
-    const bannerUrl = banners?.[0]?.url ? getImageUrl(banners[0].url) : '';
     const profileUrl = `${SITE_URL}/${data.url_prefix}/${uid}`;
 
     // Theme Configuration (locked to profile owner's layout_config)
@@ -194,14 +186,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     const primary = theme.primary_color || '#6366F1';
     const font = theme.font_family || 'Inter';
 
+    const backgroundBase = lightMode ? '#EEF0FF' : '#06111f';
+    const surfaceColor = lightMode ? 'rgba(255,255,255,0.84)' : 'rgba(8,22,39,0.82)';
+    const borderColor = lightMode ? 'rgba(5,5,121,0.08)' : 'rgba(191,219,254,0.14)';
+    const mutedText = lightMode ? 'rgba(15,23,42,0.68)' : 'rgba(226,232,240,0.72)';
+
     const themeStyles = {
         '--primary': primary,
-        '--background': lightMode ? '#f4f4f5' : '#050505',
-        '--foreground': lightMode ? '#18181b' : '#ffffff',
-        '--glass': lightMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(15, 15, 15, 0.7)',
-        '--glass-border': lightMode ? 'rgba(0, 0, 0, 0.08)' : 'rgba(255, 255, 255, 0.08)',
-        backgroundColor: lightMode ? '#f4f4f5' : '#050505',
-        color: lightMode ? '#18181b' : '#ffffff',
+        '--background': backgroundBase,
+        '--foreground': lightMode ? '#0F172A' : '#F8FAFC',
+        '--glass': surfaceColor,
+        '--glass-border': borderColor,
+        backgroundColor: backgroundBase,
+        color: lightMode ? '#0F172A' : '#F8FAFC',
         fontFamily: `"${font}", sans-serif`,
     } as React.CSSProperties;
 
@@ -267,8 +264,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
         );
     };
 
-    // Top Banners Component
-    const TopBannersSection = () => topBanners.length > 0 ? (
+    const topBannersSection = topBanners.length > 0 ? (
         <div className="space-y-0">
             {topBanners.map((banner: any, i: number) => (
                 <BannerItem key={i} banner={banner} index={i} />
@@ -276,8 +272,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
         </div>
     ) : null;
 
-    // Bottom Banners Component
-    const BottomBannersSection = () => bottomBanners.length > 0 ? (
+    const bottomBannersSection = bottomBanners.length > 0 ? (
         <div className="space-y-0">
             {bottomBanners.map((banner: any, i: number) => (
                 <BannerItem key={i} banner={banner} index={i} />
@@ -291,9 +286,22 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
             
             <main
                 id="profile-capture"
-                className={`relative min-h-screen transition-colors duration-500 overflow-hidden bg-background text-foreground ${isExpired ? 'grayscale pointer-events-none select-none' : ''}`}
+                className={`relative min-h-screen overflow-hidden bg-background text-foreground transition-colors duration-500 ${isExpired ? 'grayscale pointer-events-none select-none' : ''}`}
                 style={{ ...themeStyles, fontFamily: `"${font}", sans-serif` }}
             >
+                <div className="pointer-events-none absolute inset-0">
+                    {bgImage ? (
+                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,31,0.28)_0%,rgba(6,17,31,0.78)_100%)]" />
+                    ) : (
+                        <>
+                            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.1),transparent_22%),linear-gradient(180deg,#f7f9ff_0%,#eef0ff_46%,#e8eefc_100%)]" />
+                            <div className="absolute left-[-6rem] top-10 h-64 w-64 rounded-full bg-sky-300/20 blur-[110px]" />
+                            <div className="absolute right-[-6rem] top-32 h-72 w-72 rounded-full bg-orange-200/25 blur-[120px]" />
+                            <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-[#050579]/8 blur-[140px]" />
+                        </>
+                    )}
+                </div>
+
                 {/* Background Image Layer */}
                 {bgImage && (
                     <div className="fixed inset-0 z-0">
@@ -323,25 +331,19 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                 )}
 
                 {/* Mobile View Wrapper */}
-                <div className="relative w-full max-w-[480px] mx-auto min-h-screen shadow-2xl bg-background/40 backdrop-blur-[2px]">
+                <div className="relative mx-auto min-h-screen w-full max-w-[560px]">
                     {/* Top Banners */}
-                    <TopBannersSection />
+                    {topBannersSection}
 
                 {/* Main Content */}
-                <div className="relative px-6 py-12 z-10">
-                    {/* Background Elements (if no bg image) */}
-                    {!bgImage && (
-                        <>
-                            <div className="absolute top-0 right-0 -z-10 w-[500px] h-[500px] bg-primary/10 rounded-full blur-[120px] opacity-30" />
-                            <div className="absolute bottom-0 left-0 -z-10 w-[500px] h-[500px] bg-secondary/10 rounded-full blur-[120px] opacity-30" />
-                        </>
-                    )}
+                <div className="relative z-10 px-5 py-8 sm:px-6 sm:py-10">
+                    <div className="rounded-[34px] border px-4 py-5 shadow-[0_35px_80px_-55px_rgba(15,23,42,0.45)] backdrop-blur-xl sm:px-5" style={{ backgroundColor: surfaceColor, borderColor }}>
 
                     {/* Profile Section - Banner Style */}
-                    <section className={`relative mb-16 flex flex-col items-center gap-6 ${topBanners.length > 0 ? '-mt-28 md:-mt-32' : ''}`}>
+                    <section className={`relative mb-10 flex flex-col items-center gap-6 ${topBanners.length > 0 ? '-mt-20 sm:-mt-24' : ''}`}>
                         {/* Profile Image - Full Width Banner */}
-                        <div className={`relative w-full -mx-6 ${topBanners.length > 0 ? 'z-10' : ''}`}>
-                            <div className="relative w-full h-80 md:h-96 overflow-hidden bg-foreground/5">
+                        <div className={`relative w-full ${topBanners.length > 0 ? 'z-10' : ''}`}>
+                            <div className="relative h-[320px] w-full overflow-hidden rounded-[28px] bg-foreground/5 sm:h-[360px]">
                                 {profileImageUrl ? (
                                     <>
                                         <img
@@ -355,8 +357,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                             }}
                                         />
                                         {/* Gradient Overlays */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent"></div>
-                                        <div className="absolute inset-0 bg-gradient-to-b from-background/50 via-transparent to-transparent"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,17,31,0.78)] via-[rgba(6,17,31,0.18)] to-transparent"></div>
+                                        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(255,255,255,0.18)] via-transparent to-transparent"></div>
                                     </>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-foreground/30">
@@ -365,23 +367,31 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 )}
                                 {/* Logo Badge Premium */}
                                 {logoUrl && (
-                                    <div className="absolute bottom-4 right-4 w-16 h-16 drop-shadow-xl overflow-hidden rounded-xl">
+                                    <div className="absolute right-4 top-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/88 p-2 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] backdrop-blur-md">
                                         <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
                                     </div>
                                 )}
+                                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+                                    <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/12 px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-white/92 backdrop-blur-md">
+                                        <Sparkles size={14} />
+                                        NEX DIGITAL CARD
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         {/* Info */}
-                        <div className={`flex-grow flex flex-col ${profilePosition === 'center' ? 'text-center items-center' : 'text-left items-start'}`}>
+                        <div className={`flex w-full flex-col ${profilePosition === 'center' ? 'items-center text-center' : 'items-start text-left'}`}>
                             {/* Positions (Job Titles) */}
                             {displayPositions.length > 0 && (
-                                <div className={`flex flex-col gap-2 mb-6 w-full ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
+                                <div className={`mb-4 flex w-full flex-col gap-2 ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
                                     {displayPositions.map((pos: any, i: number) => (
                                         <div 
                                             key={i} 
-                                            className={`font-black tracking-[0.15em] drop-shadow-md ${i === 0 ? 'text-primary/70 text-sm' : 'text-primary text-[15px] uppercase'}`}
+                                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] ${i === 0 ? 'text-[#050579]' : 'text-[#F97316]'}`}
+                                            style={{ backgroundColor: lightMode ? 'rgba(255,255,255,0.72)' : 'rgba(8,22,39,0.74)', borderColor }}
                                         >
+                                            <Briefcase size={14} />
                                             {pos.value}
                                         </div>
                                     ))}
@@ -389,15 +399,15 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             )}
 
                             {/* Names */}
-                            <div className={`flex flex-col gap-3 mb-8 w-full ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
-                                <h1 className="text-[44px] leading-tight sm:text-[56px] font-black tracking-tight text-foreground" style={{ textShadow: '0 4px 30px rgba(0,0,0,0.5)' }}>
+                            <div className={`mb-5 flex w-full flex-col gap-3 ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
+                                <h1 className="text-[38px] font-black leading-tight tracking-tight text-foreground sm:text-[48px]">
                                     {displayName}
                                 </h1>
                                 
                                 {names_i18n?.length > 1 && (
                                     <div className="flex flex-col gap-2">
                                         {names_i18n.slice(1).map((name: any, i: number) => (
-                                            <h2 key={i} className="text-foreground/60 font-medium tracking-wide text-[22px] drop-shadow-md">
+                                            <h2 key={i} className="text-lg font-medium tracking-wide text-foreground/65 sm:text-xl">
                                                 {name.value}
                                             </h2>
                                         ))}
@@ -407,13 +417,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                             {/* Companies */}
                             {displayCompanies.length > 0 && (
-                                <div className={`flex flex-col gap-3 w-full ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
+                                <div className={`flex w-full flex-col gap-3 ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
                                     {displayCompanies.map((comp: any, i: number) => (
-                                        <div key={i} className="flex items-center gap-3 text-foreground/75 hover:text-foreground transition-all duration-300 group">
-                                            <div className="w-10 h-10 flex items-center justify-center shrink-0 group-hover:scale-110 transition-transform">
-                                                <Building2 size={24} className="opacity-60 group-hover:opacity-100 group-hover:text-primary transition-all" />
+                                        <div key={i} className="flex items-center gap-3 text-foreground/75">
+                                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: lightMode ? 'rgba(5,5,121,0.05)' : 'rgba(191,219,254,0.08)', borderColor }}>
+                                                <Building2 size={22} className="text-[#050579]" />
                                             </div>
-                                            <span className="font-medium tracking-wide text-2xl drop-shadow-sm">
+                                            <span className="text-xl font-semibold tracking-wide sm:text-2xl">
                                                 {comp.value}
                                             </span>
                                         </div>
@@ -425,20 +435,20 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* About Me */}
                     {about_me && (
-                        <section className="mb-12 bg-background/60 backdrop-blur-md rounded-2xl p-6 border border-foreground/10 shadow-lg">
-                            <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground drop-shadow-sm">
+                        <section className="mb-8 rounded-[28px] border p-6 shadow-[0_20px_50px_-36px_rgba(15,23,42,0.35)]" style={{ backgroundColor: lightMode ? 'rgba(246,248,255,0.9)' : 'rgba(8,22,39,0.92)', borderColor }}>
+                            <h3 className="mb-4 flex items-center gap-2 text-lg font-bold text-foreground">
                                 <Heart size={20} className="text-primary" /> เกี่ยวกับฉัน
                             </h3>
-                            <p className="text-foreground/75 leading-relaxed whitespace-pre-line drop-shadow-sm">{about_me}</p>
+                            <p className="whitespace-pre-line leading-relaxed" style={{ color: mutedText }}>{about_me}</p>
                         </section>
                     )}
 
                     {/* Interests */}
                     {interests?.length > 0 && (
-                        <section className="mb-12">
+                        <section className="mb-8">
                             <div className="flex flex-wrap gap-2 justify-center">
                                 {interests.map((tag: string, i: number) => (
-                                    <span key={i} className="bg-primary/20 text-foreground border border-primary/30 px-4 py-2 rounded-full text-sm font-medium backdrop-blur-sm shadow-sm">
+                                    <span key={i} className="rounded-full border px-4 py-2 text-sm font-medium shadow-sm backdrop-blur-sm" style={{ backgroundColor: lightMode ? 'rgba(255,255,255,0.72)' : 'rgba(8,22,39,0.72)', borderColor }}>
                                         {tag}
                                     </span>
                                 ))}
@@ -448,15 +458,15 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* Multimedia: Video */}
                     {(videoConfig?.enabled && videoConfig.url) && (
-                        <section className="mb-12">
-                             <div className="relative rounded-2xl overflow-hidden border border-foreground/10 shadow-lg group bg-background/70">
+                        <section className="mb-8">
+                             <div className="group relative overflow-hidden rounded-[28px] border shadow-[0_20px_50px_-36px_rgba(15,23,42,0.35)]" style={{ backgroundColor: lightMode ? 'rgba(246,248,255,0.9)' : 'rgba(8,22,39,0.92)', borderColor }}>
                                 <VideoEmbed url={videoConfig.url} autoplay={videoConfig.autoplay} />
                                 {videoConfig.link_enabled && videoConfig.link_url && (
                                     <a 
                                         href={videoConfig.link_url} 
                                         target="_blank" 
                                         rel="noopener noreferrer"
-                                        className="absolute bottom-4 right-4 bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-xl shadow-lg transform transition-all hover:scale-105 flex items-center gap-2 z-20 font-bold text-sm"
+                                        className="absolute bottom-4 right-4 z-20 flex items-center gap-2 rounded-xl bg-[#F97316] px-6 py-3 text-sm font-bold text-white shadow-lg transition-all hover:scale-105 hover:bg-[#EA580C]"
                                     >
                                         <ExternalLink size={16} />
                                         ดูรายละเอียดเพิ่มเติม
@@ -468,32 +478,32 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* Gallery */}
                     {(layout_config?.show_gallery !== false && gallery?.length > 0) && (
-                        <section className="mb-12">
+                        <section className="mb-8">
                             <Gallery images={gallery.map(getImageUrl)} />
                         </section>
                     )}
 
                     {/* Contact Info */}
                     {layout_config?.show_contact_info !== false && (emails?.length > 0 || phones?.length > 0) && (
-                        <section className="mb-12 grid grid-cols-1 gap-4">
+                        <section className="mb-8 grid grid-cols-1 gap-4">
                             {phones?.map((phone: any, i: number) => (
-                                <a key={i} href={`tel:${phone.value}`} className="bg-background/60 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-background/75 transition-colors border border-foreground/10 shadow-lg">
-                                    <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center border border-green-500/20">
+                                <a key={i} href={`tel:${phone.value}`} className="flex items-center gap-4 rounded-[24px] border p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.35)] transition-colors hover:bg-white/70" style={{ backgroundColor: lightMode ? 'rgba(255,255,255,0.82)' : 'rgba(8,22,39,0.84)', borderColor }}>
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-green-500/20 bg-green-500/15">
                                         <Phone size={24} className="text-green-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs text-foreground/50 uppercase font-bold">{phone.label || 'Phone'}</div>
+                                        <div className="text-xs font-bold uppercase text-foreground/50">{phone.label || 'Phone'}</div>
                                         <div className="font-medium text-foreground">{phone.value}</div>
                                     </div>
                                 </a>
                             ))}
                             {emails?.map((email: any, i: number) => (
-                                <a key={i} href={`mailto:${email.value}`} className="bg-background/60 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-background/75 transition-colors border border-foreground/10 shadow-lg">
-                                    <div className="w-12 h-12 rounded-lg bg-red-500/20 flex items-center justify-center border border-red-500/20">
+                                <a key={i} href={`mailto:${email.value}`} className="flex items-center gap-4 rounded-[24px] border p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.35)] transition-colors hover:bg-white/70" style={{ backgroundColor: lightMode ? 'rgba(255,255,255,0.82)' : 'rgba(8,22,39,0.84)', borderColor }}>
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/15">
                                         <Mail size={24} className="text-red-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs text-foreground/50 uppercase font-bold">{email.label || 'Email'}</div>
+                                        <div className="text-xs font-bold uppercase text-foreground/50">{email.label || 'Email'}</div>
                                         <div className="font-medium text-foreground">{email.value}</div>
                                     </div>
                                 </a>
@@ -503,12 +513,12 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* Website Links */}
                     {websites?.length > 0 && (
-                        <section className="mb-12">
+                        <section className="mb-8">
                             <div className="grid grid-cols-1 gap-4">
                                 {websites.map((site: any, i: number) => (
-                                    <a key={i} href={ensureHttps(site.url)} target="_blank" rel="noopener noreferrer" className="bg-background/60 backdrop-blur-md rounded-xl p-4 flex items-center gap-4 hover:bg-background/75 transition-colors border border-foreground/10 shadow-lg">
-                                        <div className="w-12 h-12 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/20">
-                                            <Globe size={24} className="text-indigo-500" />
+                                    <a key={i} href={ensureHttps(site.url)} target="_blank" rel="noopener noreferrer" className="flex items-center gap-4 rounded-[24px] border p-4 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.35)] transition-colors hover:bg-white/70" style={{ backgroundColor: lightMode ? 'rgba(255,255,255,0.82)' : 'rgba(8,22,39,0.84)', borderColor }}>
+                                        <div className="flex h-12 w-12 items-center justify-center rounded-2xl border bg-[#050579]/8" style={{ borderColor: lightMode ? 'rgba(5,5,121,0.12)' : 'rgba(147,197,253,0.18)' }}>
+                                            <Globe size={24} className="text-[#050579]" />
                                         </div>
                                         <div className="flex-1 min-w-0">
                                             <div className="font-medium truncate text-foreground">{site.label || 'Website'}</div>
@@ -525,17 +535,17 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* QR Code */}
                     {qr_enabled !== false && (
-                        <section className="mb-12 text-center text-foreground drop-shadow-md">
-                            <h3 className="text-lg font-bold mb-4">Scan to Connect</h3>
+                        <section className="mb-8 rounded-[28px] border px-5 py-6 text-center shadow-[0_20px_50px_-36px_rgba(15,23,42,0.35)]" style={{ backgroundColor: lightMode ? 'rgba(246,248,255,0.9)' : 'rgba(8,22,39,0.92)', borderColor }}>
+                            <h3 className="mb-2 text-lg font-bold">Scan to Connect</h3>
+                            <p className="mb-4 text-sm" style={{ color: mutedText }}>
+                                บันทึกคอนแทกต์หรือเปิดหน้านี้บนอุปกรณ์อื่นได้ทันที
+                            </p>
                             <QrCodeImage url={profileUrl} size={180} />
                         </section>
                     )}
 
-                    {/* Catalogs */}
-                    <CatalogsDisplay catalogs={catalogs} />
-
                     {/* Quick Actions (Downloads & Saves) */}
-                    <section className="mb-12 flex flex-col gap-4">
+                    <section className="mb-2 flex flex-col gap-4">
                         {/* Save to Home Screen Button */}
                         <SaveToHomeButton 
                             uid={uid}
@@ -570,15 +580,16 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             template="gradient"
                         />
                     </section>
+                    </div>
                 </div>
 
                 {/* Bottom Banners */}
-                <BottomBannersSection />
+                {bottomBannersSection}
 
-                <div className="relative px-6 z-10">
+                <div className="relative z-10 px-6">
                     {/* Footer */}
-                    <footer className="mt-16 pb-8 text-center border-t border-foreground/10 pt-8">
-                        <p className="text-foreground/50 text-sm font-medium tracking-wide">
+                    <footer className="mt-10 border-t border-foreground/10 pb-8 pt-8 text-center">
+                        <p className="text-sm font-medium tracking-wide text-foreground/50">
                             © {new Date().getFullYear()} {displayName.toUpperCase()}
                         </p>
                     </footer>

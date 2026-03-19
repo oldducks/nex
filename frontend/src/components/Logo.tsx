@@ -51,9 +51,6 @@ export function LogoInline({ className = "" }: { className?: string }) {
       <div className="relative h-8 w-8 overflow-hidden rounded-lg">
         <Image src="/nex_logo_nobg.png" alt="NEX" fill className="object-contain" unoptimized />
       </div>
-      <span className="font-bold text-lg tracking-tight" style={{ color: "#050579" }}>
-        NEX<span style={{ color: "#F97316" }}>.</span>
-      </span>
     </Link>
   );
 }

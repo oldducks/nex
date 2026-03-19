@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { ThemeToggle } from "@/components/ThemeToggle";
 import { QrCodeImage } from "@/components/QrCode";
 import {
   ArrowLeft,
@@ -296,7 +295,6 @@ export default function ManageQrPage() {
               </span>
             </h1>
           </div>
-          <ThemeToggle />
         </div>
       </header>
 

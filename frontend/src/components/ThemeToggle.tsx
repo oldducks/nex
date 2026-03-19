@@ -12,7 +12,6 @@ export function ThemeToggle() {
     const themes: Array<{ id: Theme; name: string; icon: ReactNode; color: string }> = [
         { id: 'light', name: 'Apple Light', icon: <Sun size={16} />, color: 'bg-[#fbfbfd]' },
         { id: 'dark', name: 'Dark Mode', icon: <Moon size={16} />, color: 'bg-[#050505]' },
-        { id: 'pastel', name: 'Kids Pastel', icon: <Cloud size={16} />, color: 'bg-[#fff9f2]' },
         { id: 'midnight', name: 'Midnight Berry', icon: <Sparkles size={16} />, color: 'bg-[#0f172a]' },
         ...(isCogVariantEnabled ? [{ id: 'brand-cog' as Theme, name: 'Cyan Orange Green', icon: <Sparkles size={16} />, color: 'bg-[#12b8c8]' }] : []),
     ];

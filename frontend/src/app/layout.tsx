@@ -17,7 +17,7 @@ const montserrat = Montserrat({
   variable: "--font-display",
   display: "swap",
 });
-const configuredTheme = process.env.NEXT_PUBLIC_THEME_VARIANT === "cyan-orange-green" ? "brand-cog" : "dark";
+const configuredTheme = process.env.NEXT_PUBLIC_THEME_VARIANT === "cyan-orange-green" ? "brand-cog" : "light";
 
 export const metadata: Metadata = {
   title: "NEX Solution | Digital Business Card Platform",

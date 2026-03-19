@@ -6,7 +6,6 @@ import Cookies from 'js-cookie';
 import Link from 'next/link';
 import { ArrowLeft, Download, Save, Loader2, Palette, Layout, Type, Image as ImageIcon, RefreshCw } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
-import { ThemeToggle } from '@/components/ThemeToggle';
 
 interface NamecardData {
     name_th: string;
@@ -215,7 +214,7 @@ export default function NamecardEditor() {
                         <div className="font-bold text-xl tracking-tight">Namecard Editor</div>
                     </div>
                     <div className="flex items-center gap-4">
-                        <ThemeToggle />
+                        <div className="h-6 w-px bg-foreground/10 mx-2" />
                         <button onClick={downloadCard} className="bg-primary hover:bg-primary/90 text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95">
                             <Download size={18} /> <span className="hidden sm:inline">Download PNG</span>
                         </button>

@@ -1436,3 +1436,75 @@
   - หรือเริ่มย้าย pattern ที่นิ่งแล้ว (manage nav / section shell / action bars) ไปเป็น shared components
 
 *Updated by Codex on 2026-03-18*
+
+---
+
+### 2026-03-18: UX/UI Fixes – Manage Pages Redesign, Theme Defaults & ThemeProvider Hydration
+
+**Goal**: Commit accumulated UX/UI improvements across the manage section, fix global theme defaults, and clean up temporary debug code from a scroll investigation.
+
+**What changed**:
+
+1. **`manage/profile` (page.tsx)** — Stable
+   - Full editor redesign: type-safe interfaces (`SocialLink`, typed `SOCIAL_ICONS`), `useCallback` for `fetchProfile`, Next.js `Image` component for banners, redesigned layout with summary cards, section quick-nav, status bar, and refined spacing/colors.
+   - Removed the `PasswordChangeForm` component (moved to `/manage/account`).
+   - Added `pageRef` + focus-blur `useEffect` to prevent browser auto-focus from shifting the viewport.
+   - **Scroll debug code removed**: `scrollToTopInstant` helper, `debugEnabled`/`scrollDebug` state, three scroll-related hooks, and the debug overlay were investigation tools from a scroll-position hypothesis — they are **not** part of the fix.
+
+2. **`manage/control-center` (page.tsx)** — Layer/visibility fix applied
+   - Removed the browser back-button interception `useEffect` (hash-based `#app` trap).
+   - Added `chip`, `action`, `hoverBorder` to `TONE_STYLES` for richer feature cards.
+   - Background blur layers moved from `fixed` to `absolute` inside a non-interactive container (fixes z-index/layer stacking issues that could obscure content).
+   - Bottom quick-access menu changed to `md:hidden` (mobile-only).
+   - Replaced hardcoded Google Fonts `<link>` with CSS variable `var(--font-sans)`.
+   - QR code card now renders a real `QrCodeImage` when user data is available.
+   - Upgraded modal overlays: adjusted opacity, border-radius, shadow tweaks.
+   - Updated support email from `dpattown.com` to `nexsolution.cloud`.
+
+3. **`ThemeProvider.tsx`** — Hydration fix
+   - Removed the `mounted` state + `visibility: hidden` wrapper that caused a flash-of-invisible-content on first render.
+   - Theme now initialises lazily from `localStorage` via a state initialiser function, and the `useEffect` syncs `data-theme` on every theme change.
+
+4. **`globals.css`** — Theme defaults corrected
+   - `:root` (default) changed from dark Midnight theme to light theme. This prevents dark flash on pages that don't explicitly set a theme.
+   - Dark theme moved to `:root[data-theme='dark']` so it's only applied when explicitly selected.
+
+5. **`layout.tsx`** — Default theme fallback changed from `"dark"` to `"light"`.
+
+6. **Other files** (14 additional pages/components touched):
+   - Various manage pages: removed unused imports, minor style/class fixes.
+   - `ImageCropper.tsx`: minor fix.
+   - `SocialLinksDisplay.tsx`: style refinements.
+   - `ThemeToggle.tsx`: removed unused import.
+   - Landing pages, catalog pages, namecard page, public profile views: incremental style/layout improvements.
+
+**Scroll position open question**:
+During investigation of a report that `manage/control-center` opened at a mid-page position, scroll restoration was explored as a hypothesis. Debug instrumentation was added temporarily to both `control-center` and `profile` pages. The debug code has now been fully reverted/removed from both pages. The layer/visibility fix (background elements using `fixed` positioning with high z-index) was identified and applied. **Scroll restoration has not been confirmed as the root cause.** If the scroll-position issue recurs, it should be investigated fresh — possible areas to check include browser bfcache scroll restoration, React hydration ordering, or element focus during mount.
+
+**Files committed**:
+- `frontend/src/app/globals.css`
+- `frontend/src/app/layout.tsx`
+- `frontend/src/app/manage/control-center/page.tsx`
+- `frontend/src/app/manage/profile/page.tsx`
+- `frontend/src/components/ThemeProvider.tsx`
+- `frontend/src/components/ThemeToggle.tsx`
+- `frontend/src/components/ImageCropper.tsx`
+- `frontend/src/components/SocialLinksDisplay.tsx`
+- `frontend/src/components/Logo.tsx`
+- `frontend/src/app/[prefix]/[uid]/page.tsx`
+- `frontend/src/app/catalog/[slug]/page.tsx`
+- `frontend/src/app/lp/[slug]/LandingPageClient.tsx`
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`
+- `frontend/src/app/manage/create-lite/page.tsx`
+- `frontend/src/app/manage/forms/[id]/page.tsx`
+- `frontend/src/app/manage/forms/[id]/submissions/page.tsx`
+- `frontend/src/app/manage/forms/page.tsx`
+- `frontend/src/app/manage/landing-pages/[id]/page.tsx`
+- `frontend/src/app/manage/landing-pages/page.tsx`
+- `frontend/src/app/manage/namecard/page.tsx`
+- `frontend/src/app/manage/page.tsx`
+- `frontend/src/app/manage/qr/page.tsx`
+- `frontend/src/app/manage/referrals/page.tsx`
+- `AGENT_HANDOVER.md`
+
+*Updated on 2026-03-18*

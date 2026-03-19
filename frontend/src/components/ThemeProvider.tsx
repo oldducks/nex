@@ -22,18 +22,14 @@ const normalizeTheme = (value: string | null): Theme => {
 };
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-    const [theme, setThemeState] = useState<Theme>(defaultTheme);
-    // Use mounted state to prevent hydration mismatch
-    const [mounted, setMounted] = useState(false);
+    const [theme, setThemeState] = useState<Theme>(() => {
+        if (typeof window === 'undefined') return defaultTheme;
+        return normalizeTheme(window.localStorage.getItem('theme'));
+    });
 
     useEffect(() => {
         // Run once on mount
-        const savedTheme = localStorage.getItem('theme');
-        const initialTheme = normalizeTheme(savedTheme);
-        
-        setThemeState(initialTheme);
-        document.documentElement.setAttribute('data-theme', initialTheme);
-        setMounted(true);
+        document.documentElement.setAttribute('data-theme', theme);
 
         // Listen for storage events (cross-tab sync)
         const handleStorage = (e: StorageEvent) => {
@@ -46,7 +42,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
         window.addEventListener('storage', handleStorage);
         return () => window.removeEventListener('storage', handleStorage);
-    }, []);
+    }, [theme]);
 
     const setTheme = (newTheme: Theme) => {
         const safeTheme = normalizeTheme(newTheme);
@@ -57,11 +53,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
     return (
         <ThemeContext.Provider value={{ theme, setTheme }}>
-            {!mounted ? (
-                <div style={{ visibility: 'hidden' }}>{children}</div>
-            ) : (
-                children
-            )}
+            {children}
         </ThemeContext.Provider>
     );
 }
