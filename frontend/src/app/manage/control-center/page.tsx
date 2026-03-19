@@ -190,10 +190,15 @@ const TONE_STYLES: Record<FeatureTone, {
   },
 };
 
+// Keep section reversible while simplifying page information density.
+const SHOW_FEATURE_STATUS_SECTION = false;
+
 export default function ControlCenterPage() {
   const router = useRouter();
   const [user, setUser] = useState<UserData | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
   const [leadCount, setLeadCount] = useState(0);
+  const [isLeadsLoading, setIsLeadsLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const [upgradeLoading, setUpgradeLoading] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -277,14 +282,15 @@ export default function ControlCenterPage() {
     }
 
     // Fetch user profile
-      fetch('/api/users/me', {
-        headers: { 'Authorization': `Bearer ${token}` }
-      })
+    fetch('/api/users/me', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    })
       .then(res => res.json())
       .then(data => {
         setUser(data);
       })
-      .catch(() => null);
+      .catch(() => null)
+      .finally(() => setIsUserLoading(false));
 
     // Fetch lead count
     fetch('/api/leads/unread-count', {
@@ -296,7 +302,8 @@ export default function ControlCenterPage() {
           setLeadCount(data.count);
         }
       })
-      .catch(err => console.error('Failed to fetch leads count:', err));
+      .catch(err => console.error('Failed to fetch leads count:', err))
+      .finally(() => setIsLeadsLoading(false));
 
   }, [token, router]);
 
@@ -435,7 +442,11 @@ export default function ControlCenterPage() {
                 </div>
                 <div>
                   <div className="text-[10px] font-black uppercase tracking-widest text-[#64748B]">รายชื่อลูกค้า</div>
-                  <div className={`text-xl font-black tabular-nums leading-tight ${leadCount > 0 ? 'text-[#166534]' : 'text-[#94A3B8]'}`}>{leadCount > 0 ? leadCount : '--'}</div>
+                  {isLeadsLoading ? (
+                    <div className="mt-1 h-6 w-10 animate-pulse rounded-md bg-[#E2E8F0]" />
+                  ) : (
+                    <div className={`text-xl font-black tabular-nums leading-tight ${leadCount > 0 ? 'text-[#166534]' : 'text-[#94A3B8]'}`}>{leadCount > 0 ? leadCount : '--'}</div>
+                  )}
                   <div className="mt-1 text-xs text-[#64748B]">รายการใหม่ที่ยังไม่ได้อ่าน</div>
                 </div>
               </div>
@@ -544,7 +555,11 @@ export default function ControlCenterPage() {
                       {/* Profile URL */}
                       <div className="mb-4 rounded-[22px] border border-[#E7ECF7] bg-[#F6F8FF] p-4">
                         <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">ลิงก์โปรไฟล์ของคุณ</p>
-                        <p className="truncate font-mono text-sm text-[#475569]">{profileUrl || 'กำลังโหลด...'}</p>
+                        {isUserLoading ? (
+                          <div className="h-4 w-full max-w-[24rem] animate-pulse rounded bg-[#E2E8F0]" />
+                        ) : (
+                          <p className="truncate font-mono text-sm text-[#475569]">{profileUrl || 'ยังไม่พบลิงก์โปรไฟล์'}</p>
+                        )}
                       </div>
 
                       {/* Action Buttons */}
@@ -581,16 +596,22 @@ export default function ControlCenterPage() {
                     </div>
 
                     {/* QR Code Section */}
-                    {profileUrl && (
-                      <div className="relative sm:justify-self-end">
-                        <div className="rounded-[24px] border border-[#D9E1F2] bg-white p-3 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
-                          <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B]">
-                            Scan Profile
-                          </div>
-                          <QrCodeImage url={profileUrl} size={120} />
+                    <div className="relative sm:justify-self-end">
+                      <div className="rounded-[24px] border border-[#D9E1F2] bg-white p-3 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                        <div className="mb-2 text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B]">
+                          Scan Profile
                         </div>
+                        {isUserLoading ? (
+                          <div className="h-[120px] w-[120px] animate-pulse rounded-xl bg-[#E2E8F0]" />
+                        ) : profileUrl ? (
+                          <QrCodeImage url={profileUrl} size={120} />
+                        ) : (
+                          <div className="flex h-[120px] w-[120px] items-center justify-center rounded-xl border border-dashed border-[#D9E1F2] text-center text-[10px] font-bold text-[#94A3B8]">
+                            ยังไม่มี QR
+                          </div>
+                        )}
                       </div>
-                    )}
+                    </div>
                   </div>
 
                   {/* Decorative accent */}
@@ -615,10 +636,10 @@ export default function ControlCenterPage() {
                   }}
                   role="button"
                   tabIndex={0}
-                  className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.22)] transition-all duration-500 hover:-translate-y-1 hover:border-[#B8DFC2] hover:shadow-[0_34px_80px_-48px_rgba(15,23,42,0.18)] active:scale-[0.99]"
+                  className="group relative cursor-pointer overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.22)] transition-all duration-500 hover:-translate-y-1 hover:border-[#B8DFC2] hover:shadow-[0_34px_80px_-48px_rgba(15,23,42,0.18)] active:scale-[0.99] xl:col-span-2"
                 >
                   <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(22,163,74,0.08),transparent_24%),radial-gradient(circle_at_bottom_left,rgba(5,5,121,0.05),transparent_30%)]" />
-                  <div className="relative grid grid-cols-1 gap-5 sm:grid-cols-[1fr_120px]">
+                  <div className="relative grid grid-cols-1 gap-5 sm:grid-cols-[1fr_120px] sm:items-start">
                     <div className="min-w-0">
                       <div className="flex items-start gap-4 mb-4">
                         <div className={`inline-flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl ${TONE_STYLES[feature.tone].iconWrap} ${TONE_STYLES[feature.tone].iconColor}`}>
@@ -655,9 +676,13 @@ export default function ControlCenterPage() {
                           <p className="mb-1 text-[10px] font-bold uppercase tracking-widest text-[#64748B]">
                             ลิงก์สำหรับแชร์สมัครสมาชิก
                           </p>
-                          <p className="truncate font-mono text-xs text-[#475569]">
-                            {referralUrl || 'กำลังโหลด...'}
-                          </p>
+                          {isUserLoading ? (
+                            <div className="h-3.5 w-full max-w-[22rem] animate-pulse rounded bg-[#E2E8F0]" />
+                          ) : (
+                            <p className="truncate font-mono text-xs text-[#475569]">
+                              {referralUrl || 'ยังไม่มีลิงก์แนะนำ'}
+                            </p>
+                          )}
                         </div>
                       </div>
 
@@ -697,12 +722,19 @@ export default function ControlCenterPage() {
                     </div>
 
                     {/* QR Code Section */}
-                    {referralUrl && (
-                      <div className="sm:justify-self-end flex flex-col items-center gap-2 rounded-[22px] border border-[#D9E1F2] bg-white p-3 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
+                    <div className="sm:justify-self-end flex flex-col items-center gap-2 rounded-[22px] border border-[#D9E1F2] bg-white p-3 shadow-[0_18px_40px_-28px_rgba(15,23,42,0.18)]">
                         <div className="text-center text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B]">
                           Referral QR
                         </div>
-                        <QrCodeImage url={referralUrl} size={104} />
+                        {isUserLoading ? (
+                          <div className="h-[104px] w-[104px] animate-pulse rounded-xl bg-[#E2E8F0]" />
+                        ) : referralUrl ? (
+                          <QrCodeImage url={referralUrl} size={104} />
+                        ) : (
+                          <div className="flex h-[104px] w-[104px] items-center justify-center rounded-xl border border-dashed border-[#D9E1F2] text-center text-[10px] font-bold text-[#94A3B8]">
+                            ไม่มี QR
+                          </div>
+                        )}
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -715,7 +747,6 @@ export default function ControlCenterPage() {
                           แชร์ QR
                         </button>
                       </div>
-                    )}
                   </div>
 
                   {/* Decorative accent */}
@@ -765,7 +796,7 @@ export default function ControlCenterPage() {
           })}
 
           {/* Upgrade Card */}
-          <div className="group relative flex flex-col justify-center overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 text-center shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)]">
+          <div className="group relative flex flex-col justify-center overflow-hidden rounded-[28px] border border-[#D9E1F2] bg-white p-6 text-center shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] xl:col-span-1">
              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_26%),radial-gradient(circle_at_bottom_left,rgba(5,5,121,0.05),transparent_30%)]" />
 
              <div className="relative z-10">
@@ -853,7 +884,11 @@ export default function ControlCenterPage() {
                     <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">ยอดเข้าชมวันนี้</div>
                  </div>
                  <div className="rounded-[20px] border border-[#CFE9D6] bg-[#F3FCF5] p-4 text-center transition-colors group-hover:bg-white">
-                    <div className={`text-2xl font-black tabular-nums ${leadCount > 0 ? 'text-[#166534]' : 'text-[#94A3B8]'}`}>{leadCount > 0 ? leadCount : '--'}</div>
+                    {isLeadsLoading ? (
+                      <div className="mx-auto h-8 w-12 animate-pulse rounded-md bg-[#DDEFE2]" />
+                    ) : (
+                      <div className={`text-2xl font-black tabular-nums ${leadCount > 0 ? 'text-[#166534]' : 'text-[#94A3B8]'}`}>{leadCount > 0 ? leadCount : '--'}</div>
+                    )}
                     <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">รายชื่อใหม่</div>
                  </div>
               </div>
@@ -863,55 +898,57 @@ export default function ControlCenterPage() {
            </div>
         </div>
 
-        {/* Feature Status Section */}
-        <div className="mt-16 rounded-[32px] border border-[#D9E1F2] bg-white/92 p-8 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.18)] md:p-10">
-          <h3 className="mb-8 flex items-center gap-3 text-xl font-black tracking-tight text-[#050579]">
-            <Star size={24} className="text-[#F97316]" /> สถานะฟีเจอร์ของคุณ
-          </h3>
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
-            {FEATURE_LIST.map((feature) => {
-              const configKey = FEATURE_CONFIG_MAP[feature.id];
-              const isEnabled = !user?.feature_config || user.feature_config[configKey] !== false;
-              return (
-                <div
-                  key={feature.id}
-                  className={`rounded-2xl border p-4 text-center transition-all ${
-                    isEnabled
-                      ? 'border-[#CFE9D6] bg-[#F3FCF5]'
-                      : 'border-[#E7ECF7] bg-[#F6F8FF]'
-                  }`}
-                >
-                  <div className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${
-                    isEnabled ? 'bg-[#EEFBEF]' : 'bg-[#EEF2FF]'
-                  }`}>
-                    {isEnabled ? (
-                      <CheckCircle size={20} className="text-[#16A34A]" />
-                    ) : (
-                      <Lock size={18} className="text-[#94A3B8]" />
-                    )}
+        {/* Feature Status Section (toggleable for quick rollback) */}
+        {SHOW_FEATURE_STATUS_SECTION && (
+          <div className="mt-16 rounded-[32px] border border-[#D9E1F2] bg-white/92 p-8 shadow-[0_28px_70px_-44px_rgba(15,23,42,0.18)] md:p-10">
+            <h3 className="mb-8 flex items-center gap-3 text-xl font-black tracking-tight text-[#050579]">
+              <Star size={24} className="text-[#F97316]" /> สถานะฟีเจอร์ของคุณ
+            </h3>
+            <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
+              {FEATURE_LIST.map((feature) => {
+                const configKey = FEATURE_CONFIG_MAP[feature.id];
+                const isEnabled = !user?.feature_config || user.feature_config[configKey] !== false;
+                return (
+                  <div
+                    key={feature.id}
+                    className={`rounded-2xl border p-4 text-center transition-all ${
+                      isEnabled
+                        ? 'border-[#CFE9D6] bg-[#F3FCF5]'
+                        : 'border-[#E7ECF7] bg-[#F6F8FF]'
+                    }`}
+                  >
+                    <div className={`mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-xl ${
+                      isEnabled ? 'bg-[#EEFBEF]' : 'bg-[#EEF2FF]'
+                    }`}>
+                      {isEnabled ? (
+                        <CheckCircle size={20} className="text-[#16A34A]" />
+                      ) : (
+                        <Lock size={18} className="text-[#94A3B8]" />
+                      )}
+                    </div>
+                    <p className={`truncate text-xs font-bold ${isEnabled ? 'text-[#0F172A]' : 'text-[#64748B]'}`}>
+                      {feature.title.split(' ')[0]}
+                    </p>
                   </div>
-                  <p className={`truncate text-xs font-bold ${isEnabled ? 'text-[#0F172A]' : 'text-[#64748B]'}`}>
-                    {feature.title.split(' ')[0]}
-                  </p>
-                </div>
-              );
-            })}
-          </div>
-          {getFeatureCounts().locked > 0 && (
-            <div className="mt-8 text-center">
-              <p className="mb-4 text-sm text-[#475569]">
-                คุณมี {getFeatureCounts().locked} ฟีเจอร์ที่ยังถูกล็อค
-              </p>
-              <button
-                onClick={() => setShowUpgradeModal(true)}
-                className="rounded-2xl bg-[#F97316] px-8 py-3 font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#EA580C]"
-              >
-                <Crown size={16} className="inline mr-2 -mt-0.5" />
-                ปลดล็อคทั้งหมด
-              </button>
+                );
+              })}
             </div>
-          )}
-        </div>
+            {getFeatureCounts().locked > 0 && (
+              <div className="mt-8 text-center">
+                <p className="mb-4 text-sm text-[#475569]">
+                  คุณมี {getFeatureCounts().locked} ฟีเจอร์ที่ยังถูกล็อค
+                </p>
+                <button
+                  onClick={() => setShowUpgradeModal(true)}
+                  className="rounded-2xl bg-[#F97316] px-8 py-3 font-bold uppercase tracking-wider text-white transition-colors hover:bg-[#EA580C]"
+                >
+                  <Crown size={16} className="inline mr-2 -mt-0.5" />
+                  ปลดล็อคทั้งหมด
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
       </main>
 
