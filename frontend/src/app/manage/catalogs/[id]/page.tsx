@@ -14,6 +14,7 @@ import { QrCodeImage } from '../../../../components/QrCode';
 import { VideoUpload } from '@/components/VideoUpload';
 import ProductImageUpload from '@/components/ProductImageUpload';
 import { Video } from 'lucide-react';
+import ManageTopBar from '@/components/ManageTopBar';
 
 interface VideoConfig {
     url: string;
@@ -72,7 +73,7 @@ export default function CatalogDetail() {
     
     const [settings, setSettings] = useState({
         title: '', description: '', custom_slug: '',
-        primary_color: '#6366F1', font_family: 'Inter',
+        primary_color: '#050579', font_family: 'Inter',
         catalog_ws: '', catalog_fb: '', catalog_order: '',
         template_id: 'standard', stickers: [] as string[],
         video_config: null as VideoConfig | null
@@ -105,7 +106,7 @@ export default function CatalogDetail() {
                     title: cat.title,
                     description: cat.description || '',
                     custom_slug: cat.custom_slug || '',
-                    primary_color: cat.layout_config?.primary_color || '#6366F1',
+                    primary_color: cat.layout_config?.primary_color || '#050579',
                     font_family: cat.layout_config?.font_family || 'Inter',
                     template_id: cat.layout_config?.template_id || 'standard',
                     stickers: cat.layout_config?.stickers || [],
@@ -319,46 +320,46 @@ export default function CatalogDetail() {
     if (loading) return (
         <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center">
              <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
-             <p className="text-foreground/40 font-black uppercase tracking-[0.3em] text-[10px]">Processing Database...</p>
+             <p className="text-[#64748B] font-black uppercase tracking-[0.3em] text-[10px]">กำลังโหลดข้อมูลแคตตาล็อก...</p>
         </div>
     );
 
     const publicUrl = `${SITE_URL}/catalog/${catalog?.custom_slug || catalog?.id}`;
+    const nexPageVars = {
+        '--background': '#EEF0FF',
+        '--foreground': '#0F172A',
+        '--primary': '#050579',
+        '--glass-border': 'rgba(15,23,42,0.08)',
+        '--card-bg': '#FFFFFF',
+    } as React.CSSProperties;
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-            {/* Header / Navbar */}
-            <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/manage" className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group">
-                            <ArrowLeft size={18} className="text-foreground/40 group-hover:text-foreground transition-all" />
-                        </Link>
-                        <div className="hidden sm:block">
-                            <div className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] leading-none mb-1">Catalog Manager</div>
-                            <h1 className="font-black text-lg tracking-tight truncate max-w-[200px]">{catalog?.title}</h1>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 md:gap-4">
-                        <div className="h-6 w-[1px] bg-foreground/10 mx-1 hidden md:block"></div>
-                        <Link 
-                            href={`/catalog/${catalog?.custom_slug || catalog?.id}`} 
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-500" style={nexPageVars}>
+            <ManageTopBar
+                backHref="/manage"
+                subtitle="CATALOG MANAGER"
+                title={catalog?.title || 'Catalog'}
+                actions={(
+                    <>
+                        <div className="h-6 w-[1px] bg-[#D9E1F2] mx-1 hidden md:block"></div>
+                        <Link
+                            href={`/catalog/${catalog?.custom_slug || catalog?.id}`}
                             target="_blank"
-                            className="bg-foreground/5 hover:bg-foreground/10 px-4 py-2.5 rounded-xl transition-all flex items-center gap-2 text-xs font-black uppercase tracking-widest text-foreground/60 hover:text-foreground"
+                            className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#475569] hover:text-[#0F172A]"
                         >
                             <Eye size={16} />
                             <span className="hidden lg:block">ดูหน้าสาธารณะ</span>
                         </Link>
-                        <button 
+                        <button
                             onClick={() => setShowSettingsModal(true)}
-                            className="bg-primary hover:bg-primary/90 text-white px-4 py-2.5 rounded-xl transition-all shadow-lg shadow-primary/20 flex items-center gap-2 text-xs font-black uppercase tracking-widest active:scale-95"
+                            className="bg-[#050579] hover:bg-[#07079A] text-white px-4 py-2.5 rounded-xl transition-colors shadow-[0_18px_40px_-26px_rgba(5,5,121,0.5)] flex items-center gap-2 text-xs font-black uppercase tracking-widest active:scale-95"
                         >
                             <Settings size={16} />
                             <span className="hidden lg:block">ปรับแต่งธีม</span>
                         </button>
-                    </div>
-                </div>
-            </nav>
+                    </>
+                )}
+            />
 
             <main className="max-w-6xl mx-auto px-6 py-12">
                 {/* Stats & Tools Bar */}
@@ -369,18 +370,18 @@ export default function CatalogDetail() {
                         </div>
                         <div>
                             <div className="text-3xl font-black">{products.length}</div>
-                            <div className="text-[10px] text-foreground/30 font-black uppercase tracking-[0.2em]">Total Products</div>
+                            <div className="text-[10px] text-[#475569] font-black uppercase tracking-[0.16em]">จำนวนสินค้า</div>
                         </div>
                     </div>
                     
                     <div className="bg-card-bg border border-glass-border p-8 rounded-[32px] flex items-center justify-between glass-card shadow-2xl group">
                          <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-amber-500/10 rounded-2xl flex items-center justify-center text-amber-500 shadow-inner">
+                            <div className="w-16 h-16 bg-[#F97316]/10 rounded-2xl flex items-center justify-center text-[#F97316] shadow-inner">
                                 <QrIcon size={28} />
                             </div>
                             <div>
-                                <div className="text-sm font-black tracking-tight">QR Access Point</div>
-                                <div className="text-[10px] text-foreground/30 font-black uppercase tracking-[0.2em]">Instant Share</div>
+                                <div className="text-sm font-black tracking-tight text-[#0F172A]">QR Access Point</div>
+                                <div className="text-[10px] text-[#475569] font-black uppercase tracking-[0.16em]">แชร์ทันที</div>
                             </div>
                         </div>
                         <div className="flex items-center gap-2">
@@ -408,12 +409,12 @@ export default function CatalogDetail() {
                 {/* Products List Header */}
                 <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
                     <div>
-                        <h2 className="text-4xl font-black tracking-tighter">สินค้าในเล่ม</h2>
-                        <p className="text-foreground/40 text-lg font-medium">จัดการรายการ Multimedia และปุ่ม Interactive สำหรับสินค้าแต่ละชิ้น</p>
+                        <h2 className="text-4xl font-black tracking-tighter text-[#050579]">สินค้าในเล่ม</h2>
+                        <p className="text-[#334155] text-lg font-semibold">จัดการรายการ Multimedia และปุ่ม Interactive สำหรับสินค้าแต่ละชิ้น</p>
                     </div>
                     <button
                         onClick={() => setShowProductModal(true)}
-                        className="bg-foreground text-background px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-all active:scale-95 shadow-2xl shadow-foreground/5 uppercase tracking-widest text-xs"
+                        className="bg-[#F97316] hover:bg-[#EA580C] text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-colors active:scale-95 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] uppercase tracking-[0.12em] text-xs"
                     >
                         <Plus size={20} /> เพิ่มสินค้าใหม่
                     </button>
@@ -426,7 +427,7 @@ export default function CatalogDetail() {
                             <Package size={56} className="text-foreground/10" />
                         </div>
                         <h3 className="text-3xl font-black mb-4 tracking-tight">ยังไม่พบรายการสินค้า</h3>
-                        <p className="text-foreground/30 max-w-md mx-auto mb-12 text-lg font-medium leading-relaxed">
+                        <p className="text-[#64748B] max-w-md mx-auto mb-12 text-lg font-medium leading-relaxed">
                             เริ่มต้นสร้างประสบการณ์ช้อปปิ้งออนไลน์ด้วยการเพิ่มสินค้าชิ้นแรก พร้อมปุ่มคำสั่งอัจฉริยะ (Interactive Buttons)
                         </p>
                         <button 
@@ -455,10 +456,10 @@ export default function CatalogDetail() {
                                     <div className="flex flex-wrap gap-6 text-[10px] font-black uppercase tracking-widest">
                                         <span className="text-primary bg-primary/5 px-3 py-1 rounded-lg border border-primary/10">฿{parseFloat(product.price).toLocaleString()}</span>
                                         {product.interactive_links?.order_form && (
-                                            <span className="flex items-center gap-2 text-emerald-500 bg-emerald-500/5 px-3 py-1 rounded-lg border border-emerald-500/10"><ShoppingCart size={14} /> Order Mode Enabled</span>
+                                            <span className="flex items-center gap-2 text-[#16A34A] bg-[#16A34A]/5 px-3 py-1 rounded-lg border border-[#16A34A]/15"><ShoppingCart size={14} /> Order Mode Enabled</span>
                                         )}
                                         {product.interactive_links?.website && (
-                                            <span className="flex items-center gap-2 text-indigo-500 bg-indigo-500/5 px-3 py-1 rounded-lg border border-indigo-500/10"><Globe size={14} /> Web Link Active</span>
+                                            <span className="flex items-center gap-2 text-primary bg-primary/5 px-3 py-1 rounded-lg border border-primary/15"><Globe size={14} /> Web Link Active</span>
                                         )}
                                     </div>
                                 </div>
@@ -485,13 +486,13 @@ export default function CatalogDetail() {
                 )}
 
                 {/* PDF Generation Tool */}
-                <div className="mt-20 p-10 bg-gradient-to-br from-primary/5 via-indigo-500/5 to-purple-500/5 border border-primary/10 rounded-[48px] flex flex-col lg:flex-row items-center justify-between gap-10 relative overflow-hidden group">
+                <div className="mt-20 p-10 bg-gradient-to-br from-primary/5 via-[#050579]/[0.03] to-[#EEF0FF] border border-primary/10 rounded-[48px] flex flex-col lg:flex-row items-center justify-between gap-10 relative overflow-hidden group">
                     <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/20 transition-colors" />
                     <div className="relative z-10">
                         <h3 className="text-3xl font-black mb-4 flex items-center gap-4 tracking-tighter">
                             <Download className="text-primary" size={32} /> การประมวลผล PDF
                         </h3>
-                        <p className="text-foreground/40 text-lg max-w-xl leading-relaxed font-medium">
+                        <p className="text-[#475569] text-lg max-w-xl leading-relaxed font-medium">
                             สร้างไฟล์แคตตาล็อกรูปแบบทางการ เพื่อให้ลูกค้าสามารถเปิดดูได้ทุกที่แม้ไม่มีอินเทอร์เน็ต ระบบรองรับปุ่มกดใน PDF อย่างสมบูรณ์
                         </p>
                     </div>
@@ -499,10 +500,10 @@ export default function CatalogDetail() {
                         <button 
                             onClick={generatePdf}
                             disabled={generating}
-                            className="bg-foreground text-background px-10 py-5 rounded-[24px] font-black flex items-center gap-4 hover:opacity-90 transition-all shadow-3xl shadow-foreground/5 active:scale-95 uppercase tracking-widest text-sm disabled:opacity-50"
+                            className="bg-primary text-white px-10 py-5 rounded-[24px] font-black flex items-center gap-4 hover:bg-[#07079A] transition-all shadow-3xl shadow-primary/20 active:scale-95 uppercase tracking-widest text-sm disabled:opacity-50"
                         >
                             <RefreshCw size={20} className={generating ? "animate-spin" : ""} />
-                            {generating ? 'Processing...' : (catalog?.pdf_url ? 'Regenerate PDF' : 'Generate Digital Catalog (PDF)')}
+                            {generating ? 'กำลังประมวลผล...' : (catalog?.pdf_url ? 'สร้าง PDF ใหม่' : 'สร้างแคตตาล็อก PDF')}
                         </button>
                         
                         {catalog?.pdf_url && (
@@ -532,7 +533,7 @@ export default function CatalogDetail() {
                         <div className="flex items-center justify-between mb-12">
                             <div>
                                 <h2 className="text-4xl font-black tracking-tighter">เพิ่มสินค้าใหม่</h2>
-                                <p className="text-foreground/40 text-lg mt-2 font-medium">ป้อนข้อมูลพื้นฐานสินค้าและตั้งค่าระบบอัจฉริยะ</p>
+                                <p className="text-[#475569] text-lg mt-2 font-medium">ป้อนข้อมูลพื้นฐานสินค้าและตั้งค่าระบบอัจฉริยะ</p>
                             </div>
                             <div className="w-20 h-20 bg-primary/5 rounded-[32px] flex items-center justify-center text-primary border border-primary/10">
                                 <Package size={40} />
@@ -543,7 +544,7 @@ export default function CatalogDetail() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="space-y-6">
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">ชื่อสินค้าและรุ่น</label>
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ชื่อสินค้าและรุ่น</label>
                                         <input
                                             required
                                             className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
@@ -553,7 +554,7 @@ export default function CatalogDetail() {
                                         />
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">ราคาสินค้า (บาท)</label>
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ราคาสินค้า (บาท)</label>
                                         <input
                                             type="number"
                                             className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-primary font-black text-2xl tracking-tight"
@@ -563,7 +564,7 @@ export default function CatalogDetail() {
                                         />
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">แคปชั่น / รายละเอียด</label>
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แคปชั่น / รายละเอียด</label>
                                         <textarea
                                             className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 resize-none font-medium leading-relaxed"
                                             placeholder="อธิบายสรรพสินค้าของคุณ..."
@@ -616,8 +617,8 @@ export default function CatalogDetail() {
                             </div>
                             
                             <div className="flex gap-6 pt-6">
-                                <button type="button" onClick={() => setShowProductModal(false)} className="flex-1 py-5 text-foreground/30 font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">Cancel</button>
-                                <button className="flex-[2] bg-primary hover:opacity-90 text-white font-black py-5 rounded-[24px] shadow-3xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs">Deploy Product To Catalog</button>
+                                <button type="button" onClick={() => setShowProductModal(false)} className="flex-1 py-5 text-[#64748B] font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">ยกเลิก</button>
+                                <button className="flex-[2] bg-primary hover:bg-[#07079A] text-white font-black py-5 rounded-[24px] shadow-3xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs">บันทึกสินค้าเข้ารายการ</button>
                             </div>
                         </form>
                     </div>
@@ -636,9 +637,9 @@ export default function CatalogDetail() {
                         <div className="flex items-center justify-between mb-12">
                             <div>
                                 <h2 className="text-4xl font-black tracking-tighter">แก้ไขสินค้า</h2>
-                                <p className="text-foreground/40 text-lg mt-2 font-medium">อัพเดทข้อมูลสินค้าและตั้งค่าระบบ</p>
+                                <p className="text-[#475569] text-lg mt-2 font-medium">อัพเดทข้อมูลสินค้าและตั้งค่าระบบ</p>
                             </div>
-                            <div className="w-20 h-20 bg-amber-500/5 rounded-[32px] flex items-center justify-center text-amber-500 border border-amber-500/10">
+                            <div className="w-20 h-20 bg-[#F97316]/5 rounded-[32px] flex items-center justify-center text-[#F97316] border border-[#F97316]/15">
                                 <Pencil size={40} />
                             </div>
                         </div>
@@ -647,7 +648,7 @@ export default function CatalogDetail() {
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
                                 <div className="space-y-6">
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">ชื่อสินค้าและรุ่น</label>
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ชื่อสินค้าและรุ่น</label>
                                         <input
                                             required
                                             className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
@@ -657,7 +658,7 @@ export default function CatalogDetail() {
                                         />
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">ราคาสินค้า (บาท)</label>
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ราคาสินค้า (บาท)</label>
                                         <input
                                             type="number"
                                             className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-primary font-black text-2xl tracking-tight"
@@ -667,7 +668,7 @@ export default function CatalogDetail() {
                                         />
                                     </div>
                                     <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">แคปชั่น / รายละเอียด</label>
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แคปชั่น / รายละเอียด</label>
                                         <textarea
                                             className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 resize-none font-medium leading-relaxed"
                                             placeholder="อธิบายสรรพสินค้าของคุณ..."
@@ -720,8 +721,8 @@ export default function CatalogDetail() {
                             </div>
 
                             <div className="flex gap-6 pt-6">
-                                <button type="button" onClick={closeEditModal} className="flex-1 py-5 text-foreground/30 font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">Cancel</button>
-                                <button className="flex-[2] bg-amber-500 hover:opacity-90 text-white font-black py-5 rounded-[24px] shadow-3xl shadow-amber-500/20 transition-all active:scale-95 uppercase tracking-widest text-xs">Update Product</button>
+                                <button type="button" onClick={closeEditModal} className="flex-1 py-5 text-[#64748B] font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">ยกเลิก</button>
+                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white font-black py-5 rounded-[24px] shadow-3xl shadow-[#F97316]/20 transition-all active:scale-95 uppercase tracking-widest text-xs">อัพเดทสินค้า</button>
                             </div>
                         </form>
                     </div>
@@ -742,7 +743,7 @@ export default function CatalogDetail() {
 
                         <div className="space-y-10 max-h-[65vh] overflow-y-auto pr-4 custom-scrollbar">
                             <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">TITLE & BRANDING</label>
+                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">TITLE & BRANDING</label>
                                 <input
                                     className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-2xl font-black tracking-tight"
                                     value={settings.title}
@@ -751,7 +752,7 @@ export default function CatalogDetail() {
                             </div>
 
                             <div className="space-y-6">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">THEME ARCHITECTURE</label>
+                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">THEME ARCHITECTURE</label>
                                 <div className="grid grid-cols-2 gap-4">
                                     {[
                                         { id: 'standard', name: 'ธุรกิจทั่วไป', icon: Package },
@@ -762,7 +763,7 @@ export default function CatalogDetail() {
                                         <button 
                                             key={temp.id}
                                             onClick={() => setSettings({...settings, template_id: temp.id})}
-                                            className={`p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-4 group ${settings.template_id === temp.id ? 'bg-primary/5 border-primary text-primary shadow-xl shadow-primary/5' : 'bg-background border-foreground/5 text-foreground/30 hover:border-foreground/10 hover:text-foreground/50'}`}
+                                            className={`p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-4 group ${settings.template_id === temp.id ? 'bg-primary/5 border-primary text-primary shadow-xl shadow-primary/5' : 'bg-background border-foreground/5 text-[#64748B] hover:border-foreground/10 hover:text-[#475569]'}`}
                                         >
                                             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${settings.template_id === temp.id ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'bg-foreground/5 group-hover:bg-foreground/10'}`}>
                                                 <temp.icon size={24} />
@@ -774,7 +775,7 @@ export default function CatalogDetail() {
                             </div>
 
                             <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">EMPHASIS STICKERS</label>
+                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">EMPHASIS STICKERS</label>
                                 <div className="flex flex-wrap gap-3">
                                     {['🔥 HOT DEAL', '✨ NEW ARRIVAL', '💎 PREMIUM', '🚀 SALE', '🎯 RECOMMENDED'].map(sticker => (
                                         <button 
@@ -789,7 +790,7 @@ export default function CatalogDetail() {
                                                         : [...settings.stickers, sticker]
                                                 });
                                             }}
-                                            className={`px-4 py-2 rounded-xl border text-[10px] font-black tracking-widest transition-all ${settings.stickers.includes(sticker) ? 'bg-amber-500 border-amber-500 text-white shadow-xl shadow-amber-500/20 scale-105' : 'bg-foreground/5 border-transparent text-foreground/30 hover:border-foreground/10'}`}
+                                            className={`px-4 py-2 rounded-xl border text-[10px] font-black tracking-widest transition-all ${settings.stickers.includes(sticker) ? 'bg-[#F97316] border-[#F97316] text-white shadow-xl shadow-[#F97316]/20 scale-105' : 'bg-foreground/5 border-transparent text-[#64748B] hover:border-foreground/10'}`}
                                         >
                                             {sticker}
                                         </button>
@@ -799,7 +800,7 @@ export default function CatalogDetail() {
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">PRIMARY COLOR</label>
+                                    <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">PRIMARY COLOR</label>
                                     <div className="flex items-center gap-4 bg-foreground/5 p-4 rounded-2xl border border-foreground/10">
                                         <input
                                             type="color"
@@ -817,7 +818,7 @@ export default function CatalogDetail() {
                                     </div>
                                 </div>
                                 <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">CUSTOM SLUG URL</label>
+                                    <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">CUSTOM SLUG URL</label>
                                     <div className="flex items-center bg-foreground/5 p-4 rounded-2xl border border-foreground/10 focus-within:ring-2 focus-within:ring-primary/20 transition-all font-black text-sm">
                                         <span className="opacity-20 mr-1 font-mono">/</span>
                                         <input
@@ -831,10 +832,10 @@ export default function CatalogDetail() {
                             </div>
 
                             <div className="space-y-6 pt-6 border-t border-foreground/5">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1 flex items-center gap-2">
+                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1 flex items-center gap-2">
                                     <Video size={16} className="text-primary" /> VIDEO SHOWCASE
                                 </label>
-                                <p className="text-xs text-foreground/40 -mt-2">อัพโหลดวิดีโอแนะนำแคตตาล็อก สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
+                                <p className="text-xs text-[#475569] -mt-2">อัพโหลดวิดีโอแนะนำแคตตาล็อก สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
                                 <VideoUpload
                                     value={settings.video_config}
                                     onChange={(config) => setSettings({ ...settings, video_config: config })}
@@ -842,7 +843,7 @@ export default function CatalogDetail() {
                             </div>
 
                             <div className="space-y-6 pt-6 border-t border-foreground/5">
-                                <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-[0.2rem] ml-1">CATALOG MASTER LINKS</label>
+                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">CATALOG MASTER LINKS</label>
                                 <div className="grid grid-cols-1 gap-4">
                                     <div className="flex items-center bg-foreground/[0.02] border border-foreground/10 rounded-[20px] px-5 py-4 focus-within:ring-2 focus-within:ring-primary/20 transition-all group">
                                         <Globe size={20} className="text-foreground/20 group-focus-within:text-primary transition-colors mr-4" />
@@ -914,10 +915,10 @@ export default function CatalogDetail() {
 function QrCodeModal({ url, title, onClose }: { url: string, title: string, onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
       
-      <div className="bg-[#101010] border border-white/10 rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-black/50 hover:bg-black rounded-full flex items-center justify-center text-white transition-colors border border-white/10">
+      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
           <ArrowLeft size={24} />
         </button>
 
@@ -927,7 +928,7 @@ function QrCodeModal({ url, title, onClose }: { url: string, title: string, onCl
           </div>
           
           <h3 className="text-2xl font-black mb-4">QR Code</h3>
-          <p className="text-gray-400 mb-8">สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ</p>
+          <p className="text-[#475569] mb-8">สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ</p>
           
           <div className="bg-white p-6 rounded-2xl mb-6">
             <QrCodeImage 
@@ -937,8 +938,8 @@ function QrCodeModal({ url, title, onClose }: { url: string, title: string, onCl
             />
           </div>
           
-          <p className="text-sm text-gray-500 mb-2">{title}</p>
-          <p className="text-xs text-gray-600">{url}</p>
+          <p className="text-sm text-[#475569] mb-2">{title}</p>
+          <p className="text-xs text-[#64748B]">{url}</p>
         </div>
       </div>
     </div>
@@ -980,10 +981,10 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
       
-      <div className="bg-[#101010] border border-white/10 rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-black/50 hover:bg-black rounded-full flex items-center justify-center text-white transition-colors border border-white/10">
+      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
           <ArrowLeft size={24} />
         </button>
 
@@ -993,7 +994,7 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
           </div>
           
           <h3 className="text-2xl font-black mb-4">แชร์แคตตาล็อก</h3>
-          <p className="text-gray-400 mb-8">เชิญเพื่อนๆ มาชมสินค้าในแคตตาล็อกของคุณ</p>
+          <p className="text-[#475569] mb-8">เชิญเพื่อนๆ มาชมสินค้าในแคตตาล็อกของคุณ</p>
           
           <div className="space-y-3 mb-6">
             {shareLinks.map((link) => (

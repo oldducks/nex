@@ -45,10 +45,24 @@ export function Logo({ size = "md", showText = true, asLink = true, className = 
 }
 
 // Simple inline logo for navbars
-export function LogoInline({ className = "" }: { className?: string }) {
+export function LogoInline({
+  className = "",
+  size = "md",
+  href = "/",
+}: {
+  className?: string;
+  size?: "sm" | "md" | "lg";
+  href?: string;
+}) {
+  const sizeClass = {
+    sm: "h-6 w-6",
+    md: "h-8 w-8",
+    lg: "h-14 w-44",
+  }[size];
+
   return (
-    <Link href="/" className={`flex items-center gap-2 ${className}`}>
-      <div className="relative h-8 w-8 overflow-hidden rounded-lg">
+    <Link href={href} className={`flex items-center gap-2 ${className}`}>
+      <div className={`relative overflow-hidden rounded-lg ${sizeClass}`}>
         <Image src="/nex_logo_nobg.png" alt="NEX" fill className="object-contain" unoptimized />
       </div>
     </Link>

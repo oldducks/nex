@@ -1508,3 +1508,263 @@ During investigation of a report that `manage/control-center` opened at a mid-pa
 - `AGENT_HANDOVER.md`
 
 *Updated on 2026-03-18*
+
+---
+
+### 2026-03-19: UX/UI Frontend Progress Tracker + Main Landing Redesign
+
+**Goal**: เริ่มงาน UX/UI แบบเดินทีละหน้าอย่างเป็นระบบ, ทำหน้าแรกใหม่, และตั้งไฟล์ tracker สำหรับใช้ต่อเนื่องข้าม session
+
+**What changed**:
+
+1. **สร้างไฟล์ tracker กลางสำหรับงาน UX/UI**
+   - เพิ่มไฟล์ `docs/FRONTEND_UX_UI_PROGRESS.md`
+   - ใช้สถานะ `done / in_progress / pending / blocked / skipped`
+   - แยกงานเป็นรายหน้า/รายหมวดของ platform
+   - ใช้ `Summary` เพื่อนับจำนวนงานคงเหลือ
+
+2. **วาง baseline งาน UX/UI ปัจจุบัน**
+   - รวมทั้งหมด `31` หน้า/จุดงาน
+   - ปัจจุบัน `done: 2`
+   - หน้า/จุดที่ทำแล้ว:
+     - `frontend/src/app/globals.css`
+     - `frontend/src/app/page.tsx`
+
+3. **รีดีไซน์หน้าแรกของระบบ (`/`)**
+   - ไฟล์: `frontend/src/app/page.tsx`
+   - เปลี่ยนจากหน้า CTA แบบสั้นมาก ไปเป็น landing page ที่มี:
+     - top nav
+     - hero copy ที่สื่อสาร value ชัดขึ้น
+     - proof stats
+     - sections สำหรับ value proposition และ audience
+     - quick-action panel ที่ยังคง login/register modal เดิมไว้
+   - ปรับ spacing desktop เพิ่มเติมหลัง review:
+     - container หลักเป็น `flex min-h-screen`
+     - hero section จัด vertical rhythm ใหม่
+     - footer ถูกดันลงล่างเพื่อลดก้อนพื้นที่ว่างกลางหน้า
+   - ตรวจ `eslint` เฉพาะไฟล์นี้ผ่าน
+
+4. **การ deploy / push workflow ที่ยืนยันแล้วใน session นี้**
+   - Commit ล่าสุดของงานรอบนี้:
+     - `e78fe5b` — `fix(ux): redesign landing page spacing and tracker`
+   - Commit นี้ถูก push ขึ้น `origin/main` แล้วโดย Antigravity
+   - หมายเหตุสำคัญ:
+     - session ของ Codex นี้ **commit ได้ แต่ push เองไม่ได้** ถ้าไม่มี GitHub credential
+     - workflow ที่ควรใช้ต่อ:
+       1. Codex แก้ทีละหน้า
+       2. User review งาน
+       3. Antigravity เป็นคน `commit/push` เมื่อพร้อม
+
+**Files updated**:
+- `frontend/src/app/page.tsx`
+- `docs/FRONTEND_UX_UI_PROGRESS.md`
+- `AGENT_HANDOVER.md`
+
+**Next recommended page**:
+- `frontend/src/app/home-preview/page.tsx`
+
+**Notes for next session**:
+- ผู้ใช้ต้องการ review งานแบบ `ทีละหน้า`
+- อย่ากระโดดไปแก้หลายหน้าพร้อมกันโดยไม่ขอ
+- อย่าหลุดประเด็นไปเรื่อง `scroll Y` ถ้าผู้ใช้ไม่ได้สั่งตรง ๆ
+- ให้อัปเดต `docs/FRONTEND_UX_UI_PROGRESS.md` ทุกครั้งที่เริ่ม/จบหน้า
+
+*Updated by Codex on 2026-03-19*
+
+---
+
+### 2026-03-20: UX/UI Standardization Sprint - Manage Pages (Top Bar + Color + Thai Mode)
+
+**Goal**: ยกระดับความสม่ำเสมอของหน้า Manage ให้ตรง `NEX_UX_UI_STANDARD_V2` โดยเน้น
+- top bar มาตรฐานเดียวกัน
+- สีตาม NEX palette (Navy/Orange/Soft-blue)
+- ภาษาไทยในโหมดจัดการ
+- typography ให้อ่านง่ายเท่ากันระหว่างหน้า
+
+**What changed**:
+
+1. **อ่านและยืนยันมาตรฐานก่อนลงมือ**
+   - ตรวจเอกสารอ้างอิง:
+     - `docs/NEX_UX_UI_STANDARD_V2.md`
+     - `docs/NEX_UI_RULES_V1.md`
+     - `docs/NEX_BRAND_GUIDELINE_V2.md`
+     - `docs/NEX_COLOR_SYSTEM_V2.md`
+     - `docs/NEX_TAILWIND_TOKENS_V2.md`
+     - `docs/FRONTEND_UX_UI_PROGRESS.md`
+
+2. **`/manage/catalogs/[id]`**
+   - ปรับสีข้อความ/label/chip/button ให้ตรง NEX theme
+   - ลดสีหลุดระบบ (`amber/indigo/emerald/purple`) ให้เหลือ semantic ที่กำหนด
+   - แปล action หลักเป็นไทยใน modal/button สำคัญ
+   - ปรับคอนทราสต์ให้ชัดขึ้นในส่วน header และ empty state
+
+3. **`/manage/namecard`**
+   - รีแมปสีทั้งหน้าไป NEX palette (soft blue background + white surface + navy/orange actions)
+   - เปลี่ยน top bar เป็น `ManageTopBar` มาตรฐาน
+   - ปรับชื่อใน bar เป็นไทย:
+     - subtitle: `ระบบจัดการนามบัตร`
+     - title: `เครื่องมือสร้างนามบัตร`
+     - action: `ดาวน์โหลด PNG`
+
+4. **`/manage/qr`**
+   - เปลี่ยน top bar เป็น `ManageTopBar`
+   - ปรับสีทั้งหน้าให้เข้าสีมาตรฐาน NEX
+   - แปล UI เป็นไทย (รวมข้อความ section และสถานะสำคัญ)
+   - เพิ่มตัวแปลงประเภท QR เป็น label ไทยในรายการที่บันทึก
+   - ขยาย typography (label/helper/meta/button) ให้ไม่เล็กกว่าหน้าอื่น
+   - lint เฉพาะไฟล์ผ่าน
+
+5. **`/manage/create-lite`**
+   - เปลี่ยน top bar เป็น `ManageTopBar` มาตรฐาน
+   - รีแมปสีหลักทั้งหน้าให้ตรง NEX system
+   - แปลข้อความ UI หลักเป็นไทย (หมวด, ปุ่ม, variant action, preview label)
+   - ปรับ typography และ readability ให้เท่าหน้า manage อื่น
+
+6. **Top bar มาตรฐานเพิ่มอีก 3 หน้า**
+   - `/manage/dashboard`
+   - `/manage/leads`
+   - `/manage/landing-pages`
+   - ทั้งหมดเปลี่ยนมาใช้ `ManageTopBar` พร้อมคง action เดิมของแต่ละหน้า
+
+7. **แก้พฤติกรรมคลิกโลโก้ใน top bar**
+   - ปัญหา: คลิกโลโก้แล้วพาไป `/` ทำให้ผู้ใช้เข้าใจว่าโดน logout
+   - วิธีแก้:
+     - เพิ่ม `href` ให้ `LogoInline`
+     - ใน `ManageTopBar` กำหนดโลโก้ไป `/manage/control-center`
+
+8. **Deploy/verification**
+   - deploy หลายรอบด้วย `docker compose up -d --build web`
+   - ทุกครั้งยืนยัน `namecard_web Started` และ `namecard_api Started`
+
+**Files updated in this sprint**:
+- `frontend/src/components/ManageTopBar.tsx` (new)
+- `frontend/src/components/Logo.tsx`
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`
+- `frontend/src/app/manage/namecard/page.tsx`
+- `frontend/src/app/manage/qr/page.tsx`
+- `frontend/src/app/manage/create-lite/page.tsx`
+- `frontend/src/app/manage/dashboard/page.tsx`
+- `frontend/src/app/manage/leads/page.tsx`
+- `frontend/src/app/manage/landing-pages/page.tsx`
+- `AGENT_HANDOVER.md`
+
+**Known notes**
+- หลายไฟล์ manage ยังมี lint debt เดิม (`any`, hook dependency warnings, `img` warning) ที่มีมาก่อนรอบนี้
+- รอบนี้โฟกัส UX/UI consistency + interaction behavior เป็นหลัก ไม่ได้ refactor typing debt ทั้งระบบ
+
+*Updated by Codex on 2026-03-20*
+
+---
+
+### 2026-03-19: UX Iteration - Catalog color system alignment (NEX standard)
+
+**Goal**: ปรับหน้ากลุ่ม Catalog ให้สีและ visual hierarchy เข้า NEX UX/UI Standard (soft blue + navy + orange CTA) และลดผลกระทบจาก theme token เดิมที่ออกโทน cyan/purple
+
+**What changed**:
+
+1. **`/manage` (`frontend/src/app/manage/page.tsx`)**
+   - รีแมปสีจาก token เดิม (`bg-primary`, `bg-foreground`, `bg-background`, `glass-card`) ไปเป็น NEX palette โดยตรง
+   - ปรับ navbar, card, empty state, action buttons, QR side panel, และ modal ทั้งหมดให้ใช้:
+     - Background: `#EEF0FF`
+     - Surface: `#FFFFFF`
+     - Border: `#D9E1F2`
+     - Navy: `#050579`
+     - Orange CTA: `#F97316` / hover `#EA580C`
+   - เก็บ lint error ในไฟล์นี้เพิ่ม:
+     - เปลี่ยน `products: any[]` -> `products: unknown[]`
+     - ลบ unused imports ที่ไม่ใช้งาน
+   - หมายเหตุ: เหลือ warning เดิมเรื่อง `useEffect` dependency array
+
+2. **Public catalog page (`frontend/src/app/catalog/[slug]/page.tsx`)**
+   - เพิ่ม page-level CSS vars (`--background`, `--foreground`, `--primary`, `--card`) เพื่อ lock ให้หน้าใช้ NEX tone ไม่โดนธีมเก่าครอบ
+   - เปลี่ยน fallback `primary_color` จาก `#6366F1` เป็น `#050579`
+   - ปรับ modal (QR / Share / Product) จาก dark panel เป็น white surface + NEX border
+   - ปรับ text รองในจุดสำคัญเป็นโทนอ่านง่ายตามระบบ (`#475569`, `#64748B`)
+
+3. **Manage catalog detail (`frontend/src/app/manage/catalogs/[id]/page.tsx`)**
+   - เปลี่ยน default/fallback `settings.primary_color` จาก `#6366F1` เป็น `#050579`
+   - เพิ่ม page-level CSS vars แบบเดียวกับ public catalog เพื่อ stabilize palette
+   - ปรับ QR/Share modal จาก dark panel เป็น white surface + NEX border + soft overlay
+
+4. **Deploy**
+   - deploy หลายรอบระหว่างปรับด้วย:
+     - `docker compose up -d --build web`
+   - สถานะสุดท้ายของ container:
+     - `namecard_web Started`
+     - `namecard_api Started`
+
+**Known gaps / next pass**:
+- ใน `catalog/[slug]` และ `manage/catalogs/[id]` ยังมี class token เก่าแบบ `bg-foreground/...` และ `bg-primary/...` กระจายหลายจุด
+- สี fallback ถูกแก้แล้วและ modal สำคัญถูก normalize แล้ว แต่ยังควรมี pass เพิ่มเพื่อ clean token เก่าให้ครบทั้งไฟล์
+- lint ทั้งสองไฟล์ยังมี issue เก่า (`any`, unused imports, hooks dependency warnings, `<img>` warning) ที่ยังไม่ถูกปิดทั้งหมดในรอบนี้
+
+**Files updated in this iteration**:
+- `frontend/src/app/manage/page.tsx`
+- `frontend/src/app/catalog/[slug]/page.tsx`
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-19*
+
+---
+
+### 2026-03-19: UX Iteration - Control Center polish + Profile editor tab mode
+
+**Goal**: เก็บงาน UX แบบ incremental ตาม feedback ผู้ใช้ โดยทำให้ rollback ได้ง่ายทุกข้อ
+
+**What changed**:
+
+1. **`manage/control-center` — layout balance + loading/empty states**
+   - ปรับสัดส่วนแถวล่างใน feature grid:
+     - การ์ด `referrals` เป็น `xl:col-span-2`
+     - การ์ด `Upgrade Card` เป็น `xl:col-span-1`
+   - แก้สัดส่วนกล่อง QR ในการ์ด referrals ไม่ให้ยืดความสูงเกินจำเป็น:
+     - เพิ่ม `sm:items-start` ใน inner grid
+   - ซ่อนบล็อก `Feature Status Section` แบบ reversible:
+     - ใช้ `SHOW_FEATURE_STATUS_SECTION = false` (โค้ดยังอยู่ ไม่ได้ลบ)
+   - เพิ่ม loading/empty states เฉพาะจุดสำคัญ:
+     - URL/QR ของ profile card
+     - URL/QR ของ referrals card
+     - metric `leadCount` (summary tile + status tile)
+     - เพิ่ม skeleton + placeholder ข้อความเมื่อไม่มีข้อมูล
+
+2. **`manage/profile` — ทดลองโหมดแท็บเพื่อลดความยาวฟอร์ม**
+   - เพิ่มโหมด `tabbed editor` แยกเป็น:
+     - Basic / Media / Links / Theme
+   - ใช้ toggle สำหรับ rollback ทันที:
+     - `ENABLE_PROFILE_EDITOR_TABS = true`
+     - หากต้องการกลับแบบเดิมให้เปลี่ยนเป็น `false`
+   - sticky quick section bar เดิมถูกแปลงให้:
+     - ในโหมดแท็บ = สลับแท็บ
+     - ในโหมดเดิม = scroll ไป section เหมือนเดิม
+   - จัดกลุ่ม section ตามแท็บ:
+     - Basic: ชื่อ/ตำแหน่ง/บริษัท/อีเมล/โทร/About/Interests
+     - Media: Profile pic/Logo/Background/Banner/Video
+     - Links: Websites/Social/QR
+     - Theme: Theme customization
+
+3. **Validation / Deploy**
+   - lint เฉพาะไฟล์ profile ผ่าน (`npx eslint src/app/manage/profile/page.tsx`)
+   - deploy ฝั่ง web หลายรอบด้วย `docker compose up -d --build web`
+   - services `namecard_web` และ `namecard_api` กลับมาสถานะ `Started` ทุกครั้ง
+
+**Git status note (important)**:
+- มี commit แล้ว 1 ตัว:
+  - `825977a` — `feat(control-center): refine layout and improve loading/empty states`
+- commit นี้มี 2 ไฟล์ (ไม่ใช่เฉพาะ control-center):
+  - `frontend/src/app/manage/control-center/page.tsx`
+  - `frontend/src/app/page.tsx` (ติดมาจาก staged เดิม)
+- ยังไม่ได้ push ต่อจากจุดนี้ใน session นี้
+
+**Files updated in this iteration**:
+- `frontend/src/app/manage/control-center/page.tsx`
+- `frontend/src/app/manage/profile/page.tsx`
+- `AGENT_HANDOVER.md`
+
+**Rollback keys for team demo**:
+- Control center feature-status block:
+  - `SHOW_FEATURE_STATUS_SECTION` (`false` = ซ่อน, `true` = แสดง)
+- Profile form mode:
+  - `ENABLE_PROFILE_EDITOR_TABS` (`true` = แท็บ, `false` = long-form เดิม)
+
+*Updated by Codex on 2026-03-19*

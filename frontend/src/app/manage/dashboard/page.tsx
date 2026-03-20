@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart as ReLineChart, Line } from 'recharts';
-import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, LayoutDashboard, Database, Loader2, LineChart, QrCode, ArrowLeft } from 'lucide-react';
-import Link from 'next/link';
+import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, Database, Loader2, LineChart, QrCode } from 'lucide-react';
+import ManageTopBar from '@/components/ManageTopBar';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -125,29 +125,19 @@ export default function AnalyticsDashboard() {
     return (
         <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
             <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.28),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
-            {/* Navbar */}
-            <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-md">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href="/manage/control-center"
-                            className="group flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-white"
-                            title="กลับหน้าเมนูหลัก"
-                        >
-                            <ArrowLeft size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
-                        </Link>
-                        <div className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#050579]">
-                            <LayoutDashboard size={24} className="text-[#050579]" />
-                            <span className="hidden sm:inline">สถิติการใช้งาน</span>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-2 sm:gap-4">
+            <ManageTopBar
+                backHref="/manage/control-center"
+                subtitle="ระบบวิเคราะห์ผล"
+                title="แดชบอร์ดสถิติการใช้งาน"
+                actions={(
+                    <>
+                        <div className="h-6 w-px bg-[#D9E1F2] mx-1" />
                         <button onClick={handleLogout} className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:bg-[#FEF2F2] hover:text-[#DC2626]" title="ออกจากระบบ">
                             <LogOut size={20} />
                         </button>
-                    </div>
-                </div>
-            </nav>
+                    </>
+                )}
+            />
 
             <main className="max-w-7xl mx-auto px-6 py-10">
                 {/* Header & Filter */}

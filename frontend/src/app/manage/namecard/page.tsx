@@ -3,9 +3,9 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import Link from 'next/link';
-import { ArrowLeft, Download, Save, Loader2, Palette, Layout, Type, Image as ImageIcon, RefreshCw } from 'lucide-react';
+import { Download, Loader2, Palette, Type } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
+import ManageTopBar from '@/components/ManageTopBar';
 
 interface NamecardData {
     name_th: string;
@@ -48,6 +48,13 @@ export default function NamecardEditor() {
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const token = Cookies.get('token');
     const uid = Cookies.get('uid');
+    const nexPageVars = {
+        '--background': '#EEF0FF',
+        '--foreground': '#0F172A',
+        '--primary': '#050579',
+        '--glass-border': 'rgba(15,23,42,0.08)',
+        '--card-bg': '#FFFFFF',
+    } as React.CSSProperties;
 
     useEffect(() => {
         if (!token) { router.push('/login'); return; }
@@ -203,37 +210,30 @@ export default function NamecardEditor() {
     );
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-            {/* Navbar */}
-            <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
-                <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link href="/manage/control-center" className="text-foreground/40 hover:text-foreground transition-colors">
-                            <ArrowLeft size={20} />
-                        </Link>
-                        <div className="font-bold text-xl tracking-tight">Namecard Editor</div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="h-6 w-px bg-foreground/10 mx-2" />
-                        <button onClick={downloadCard} className="bg-primary hover:bg-primary/90 text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95">
-                            <Download size={18} /> <span className="hidden sm:inline">Download PNG</span>
-                        </button>
-                    </div>
-                </div>
-            </nav>
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-500" style={nexPageVars}>
+            <ManageTopBar
+                backHref="/manage/control-center"
+                subtitle="ระบบจัดการนามบัตร"
+                title="เครื่องมือสร้างนามบัตร"
+                actions={(
+                    <button onClick={downloadCard} className="bg-[#F97316] hover:bg-[#EA580C] text-white font-bold px-6 py-2.5 rounded-xl flex items-center gap-2 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.55)] transition-colors active:scale-95">
+                        <Download size={18} /> <span className="hidden sm:inline">ดาวน์โหลด PNG</span>
+                    </button>
+                )}
+            />
 
             <main className="max-w-6xl mx-auto px-6 py-10">
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
                     {/* Preview */}
                     <div className="space-y-6">
-                        <h3 className="text-xl font-black mb-2 tracking-tight">Preview</h3>
+                        <h3 className="text-xl font-black mb-2 tracking-tight text-[#050579]">Preview</h3>
                         <div className="bg-card-bg p-8 rounded-[32px] border border-glass-border shadow-2xl glass-card">
-                            <canvas ref={canvasRef} className="w-full rounded-xl shadow-2xl border border-foreground/5" style={{ aspectRatio: '3.5/2' }} />
+                            <canvas ref={canvasRef} className="w-full rounded-xl shadow-2xl border border-[#D9E1F2]" style={{ aspectRatio: '3.5/2' }} />
                         </div>
 
                         {/* Template Selector */}
-                        <div className="bg-foreground/5 p-8 rounded-[32px] border border-foreground/10">
-                            <h4 className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-6 flex items-center gap-2">
+                        <div className="bg-[#F6F8FF] p-8 rounded-[32px] border border-[#D9E1F2]">
+                            <h4 className="text-[10px] font-black text-[#64748B] uppercase tracking-[0.16em] mb-6 flex items-center gap-2">
                                 <Palette size={16} className="text-primary" /> Choose Template
                             </h4>
                             <div className="flex flex-wrap gap-3">
@@ -241,7 +241,7 @@ export default function NamecardEditor() {
                                     <button 
                                         key={tpl.id} 
                                         onClick={() => setTemplate(tpl.id)}
-                                        className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${template === tpl.id ? 'bg-primary text-white shadow-lg shadow-primary/20 scale-105' : 'bg-foreground/5 text-foreground/40 hover:bg-foreground/10 hover:text-foreground'}`}>
+                                        className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all ${template === tpl.id ? 'bg-[#050579] text-white shadow-[0_18px_36px_-24px_rgba(5,5,121,0.45)] scale-105' : 'bg-white text-[#64748B] border border-[#D9E1F2] hover:border-[#C7D2E5] hover:text-[#475569]'}`}>
                                         {tpl.name}
                                     </button>
                                 ))}
@@ -253,89 +253,89 @@ export default function NamecardEditor() {
                     <div className="space-y-6">
                         <div className="bg-card-bg border border-glass-border rounded-[32px] p-8 glass-card">
                             <h3 className="text-xl font-black mb-8 flex items-center gap-3 tracking-tight">
-                                <Type size={22} className="text-primary" /> ข้อมูลบนนามบัตร
+                                <Type size={22} className="text-[#050579]" /> ข้อมูลบนนามบัตร
                             </h3>
 
                             {/* Toggles */}
-                            <div className="flex gap-6 mb-8 bg-foreground/5 p-4 rounded-2xl border border-foreground/5">
+                            <div className="flex gap-6 mb-8 bg-[#F6F8FF] p-4 rounded-2xl border border-[#D9E1F2]">
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input 
                                         type="checkbox" 
                                         checked={data.show_logo} 
                                         onChange={e => setData({ ...data, show_logo: e.target.checked })} 
-                                        className="w-5 h-5 accent-primary rounded-lg cursor-pointer" 
+                                        className="w-5 h-5 accent-[#050579] rounded-lg cursor-pointer" 
                                     />
-                                    <span className="text-sm font-bold text-foreground/60 group-hover:text-foreground transition-colors">แสดงโลโก้</span>
+                                    <span className="text-sm font-bold text-[#475569] group-hover:text-[#0F172A] transition-colors">แสดงโลโก้</span>
                                 </label>
                                 <label className="flex items-center gap-3 cursor-pointer group">
                                     <input 
                                         type="checkbox" 
                                         checked={data.show_qr} 
                                         onChange={e => setData({ ...data, show_qr: e.target.checked })} 
-                                        className="w-5 h-5 accent-primary rounded-lg cursor-pointer" 
+                                        className="w-5 h-5 accent-[#050579] rounded-lg cursor-pointer" 
                                     />
-                                    <span className="text-sm font-bold text-foreground/60 group-hover:text-foreground transition-colors">แสดง QR Code</span>
+                                    <span className="text-sm font-bold text-[#475569] group-hover:text-[#0F172A] transition-colors">แสดง QR Code</span>
                                 </label>
                             </div>
 
                             <div className="space-y-6">
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">ชื่อ (TH)</label>
-                                        <input type="text" value={data.name_th} onChange={e => setData({ ...data, name_th: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">ชื่อ (TH)</label>
+                                        <input type="text" value={data.name_th} onChange={e => setData({ ...data, name_th: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">Name (EN)</label>
-                                        <input type="text" value={data.name_en} onChange={e => setData({ ...data, name_en: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">Name (EN)</label>
+                                        <input type="text" value={data.name_en} onChange={e => setData({ ...data, name_en: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">ตำแหน่ง (TH)</label>
-                                        <input type="text" value={data.position_th} onChange={e => setData({ ...data, position_th: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">ตำแหน่ง (TH)</label>
+                                        <input type="text" value={data.position_th} onChange={e => setData({ ...data, position_th: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">Position (EN)</label>
-                                        <input type="text" value={data.position_en} onChange={e => setData({ ...data, position_en: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">Position (EN)</label>
+                                        <input type="text" value={data.position_en} onChange={e => setData({ ...data, position_en: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                     </div>
                                 </div>
 
                                 <div className="grid grid-cols-2 gap-6">
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">บริษัท (TH)</label>
-                                        <input type="text" value={data.company_th} onChange={e => setData({ ...data, company_th: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">บริษัท (TH)</label>
+                                        <input type="text" value={data.company_th} onChange={e => setData({ ...data, company_th: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                     </div>
                                     <div className="space-y-2">
-                                        <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">Company (EN)</label>
-                                        <input type="text" value={data.company_en} onChange={e => setData({ ...data, company_en: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">Company (EN)</label>
+                                        <input type="text" value={data.company_en} onChange={e => setData({ ...data, company_en: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                     </div>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">เบอร์โทร</label>
-                                    <input type="text" value={data.phone} onChange={e => setData({ ...data, phone: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                    <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">เบอร์โทร</label>
+                                    <input type="text" value={data.phone} onChange={e => setData({ ...data, phone: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">อีเมล</label>
-                                    <input type="email" value={data.email} onChange={e => setData({ ...data, email: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                    <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">อีเมล</label>
+                                    <input type="email" value={data.email} onChange={e => setData({ ...data, email: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                 </div>
 
                                 <div className="space-y-2">
-                                    <label className="block text-[10px] font-black text-foreground/30 uppercase tracking-widest ml-1">เว็บไซต์</label>
-                                    <input type="url" value={data.website} onChange={e => setData({ ...data, website: e.target.value })} className="w-full bg-foreground/5 border border-foreground/10 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all" />
+                                    <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-widest ml-1">เว็บไซต์</label>
+                                    <input type="url" value={data.website} onChange={e => setData({ ...data, website: e.target.value })} className="w-full bg-white border border-[#D9E1F2] rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30 transition-all" />
                                 </div>
                             </div>
                         </div>
 
                         {/* QR Preview */}
-                        <div className="bg-foreground/5 border border-foreground/10 rounded-[32px] p-8 text-center group">
-                            <h4 className="text-[10px] font-black text-foreground/30 uppercase tracking-[0.2em] mb-6">QR Code สำหรับนามบัตร</h4>
+                        <div className="bg-[#F6F8FF] border border-[#D9E1F2] rounded-[32px] p-8 text-center group">
+                            <h4 className="text-[10px] font-black text-[#64748B] uppercase tracking-[0.16em] mb-6">QR Code สำหรับนามบัตร</h4>
                             <div className="bg-white p-4 rounded-[24px] inline-block shadow-2xl group-hover:scale-105 transition-transform duration-500">
                                 <QrCodeImage url={data.qr_url} size={150} />
                             </div>
-                            <p className="text-[10px] font-mono text-primary mt-6 overflow-hidden text-ellipsis px-4">{data.qr_url}</p>
+                            <p className="text-[10px] font-mono text-[#050579] mt-6 overflow-hidden text-ellipsis px-4">{data.qr_url}</p>
                         </div>
                     </div>
                 </div>

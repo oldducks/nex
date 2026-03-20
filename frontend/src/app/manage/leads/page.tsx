@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
 import { 
-  Users, Mail, Phone, Briefcase, Calendar, 
-  ArrowLeft, CheckCircle
+  Mail, Phone, Briefcase, Calendar, 
+  CheckCircle
 } from 'lucide-react';
-import Link from 'next/link';
+import ManageTopBar from '@/components/ManageTopBar';
 
 interface Lead {
   id: number;
@@ -67,18 +67,12 @@ export default function LeadsPage() {
   return (
     <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.28),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-xl">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link href="/manage/control-center" className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors group hover:bg-white">
-              <ArrowLeft size={18} className="text-[#64748B] transition-colors group-hover:text-[#050579]" />
-            </Link>
-            <h1 className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#050579]">
-              <Users size={20} className="text-[#050579]" /> รายชื่อติดต่อ <span className="hidden font-normal text-[#94A3B8] sm:inline">(Leads)</span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
+      <ManageTopBar
+        backHref="/manage/control-center"
+        subtitle="ระบบบริหารลูกค้าเป้าหมาย"
+        title="รายชื่อติดต่อ"
+        actions={(
+          <>
             <div className="hidden rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-1.5 text-[10px] font-black uppercase tracking-widest text-[#64748B] md:block">
               ทั้งหมด {leads.length} รายชื่อ
             </div>
@@ -108,9 +102,9 @@ export default function LeadsPage() {
                 ดาวน์โหลด CSV
               </button>
             )}
-          </div>
-        </div>
-      </header>
+          </>
+        )}
+      />
 
       <main className="max-w-5xl mx-auto px-6 py-12">
         <div className="mb-12">

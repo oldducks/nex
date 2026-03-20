@@ -3,10 +3,9 @@
 import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import Link from "next/link";
 import html2canvas from "html2canvas";
+import ManageTopBar from "@/components/ManageTopBar";
 import {
-  ArrowLeft,
   Loader2,
   Sparkles,
   CheckCircle2,
@@ -115,16 +114,16 @@ function generateLocalAiCopy(template: CreateLiteTemplate, current: EditorState)
 }
 
 const categoryLabels: Record<TemplateCategory, string> = {
-  promotion: "Promotion",
-  product: "Product",
-  event: "Event",
-  social: "Social",
+  promotion: "โปรโมชัน",
+  product: "สินค้า",
+  event: "อีเวนต์",
+  social: "โซเชียล",
 };
 
 const exportPresets: ExportPreset[] = [
-  { id: "square", label: "Square 1080x1080", width: 1080, height: 1080 },
-  { id: "portrait", label: "Portrait 1080x1350", width: 1080, height: 1350 },
-  { id: "landscape", label: "Landscape 1200x628", width: 1200, height: 628 },
+  { id: "square", label: "สี่เหลี่ยม 1080x1080", width: 1080, height: 1080 },
+  { id: "portrait", label: "แนวตั้ง 1080x1350", width: 1080, height: 1350 },
+  { id: "landscape", label: "แนวนอน 1200x628", width: 1200, height: 628 },
 ];
 
 const templatePresetLocks: Record<string, ExportPresetId[]> = {
@@ -183,6 +182,13 @@ export default function CreateLitePage() {
   const [variantSearch, setVariantSearch] = useState("");
   const [modal, setModal] = useState<UiModalState>(defaultModalState);
   const [aiLoading, setAiLoading] = useState(false);
+  const nexPageVars = {
+    "--background": "#EEF0FF",
+    "--foreground": "#0F172A",
+    "--primary": "#050579",
+    "--glass-border": "rgba(15,23,42,0.08)",
+    "--card-bg": "#FFFFFF",
+  } as React.CSSProperties;
 
   const selectedTemplate = useMemo(
     () => templates.find((item) => item.id === selectedTemplateId) || null,
@@ -489,7 +495,7 @@ export default function CreateLitePage() {
   const handleSaveVariant = () => {
     if (!selectedTemplate) return;
 
-    const name = variantName.trim() || `Variant ${variants.length + 1}`;
+    const name = variantName.trim() || `เวอร์ชัน ${variants.length + 1}`;
     const nextVariants: SavedVariant[] = [
       { id: `${Date.now()}`, name, createdAt: new Date().toISOString(), state: editor },
       ...variants,
@@ -511,7 +517,7 @@ export default function CreateLitePage() {
     const current = variants.find((item) => item.id === variantId);
     if (!current) return;
 
-    const confirmed = await showConfirm("ยืนยันการลบ", `ต้องการลบ Variant \"${current.name}\" ใช่หรือไม่?`);
+    const confirmed = await showConfirm("ยืนยันการลบ", `ต้องการลบเวอร์ชัน \"${current.name}\" ใช่หรือไม่?`);
     if (!confirmed) return;
 
     const nextVariants = variants.filter((item) => item.id !== variantId);
@@ -522,7 +528,7 @@ export default function CreateLitePage() {
     const current = variants.find((item) => item.id === variantId);
     if (!current) return;
 
-    const nextName = (await showPrompt("เปลี่ยนชื่อ Variant", "ตั้งชื่อใหม่ให้ Variant", current.name))?.trim();
+    const nextName = (await showPrompt("เปลี่ยนชื่อเวอร์ชัน", "ตั้งชื่อใหม่ให้เวอร์ชัน", current.name))?.trim();
     if (!nextName) return;
 
     const nextVariants = variants.map((item) => (item.id === variantId ? { ...item, name: nextName } : item));
@@ -535,7 +541,7 @@ export default function CreateLitePage() {
 
     const duplicated: SavedVariant = {
       id: `${Date.now()}`,
-      name: `${current.name} (copy)`,
+      name: `${current.name} (สำเนา)`,
       createdAt: new Date().toISOString(),
       state: current.state,
     };
@@ -689,103 +695,95 @@ export default function CreateLitePage() {
 
   if (checkingAuth) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-        <Loader2 className="animate-spin text-primary" size={28} />
+      <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] flex items-center justify-center">
+        <Loader2 className="animate-spin text-[#050579]" size={28} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <header className="border-b border-foreground/10 bg-background/70 backdrop-blur sticky top-0 z-40">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/manage/control-center" className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center">
-              <ArrowLeft size={18} className="text-foreground/50" />
-            </Link>
-            <div>
-              <h1 className="font-black tracking-tight">NEX Create Lite</h1>
-              <p className="text-xs text-foreground/50">Advanced Editor + Export</p>
-            </div>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-background text-foreground" style={nexPageVars}>
+      <ManageTopBar
+        backHref="/manage/control-center"
+        subtitle="ระบบสร้างสื่อด่วน"
+        title="Create Lite สร้างสื่อด่วน"
+      />
 
       <main className="max-w-7xl mx-auto px-6 py-8 space-y-8">
-        <section className="rounded-3xl border border-foreground/10 bg-foreground/5 p-6">
+        <section className="rounded-3xl border border-[#D9E1F2] bg-white p-6">
           <div className="flex items-center justify-between gap-4 flex-wrap">
             <div>
-              <h2 className="text-xl font-black mb-1">เลือกเทมเพลตสำหรับงานสร้างสื่อ</h2>
-              <p className="text-sm text-foreground/60">รองรับ layout lock + text style + undo/redo แล้ว</p>
+              <h2 className="text-2xl font-black mb-1 text-[#050579]">เลือกเทมเพลตสำหรับงานสร้างสื่อ</h2>
+              <p className="text-base text-[#475569]">รองรับการกำหนดเลย์เอาต์ ปรับข้อความ และส่งออกไฟล์พร้อมใช้งาน</p>
             </div>
             <div className="flex gap-2 flex-wrap">
-              <button onClick={() => setSelectedCategory("all")} className={`px-3 py-2 rounded-xl text-xs font-bold border ${selectedCategory === "all" ? "bg-primary text-white border-primary" : "border-foreground/15 hover:border-primary/40"}`}>ทั้งหมด</button>
+              <button onClick={() => setSelectedCategory("all")} className={`px-3 py-2 rounded-xl text-sm font-bold border ${selectedCategory === "all" ? "bg-[#050579] text-white border-[#050579]" : "border-[#D9E1F2] text-[#475569] hover:border-[#050579]/30 hover:text-[#050579]"}`}>ทั้งหมด</button>
               {Object.entries(categoryLabels).map(([key, label]) => (
-                <button key={key} onClick={() => setSelectedCategory(key as TemplateCategory)} className={`px-3 py-2 rounded-xl text-xs font-bold border ${selectedCategory === key ? "bg-primary text-white border-primary" : "border-foreground/15 hover:border-primary/40"}`}>{label}</button>
+                <button key={key} onClick={() => setSelectedCategory(key as TemplateCategory)} className={`px-3 py-2 rounded-xl text-sm font-bold border ${selectedCategory === key ? "bg-[#050579] text-white border-[#050579]" : "border-[#D9E1F2] text-[#475569] hover:border-[#050579]/30 hover:text-[#050579]"}`}>{label}</button>
               ))}
             </div>
           </div>
         </section>
 
         {loading ? (
-          <div className="py-14 flex justify-center"><Loader2 className="animate-spin text-primary" size={26} /></div>
+          <div className="py-14 flex justify-center"><Loader2 className="animate-spin text-[#050579]" size={26} /></div>
         ) : (
           <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
             {templates.map((template) => (
-              <button key={template.id} type="button" onClick={() => setSelectedTemplateId(template.id)} className={`text-left rounded-3xl border p-4 transition-all hover:-translate-y-0.5 ${selectedTemplateId === template.id ? "border-primary bg-primary/5" : "border-foreground/10 bg-foreground/5 hover:border-primary/30"}`}>
+              <button key={template.id} type="button" onClick={() => setSelectedTemplateId(template.id)} className={`text-left rounded-3xl border p-4 transition-all hover:-translate-y-0.5 ${selectedTemplateId === template.id ? "border-[#050579]/35 bg-[#F6F8FF]" : "border-[#D9E1F2] bg-white hover:border-[#050579]/25"}`}>
                 <div className={`h-36 rounded-2xl bg-gradient-to-br ${template.previewGradient} mb-4 relative overflow-hidden`}>
                   <div className="absolute inset-0 bg-black/20" />
                   <div className="absolute left-3 bottom-3 text-white">
-                    <p className="text-sm font-black tracking-wide">{template.defaultTexts.title}</p>
-                    <p className="text-xs opacity-90">{template.defaultTexts.subtitle}</p>
+                    <p className="text-base font-black tracking-wide">{template.defaultTexts.title}</p>
+                    <p className="text-sm opacity-90">{template.defaultTexts.subtitle}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2 mb-1">
-                  <p className="font-bold text-sm">{template.name}</p>
-                  <span className="text-[10px] px-2 py-1 rounded-lg bg-foreground/10 text-foreground/70 uppercase tracking-wider">{categoryLabels[template.category]}</span>
+                  <p className="font-bold text-base text-[#0F172A]">{template.name}</p>
+                  <span className="text-xs px-2 py-1 rounded-lg bg-[#EEF0FF] text-[#475569] uppercase tracking-[0.08em]">{categoryLabels[template.category]}</span>
                 </div>
-                <p className="text-xs text-foreground/60 mb-2">{template.description}</p>
+                <p className="text-sm text-[#475569] mb-2">{template.description}</p>
               </button>
             ))}
           </section>
         )}
 
         <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6">
-          <div className="rounded-3xl border border-foreground/10 bg-card p-6 space-y-5">
+          <div className="rounded-3xl border border-[#D9E1F2] bg-white p-6 space-y-5">
             <div className="flex items-center justify-between flex-wrap gap-3">
               <div className="flex items-center gap-2">
-                <Sparkles size={16} className="text-primary" />
-                <h3 className="font-black">Editor Controls</h3>
+                <Sparkles size={16} className="text-[#050579]" />
+                <h3 className="font-black text-[#050579] text-lg">เครื่องมือแก้ไข</h3>
               </div>
               <div className="flex gap-2 flex-wrap">
                 <button
                   type="button"
                   onClick={handleAiSuggestCopy}
                   disabled={!selectedTemplate || aiLoading}
-                  className="inline-flex items-center gap-1 px-3 py-2 text-xs rounded-lg border border-primary/40 bg-primary/5 text-primary font-bold disabled:opacity-50"
+                  className="inline-flex items-center gap-1 px-3 py-2 text-sm rounded-lg border border-[#050579]/30 bg-[#EEF0FF] text-[#050579] font-bold disabled:opacity-50"
                 >
                   <Sparkles size={13} />
                   {aiLoading ? "กำลังแนะนำ..." : "AI แนะนำข้อความ"}
                 </button>
-                <button type="button" onClick={handleUndo} disabled={!canUndo} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-foreground/20 disabled:opacity-40"><Undo2 size={12} /> Undo</button>
-                <button type="button" onClick={handleRedo} disabled={!canRedo} className="inline-flex items-center gap-1 px-2 py-1 text-xs rounded-lg border border-foreground/20 disabled:opacity-40"><Redo2 size={12} /> Redo</button>
+                <button type="button" onClick={handleUndo} disabled={!canUndo} className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-lg border border-[#D9E1F2] text-[#475569] disabled:opacity-40"><Undo2 size={12} /> ย้อนกลับ</button>
+                <button type="button" onClick={handleRedo} disabled={!canRedo} className="inline-flex items-center gap-1 px-2 py-1 text-sm rounded-lg border border-[#D9E1F2] text-[#475569] disabled:opacity-40"><Redo2 size={12} /> ทำซ้ำ</button>
               </div>
             </div>
 
             {!selectedTemplate ? (
-              <p className="text-sm text-foreground/50">ยังไม่ได้เลือกเทมเพลต</p>
+              <p className="text-base text-[#64748B]">ยังไม่ได้เลือกเทมเพลต</p>
             ) : (
               <>
                 <div className="space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-foreground/50 flex items-center gap-2"><Type size={13} /> Text Editor</p>
-                  <input className="w-full bg-background border border-foreground/15 rounded-xl px-3 py-2 text-sm" value={editor.title} onChange={(e) => applyEditorPatch({ title: e.target.value })} />
-                  <input className="w-full bg-background border border-foreground/15 rounded-xl px-3 py-2 text-sm" value={editor.subtitle} onChange={(e) => applyEditorPatch({ subtitle: e.target.value })} />
-                  <input className="w-full bg-background border border-foreground/15 rounded-xl px-3 py-2 text-sm" placeholder="CTA" value={editor.cta} onChange={(e) => applyEditorPatch({ cta: e.target.value })} />
+                  <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#64748B] flex items-center gap-2"><Type size={13} /> จัดการข้อความ</p>
+                  <input className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-xl px-3 py-2 text-base" value={editor.title} onChange={(e) => applyEditorPatch({ title: e.target.value })} />
+                  <input className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-xl px-3 py-2 text-base" value={editor.subtitle} onChange={(e) => applyEditorPatch({ subtitle: e.target.value })} />
+                  <input className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-xl px-3 py-2 text-base" placeholder="ข้อความปุ่ม (CTA)" value={editor.cta} onChange={(e) => applyEditorPatch({ cta: e.target.value })} />
                 </div>
 
-                <div className="pt-2 border-t border-foreground/10 space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-foreground/50 flex items-center gap-2"><ImageIcon size={13} /> Image Replace</p>
-                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-foreground/30 text-xs cursor-pointer hover:border-primary/40">
+                <div className="pt-2 border-t border-[#D9E1F2] space-y-3">
+                  <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#64748B] flex items-center gap-2"><ImageIcon size={13} /> เปลี่ยนรูปภาพ</p>
+                  <label className="inline-flex items-center gap-2 px-3 py-2 rounded-xl border border-dashed border-[#D9E1F2] text-sm text-[#475569] cursor-pointer hover:border-[#050579]/40">
                     <ImageIcon size={13} /> อัปโหลดรูปแทนที่
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
@@ -794,77 +792,77 @@ export default function CreateLitePage() {
                     <input type="range" min={0} max={100} value={editor.imageX} onChange={(e) => applyEditorPatch({ imageX: Number(e.target.value) })} />
                     <input type="range" min={0} max={100} value={editor.imageY} onChange={(e) => applyEditorPatch({ imageY: Number(e.target.value) })} />
                   </div>
-                  <button type="button" onClick={resetImage} className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-xl border border-foreground/15 hover:border-primary/40"><RotateCcw size={13} /> รีเซ็ตรูป</button>
+                  <button type="button" onClick={resetImage} className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-[#D9E1F2] text-[#475569] hover:border-[#050579]/40"><RotateCcw size={13} /> รีเซ็ตรูป</button>
                 </div>
 
-                <div className="pt-2 border-t border-foreground/10 space-y-3">
-                  <p className="text-xs font-bold uppercase tracking-wider text-foreground/50 flex items-center gap-2"><Download size={13} /> Export Settings</p>
+                <div className="pt-2 border-t border-[#D9E1F2] space-y-3">
+                  <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#64748B] flex items-center gap-2"><Download size={13} /> ตั้งค่าการส่งออก</p>
 
                   <div className="flex flex-wrap gap-2">
                     {exportPresets.map((preset) => {
                       const disabled = !allowedPresetIds.includes(preset.id);
                       return (
-                        <button key={preset.id} type="button" disabled={disabled} onClick={() => setSelectedPresetId(preset.id)} className={`px-3 py-2 rounded-xl text-xs font-bold border disabled:opacity-40 ${selectedPresetId === preset.id ? "bg-primary text-white border-primary" : "border-foreground/15 hover:border-primary/40"}`}>{preset.label}</button>
+                        <button key={preset.id} type="button" disabled={disabled} onClick={() => setSelectedPresetId(preset.id)} className={`px-3 py-2 rounded-xl text-sm font-bold border disabled:opacity-40 ${selectedPresetId === preset.id ? "bg-[#050579] text-white border-[#050579]" : "border-[#D9E1F2] text-[#475569] hover:border-[#050579]/30 hover:text-[#050579]"}`}>{preset.label}</button>
                       );
                     })}
                   </div>
 
                   <div className="flex flex-wrap gap-2">
-                    <button type="button" onClick={() => setShowSafeZone((prev) => !prev)} className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-xl border border-foreground/15 hover:border-primary/40"><Shield size={13} /> {showSafeZone ? "ซ่อน" : "แสดง"} Safe-zone guide</button>
-                    <button type="button" onClick={handleResetDraft} className="inline-flex items-center gap-2 text-xs px-3 py-2 rounded-xl border border-red-300/40 text-red-500 hover:border-red-400/60">ล้าง Draft</button>
+                    <button type="button" onClick={() => setShowSafeZone((prev) => !prev)} className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-[#D9E1F2] text-[#475569] hover:border-[#050579]/40"><Shield size={13} /> {showSafeZone ? "ซ่อน" : "แสดง"} แนวขอบปลอดภัย</button>
+                    <button type="button" onClick={handleResetDraft} className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-red-300/40 text-red-500 hover:border-red-400/60">ล้างร่าง</button>
                   </div>
 
-                  <div className="space-y-2 rounded-xl border border-foreground/10 p-3 bg-foreground/5">
-                    <p className="text-[11px] font-bold uppercase tracking-wider text-foreground/50">Save as New Variant</p>
+                  <div className="space-y-2 rounded-xl border border-[#D9E1F2] p-3 bg-[#F6F8FF]">
+                    <p className="text-sm font-bold uppercase tracking-[0.08em] text-[#64748B]">บันทึกเป็นเวอร์ชันใหม่</p>
                     <div className="flex gap-2">
-                      <input value={variantName} onChange={(e) => setVariantName(e.target.value)} placeholder="เช่น โปรโมชันสีเข้ม" className="flex-1 bg-background border border-foreground/15 rounded-lg px-2.5 py-2 text-xs" />
-                      <button type="button" onClick={handleSaveVariant} className="px-3 py-2 rounded-lg text-xs font-bold bg-foreground text-background">Save</button>
+                      <input value={variantName} onChange={(e) => setVariantName(e.target.value)} placeholder="เช่น โปรโมชันสีเข้ม" className="flex-1 bg-white border border-[#D9E1F2] rounded-lg px-2.5 py-2 text-sm" />
+                      <button type="button" onClick={handleSaveVariant} className="px-3 py-2 rounded-lg text-sm font-bold bg-[#050579] text-white">บันทึก</button>
                     </div>
 
                     <div className="flex gap-2">
-                      <input value={variantSearch} onChange={(e) => setVariantSearch(e.target.value)} placeholder="ค้นหา variant" className="flex-1 bg-background border border-foreground/15 rounded-lg px-2.5 py-2 text-xs" />
-                      <button type="button" onClick={handleExportVariantsJson} disabled={variants.length === 0} className="px-3 py-2 rounded-lg text-xs font-bold border border-foreground/20 disabled:opacity-40">Export JSON</button>
-                      <label className="px-3 py-2 rounded-lg text-xs font-bold border border-foreground/20 cursor-pointer hover:border-primary/40">Import JSON<input type="file" accept="application/json" className="hidden" onChange={handleImportVariantsJson} /></label>
+                      <input value={variantSearch} onChange={(e) => setVariantSearch(e.target.value)} placeholder="ค้นหาเวอร์ชัน" className="flex-1 bg-white border border-[#D9E1F2] rounded-lg px-2.5 py-2 text-sm" />
+                      <button type="button" onClick={handleExportVariantsJson} disabled={variants.length === 0} className="px-3 py-2 rounded-lg text-sm font-bold border border-[#D9E1F2] text-[#475569] disabled:opacity-40">ส่งออก JSON</button>
+                      <label className="px-3 py-2 rounded-lg text-sm font-bold border border-[#D9E1F2] text-[#475569] cursor-pointer hover:border-[#050579]/40">นำเข้า JSON<input type="file" accept="application/json" className="hidden" onChange={handleImportVariantsJson} /></label>
                     </div>
 
                     {filteredVariants.length > 0 ? (
                       <div className="max-h-40 overflow-auto space-y-1.5">
                         {filteredVariants.map((variant) => (
-                          <div key={variant.id} className="w-full text-left px-2.5 py-2 rounded-lg border border-foreground/10 text-xs">
-                            <button type="button" onClick={() => handleLoadVariant(variant.id)} className="w-full text-left hover:text-primary">
+                          <div key={variant.id} className="w-full text-left px-2.5 py-2 rounded-lg border border-[#D9E1F2] text-sm">
+                            <button type="button" onClick={() => handleLoadVariant(variant.id)} className="w-full text-left hover:text-[#050579]">
                               <div className="font-semibold truncate">{variant.name}</div>
-                              <div className="text-[10px] text-foreground/45">{new Date(variant.createdAt).toLocaleString()}</div>
+                              <div className="text-xs text-[#64748B]">{new Date(variant.createdAt).toLocaleString()}</div>
                             </button>
                             <div className="mt-2 flex gap-1.5">
-                              <button type="button" onClick={() => handleLoadVariant(variant.id)} className="px-2 py-1 rounded border border-foreground/15 text-[10px] font-semibold">Load</button>
-                              <button type="button" onClick={() => handleRenameVariant(variant.id)} className="px-2 py-1 rounded border border-foreground/15 text-[10px] font-semibold">Rename</button>
-                              <button type="button" onClick={() => handleDuplicateVariant(variant.id)} className="px-2 py-1 rounded border border-foreground/15 text-[10px] font-semibold">Duplicate</button>
-                              <button type="button" onClick={() => handleDeleteVariant(variant.id)} className="px-2 py-1 rounded border border-red-300/40 text-red-500 text-[10px] font-semibold">Delete</button>
+                              <button type="button" onClick={() => handleLoadVariant(variant.id)} className="px-2 py-1 rounded border border-[#D9E1F2] text-xs font-semibold">โหลด</button>
+                              <button type="button" onClick={() => handleRenameVariant(variant.id)} className="px-2 py-1 rounded border border-[#D9E1F2] text-xs font-semibold">เปลี่ยนชื่อ</button>
+                              <button type="button" onClick={() => handleDuplicateVariant(variant.id)} className="px-2 py-1 rounded border border-[#D9E1F2] text-xs font-semibold">ทำสำเนา</button>
+                              <button type="button" onClick={() => handleDeleteVariant(variant.id)} className="px-2 py-1 rounded border border-red-300/40 text-red-500 text-xs font-semibold">ลบ</button>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <p className="text-[11px] text-foreground/45">ไม่พบ variant ที่ค้นหา</p>
+                      <p className="text-sm text-[#64748B]">ไม่พบเวอร์ชันที่ค้นหา</p>
                     )}
                   </div>
 
                   <div className="flex gap-2">
-                    <button type="button" disabled={exporting} onClick={() => handleExportImage("png")} className="px-3 py-2 rounded-xl text-xs font-bold bg-primary text-white disabled:opacity-60">Export PNG</button>
-                    <button type="button" disabled={exporting} onClick={() => handleExportImage("jpg")} className="px-3 py-2 rounded-xl text-xs font-bold border border-foreground/20 hover:border-primary/40 disabled:opacity-60">Export JPG</button>
+                    <button type="button" disabled={exporting} onClick={() => handleExportImage("png")} className="px-3 py-2 rounded-xl text-sm font-bold bg-[#F97316] hover:bg-[#EA580C] text-white disabled:opacity-60">ส่งออก PNG</button>
+                    <button type="button" disabled={exporting} onClick={() => handleExportImage("jpg")} className="px-3 py-2 rounded-xl text-sm font-bold border border-[#D9E1F2] text-[#475569] hover:border-[#050579]/40 disabled:opacity-60">ส่งออก JPG</button>
                   </div>
                 </div>
               </>
             )}
           </div>
 
-          <div className="rounded-3xl border border-foreground/10 bg-card p-6">
-            <div className="flex items-center gap-2 mb-4"><CheckCircle2 size={16} className="text-emerald-500" /><h3 className="font-black">Live Preview</h3></div>
+          <div className="rounded-3xl border border-[#D9E1F2] bg-white p-6">
+            <div className="flex items-center gap-2 mb-4"><CheckCircle2 size={16} className="text-[#16A34A]" /><h3 className="font-black text-lg text-[#050579]">ตัวอย่างแบบเรียลไทม์</h3></div>
             {!selectedTemplate ? (
-              <p className="text-sm text-foreground/50">เลือกเทมเพลตก่อนเพื่อดูตัวอย่าง</p>
+              <p className="text-base text-[#64748B]">เลือกเทมเพลตก่อนเพื่อดูตัวอย่าง</p>
             ) : (
               <div className="space-y-3">
-                <div className="w-full rounded-2xl overflow-hidden bg-foreground/5 border border-foreground/10 p-3">
+                <div className="w-full rounded-2xl overflow-hidden bg-[#F6F8FF] border border-[#D9E1F2] p-3">
                   <div ref={previewRef} className={`w-full bg-gradient-to-br ${selectedTemplate.previewGradient} relative overflow-hidden`} style={{ aspectRatio: `${selectedPreset.width} / ${selectedPreset.height}` }}>
                     {editor.imageDataUrl && (
                       <div className="absolute w-[42%] aspect-square rounded-xl overflow-hidden border border-white/30" style={{ left: `${editor.imageX}%`, top: `${editor.imageY}%`, transform: `translate(-50%, -50%) scale(${editor.imageScale / 100})` }}>
@@ -892,29 +890,29 @@ export default function CreateLitePage() {
           onClick={() => (modal.type === "alert" ? closeModal(true) : closeModal(false))}
         >
           <div
-            className="w-full max-w-md rounded-2xl border border-foreground/15 bg-card p-5 space-y-4 shadow-2xl transition-all duration-200 animate-in zoom-in-95 slide-in-from-bottom-2"
+            className="w-full max-w-md rounded-2xl border border-[#D9E1F2] bg-white p-5 space-y-4 shadow-2xl transition-all duration-200 animate-in zoom-in-95 slide-in-from-bottom-2"
             onClick={(event) => event.stopPropagation()}
           >
             <h4 className="font-black text-base">{modal.title}</h4>
-            <p className="text-sm text-foreground/70">{modal.message}</p>
+            <p className="text-sm text-[#475569]">{modal.message}</p>
             {modal.type === "prompt" && (
               <input
                 value={modal.inputValue}
                 onChange={(e) => setModal((prev) => ({ ...prev, inputValue: e.target.value }))}
-                className="w-full bg-background border border-foreground/20 rounded-xl px-3 py-2 text-sm"
+                className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-xl px-3 py-2 text-sm"
                 autoFocus
               />
             )}
             <div className="flex justify-end gap-2 pt-1">
               {modal.type !== "alert" && (
-                <button type="button" onClick={() => closeModal(false)} className="px-3 py-2 rounded-xl text-xs font-bold border border-foreground/20">
+                <button type="button" onClick={() => closeModal(false)} className="px-3 py-2 rounded-xl text-xs font-bold border border-[#D9E1F2] text-[#475569]">
                   {modal.cancelText || "ยกเลิก"}
                 </button>
               )}
               <button
                 type="button"
                 onClick={() => closeModal(modal.type === "prompt" ? modal.inputValue : true)}
-                className="px-3 py-2 rounded-xl text-xs font-bold bg-primary text-white"
+                className="px-3 py-2 rounded-xl text-xs font-bold bg-[#050579] text-white"
               >
                 {modal.confirmText || "ตกลง"}
               </button>
