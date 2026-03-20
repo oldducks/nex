@@ -343,7 +343,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     <section className={`relative mb-10 flex flex-col items-center gap-6 ${topBanners.length > 0 ? '-mt-20 sm:-mt-24' : ''}`}>
                         {/* Profile Image - Full Width Banner */}
                         <div className={`relative w-full ${topBanners.length > 0 ? 'z-10' : ''}`}>
-                            <div className="relative h-[320px] w-full overflow-hidden rounded-[28px] bg-foreground/5 sm:h-[360px]">
+                            <div className="relative w-full aspect-square max-w-[360px] mx-auto rounded-[28px] bg-foreground/5 overflow-hidden sm:max-w-full sm:h-auto">
                                 {profileImageUrl ? (
                                     <>
                                         <img
@@ -367,8 +367,8 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 )}
                                 {/* Logo Badge Premium */}
                                 {logoUrl && (
-                                    <div className="absolute right-4 top-4 flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-white/40 bg-white/88 p-2 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] backdrop-blur-md">
-                                        <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
+                                    <div className="absolute right-4 top-4 flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl border border-white/40 bg-white/88 p-1.5 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] backdrop-blur-md">
+                                        <img src={logoUrl} alt="Logo" className="w-full h-full object-contain scale-110" />
                                     </div>
                                 )}
                                 <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">

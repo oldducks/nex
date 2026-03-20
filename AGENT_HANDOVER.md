@@ -9,6 +9,70 @@
 
 ---
 
+### 2026-03-20: UX Sprint - Home CTA Row Alignment + Register CTA Orange + Public Profile Logo Scale
+**Goal**: เก็บงานปรับหน้าแรกตาม feedback ล่าสุดให้ CTA ชัดเจนขึ้น และขยายโลโก้บนหน้าพรีวิวโปรไฟล์สาธารณะให้มองเห็นง่ายขึ้น
+
+**What changed**:
+1. Home page CTA layout (สองปุ่มแถวบน)
+   - ปรับปุ่ม `เข้าสู่ระบบ` และ `สร้างบัญชีผู้ใช้ใหม่` ให้อยู่แถวเดียวกันด้วย `grid-cols-2`
+   - คงอีก 3 ปุ่มไว้เป็น full-width ใต้แถวบน
+
+2. Home page CTA color
+   - ปรับปุ่ม `สร้างบัญชีผู้ใช้ใหม่` ให้เป็นโทนส้มตาม feedback
+   - ทำให้ CTA หลักทั้งสองปุ่มในแถวบนมี visual priority เท่ากัน
+
+3. Public profile logo size
+   - ขยาย badge โลโก้บริษัทบนหน้า `/{prefix}/{uid}` จากขนาดเล็กเดิมให้เห็นชัดขึ้น
+   - เพิ่มการ scale ของภาพโลโก้เล็กน้อยเพื่อให้การรับรู้แบรนด์ดีขึ้นบน desktop/mobile
+
+4. Deploy
+   - deploy ด้วย `docker compose up -d --build web`
+   - ตรวจสอบสถานะ `namecard_web` และ `namecard_api` เป็น `Up`
+
+**Files updated (this sprint slice)**:
+- `frontend/src/app/page.tsx`
+- `frontend/src/app/[prefix]/[uid]/page.tsx`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-20*
+
+### 2026-03-20: UX Sprint - Manage Topbar Standardization + Thai UI
+**Goal**: ยกระดับ consistency ของระบบหลังบ้าน (`/manage/*`) ให้ใช้ top bar มาตรฐานเดียวกัน พร้อมภาษาไทยและโทนสี NEX
+
+**What changed**:
+1. Shared top bar component
+   - เพิ่มคอมโพเนนต์ `ManageTopBar` สำหรับ reuse ทุกหน้าในกลุ่ม manage
+   - รองรับ back button, logo area, title/subtitle, action slot
+
+2. Top bar migration
+   - ย้ายหน้า `catalogs/[id]`, `namecard`, `qr`, `create-lite`, `dashboard`, `leads`, `landing-pages` มาใช้ top bar มาตรฐาน
+   - ปรับข้อความเป็นภาษาไทยใน mode ภาษาไทย
+
+3. Color and typography tune
+   - ปรับ text hierarchy/contrast หลายส่วนให้สอดคล้อง NEX color system
+   - เพิ่มขนาดฟอนต์ในหน้า QR เพื่อแก้ปัญหาตัวหนังสือดูเล็กกว่าหน้าอื่น
+
+4. Logo navigation fix
+   - แก้ปัญหาคลิกโลโก้ใน top bar แล้วหลุด flow โดยกำหนดลิงก์ไป `/manage/control-center`
+
+5. Deploy + push
+   - deploy ผ่าน docker compose
+   - push แล้วบน `main` commit `b2facdf`
+
+**Files updated (main push b2facdf)**:
+- `frontend/src/components/ManageTopBar.tsx`
+- `frontend/src/components/Logo.tsx`
+- `frontend/src/app/manage/catalogs/[id]/page.tsx`
+- `frontend/src/app/manage/namecard/page.tsx`
+- `frontend/src/app/manage/qr/page.tsx`
+- `frontend/src/app/manage/create-lite/page.tsx`
+- `frontend/src/app/manage/dashboard/page.tsx`
+- `frontend/src/app/manage/leads/page.tsx`
+- `frontend/src/app/manage/landing-pages/page.tsx`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-20*
+
 ### 2026-03-05: Phase 1 Week 3 - Logging System Baseline (Request Logging Middleware)
 **Goal**: เริ่มงาน Logging System ตามแผน Phase 1 โดยเพิ่มชั้นบันทึก request/response สำหรับ API ทั้งระบบ
 

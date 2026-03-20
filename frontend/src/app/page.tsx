@@ -7,8 +7,9 @@ import { ArrowRight, Eye, EyeOff, Loader2, X } from "lucide-react";
 
 const quickActions = [
   { label: "เข้าสู่ระบบ", href: "/login", primary: true, isLoginModal: true },
-  { label: "NEX Solution คืออะไร", href: "https://nexsolution.cloud/what-is-nex" },
+  { label: "สร้างบัญชีผู้ใช้ใหม่", href: "/register", isRegisterModal: true },
   { label: "NEX Digital Asset Partner", href: "/register", isRegisterModal: true },
+  { label: "NEX Solution คืออะไร", href: "https://nexsolution.cloud/what-is-nex" },
   { label: "โซลูชันสำหรับองค์กร", href: "https://nexsolution.cloud/enterprise" },
 ];
 
@@ -144,33 +145,47 @@ export default function LandingPage() {
             </div>
 
             <div className="mt-14 grid gap-4 sm:mt-16">
-              {quickActions.map((item) =>
-                item.isLoginModal ? (
-                  <button
-                    key={item.label}
-                    type="button"
-                    onClick={() => setIsLoginModalOpen(true)}
-                    className={`w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition ${
-                      item.primary
-                        ? "bg-[#F97316] text-white shadow-[0_22px_45px_-30px_rgba(249,115,22,0.8)] hover:bg-[#EA580C]"
-                        : "border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]"
-                    }`}
-                  >
-                    <span className="flex items-center justify-between gap-3">
-                      <span>{item.label}</span>
-                      <ArrowRight size={18} className="shrink-0" />
-                    </span>
-                  </button>
-                ) : item.isRegisterModal ? (
+              <div className="grid grid-cols-2 gap-3">
+                {quickActions.slice(0, 2).map((item) =>
+                  item.isLoginModal ? (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => setIsLoginModalOpen(true)}
+                      className={`w-full rounded-[24px] px-4 py-5 text-left text-sm font-bold transition ${
+                        item.primary
+                          ? "bg-[#F97316] text-white shadow-[0_22px_45px_-30px_rgba(249,115,22,0.8)] hover:bg-[#EA580C]"
+                          : "border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]"
+                      }`}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span>{item.label}</span>
+                        <ArrowRight size={18} className="shrink-0" />
+                      </span>
+                    </button>
+                  ) : (
+                    <button
+                      key={item.label}
+                      type="button"
+                      onClick={() => setIsRegisterModalOpen(true)}
+                      className={`w-full rounded-[24px] px-4 py-5 text-left text-sm font-bold transition bg-[#F97316] text-white shadow-[0_22px_45px_-30px_rgba(249,115,22,0.8)] hover:bg-[#EA580C]`}
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span>{item.label}</span>
+                        <ArrowRight size={18} className="shrink-0" />
+                      </span>
+                    </button>
+                  ),
+                )}
+              </div>
+
+              {quickActions.slice(2).map((item) =>
+                item.isRegisterModal ? (
                   <button
                     key={item.label}
                     type="button"
                     onClick={() => setIsRegisterModalOpen(true)}
-                    className={`w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition ${
-                      item.primary
-                        ? "bg-[#F97316] text-white shadow-[0_22px_45px_-30px_rgba(249,115,22,0.8)] hover:bg-[#EA580C]"
-                        : "border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]"
-                    }`}
+                    className={`w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]`}
                   >
                     <span className="flex items-center justify-between gap-3">
                       <span>{item.label}</span>
@@ -181,11 +196,7 @@ export default function LandingPage() {
                   <a
                     key={item.label}
                     href={item.href}
-                    className={`block w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition ${
-                      item.primary
-                        ? "bg-[#F97316] text-white shadow-[0_22px_45px_-30px_rgba(249,115,22,0.8)] hover:bg-[#EA580C]"
-                        : "border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]"
-                    }`}
+                    className={`block w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]`}
                   >
                     <span className="flex items-center justify-between gap-3">
                       <span>{item.label}</span>
