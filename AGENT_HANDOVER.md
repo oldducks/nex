@@ -9,6 +9,58 @@
 
 ---
 
+### 2026-03-23: UX Sprint - Preview Routing + Storyboard CTA Injection (`/what-is-nex-preview`, `/nex-digital-asset-partner-preview`)
+**Goal**: ปิดงานหน้า preview ตาม feedback ล่าสุด โดยเพิ่มเส้นทางหน้าใหม่, ปรับ spacing ระหว่างภาพ, แทรกปุ่มสมัครตามเลขภาพ, และเชื่อมปุ่มจากหน้าแรกให้ไปหน้า preview ที่ถูกต้อง
+
+**What changed**:
+1. New preview route: NEX Digital Asset Partner
+   - เพิ่มหน้าใหม่ `frontend/src/app/nex-digital-asset-partner-preview/page.tsx`
+   - โหลดภาพจาก `frontend/public/nex-digital-asset-partner-preview/` และ sort ตามเลขไฟล์อัตโนมัติ
+   - ตั้ง spacing ระหว่างภาพ `15px`
+   - แทรกปุ่ม `เปิดฟอร์มสมัครสมาชิก` หลังภาพเลข `1, 6, 10, 18`
+   - ไฟล์จาก Drive ที่ได้จริงคือ `1-10, 12-18` (ไม่มี `11.jpg`)
+
+2. Update: What Is NEX preview page (`/what-is-nex-preview`)
+   - ปรับ spacing ระหว่างภาพเป็น `15px`
+   - เปลี่ยนจาก inline register form เดิมเป็นปุ่มสมัครสมาชิกแบบแทรกตามลำดับภาพ
+   - ตำแหน่งปุ่มล่าสุด: หลังภาพเลข `1, 7, 13, 15, 18`
+
+3. Home routing updates (`/`)
+   - ปุ่ม `NEX Solution คืออะไร` เปลี่ยนลิงก์ไป `/what-is-nex-preview`
+   - ปุ่ม `NEX Digital Asset Partner` เปลี่ยนลิงก์ไป `/nex-digital-asset-partner-preview`
+
+4. Deploy status
+   - deploy แล้วด้วย `docker compose up -d --build web`
+   - ตรวจสอบ route ต่อไปนี้ตอบ `200 OK`:
+     - `https://nexsolution.cloud/`
+     - `https://nexsolution.cloud/what-is-nex-preview`
+     - `https://nexsolution.cloud/nex-digital-asset-partner-preview`
+
+**Files updated (this sprint slice)**:
+- `frontend/src/app/page.tsx`
+- `frontend/src/app/what-is-nex-preview/page.tsx`
+- `frontend/src/app/nex-digital-asset-partner-preview/page.tsx`
+- `frontend/public/nex-digital-asset-partner-preview/1.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/2.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/3.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/4.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/5.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/6.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/7.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/8.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/9.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/10.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/12.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/13.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/14.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/15.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/16.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/17.jpg`
+- `frontend/public/nex-digital-asset-partner-preview/18.jpg`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-23*
+
 ### 2026-03-23: UX Sprint - What Is NEX Preview Storyboard Page (`/what-is-nex-preview`)
 **Goal**: สร้างหน้า preview สำหรับ review visual storyboard โดยใช้ภาพจริงเรียงต่อกันเท่านั้น และปรับขนาดให้เหมาะกับ desktop ตาม feedback
 

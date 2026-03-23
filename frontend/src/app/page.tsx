@@ -8,8 +8,8 @@ import { ArrowRight, Eye, EyeOff, Loader2, X } from "lucide-react";
 const quickActions = [
   { label: "เข้าสู่ระบบ", href: "/login", primary: true, isLoginModal: true },
   { label: "สร้างบัญชีผู้ใช้ใหม่", href: "/register", isRegisterModal: true },
-  { label: "NEX Digital Asset Partner", href: "/register", isRegisterModal: true },
-  { label: "NEX Solution คืออะไร", href: "https://nexsolution.cloud/what-is-nex" },
+  { label: "NEX Solution คืออะไร", href: "/what-is-nex-preview" },
+  { label: "NEX Digital Asset Partner", href: "/nex-digital-asset-partner-preview" },
   { label: "โซลูชันสำหรับองค์กร", href: "https://nexsolution.cloud/enterprise" },
 ];
 
