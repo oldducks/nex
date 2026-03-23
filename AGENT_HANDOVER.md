@@ -9,6 +9,86 @@
 
 ---
 
+### 2026-03-23: UX Sprint - What Is NEX Preview Storyboard Page (`/what-is-nex-preview`)
+**Goal**: สร้างหน้า preview สำหรับ review visual storyboard โดยใช้ภาพจริงเรียงต่อกันเท่านั้น และปรับขนาดให้เหมาะกับ desktop ตาม feedback
+
+**What changed**:
+1. New preview route for storyboard review
+   - เพิ่มหน้าใหม่ `frontend/src/app/what-is-nex-preview/page.tsx`
+   - หน้าเป็น image-only (ไม่มี hero, ไม่มี intro text, ไม่มี section header, ไม่มีปุ่ม, ไม่มี closing CTA)
+   - ใช้ image array (`1.jpg` ถึง `18.jpg`) เพื่อเพิ่ม/ลดจำนวนภาพได้ง่าย
+
+2. Image asset ingestion from shared Google Drive
+   - ดึงภาพจากโฟลเดอร์ที่แชร์และวางไว้ที่ `frontend/public/what-is-nex-preview/`
+   - ไฟล์เรียงตามลำดับชื่อ: `1.jpg` → `18.jpg`
+
+3. UX tuning from live feedback
+   - รอบแรก: ลดขนาด desktop จากเต็มคอลัมน์กว้าง (`max-w-5xl`) เป็นคอลัมน์แคบลง (`max-w-[680px]`)
+   - รอบสอง: ปรับ desktop ให้แนว `1 หน้าจอ ≈ 1 รูป` ด้วย `lg:min-h-dvh` และ image height `lg:h-dvh`
+   - คง mobile behavior ให้แสดงต่อเนื่องแบบเดิม
+
+4. Performance/implementation details
+   - ใช้ `next/image` พร้อม lazy loading ตาม default behavior
+   - ตั้ง `sizes` ให้เหมาะกับ layout desktop/mobile หลังปรับความกว้าง
+
+5. Deploy status
+   - deploy แล้วด้วย `docker compose -f docker-compose.yml up -d --build web`
+   - ตรวจสอบ route `https://nexsolution.cloud/what-is-nex-preview` ตอบ `200 OK`
+
+**Files updated (this sprint slice)**:
+- `frontend/src/app/what-is-nex-preview/page.tsx`
+- `frontend/public/what-is-nex-preview/1.jpg`
+- `frontend/public/what-is-nex-preview/2.jpg`
+- `frontend/public/what-is-nex-preview/3.jpg`
+- `frontend/public/what-is-nex-preview/4.jpg`
+- `frontend/public/what-is-nex-preview/5.jpg`
+- `frontend/public/what-is-nex-preview/6.jpg`
+- `frontend/public/what-is-nex-preview/7.jpg`
+- `frontend/public/what-is-nex-preview/8.jpg`
+- `frontend/public/what-is-nex-preview/9.jpg`
+- `frontend/public/what-is-nex-preview/10.jpg`
+- `frontend/public/what-is-nex-preview/11.jpg`
+- `frontend/public/what-is-nex-preview/12.jpg`
+- `frontend/public/what-is-nex-preview/13.jpg`
+- `frontend/public/what-is-nex-preview/14.jpg`
+- `frontend/public/what-is-nex-preview/15.jpg`
+- `frontend/public/what-is-nex-preview/16.jpg`
+- `frontend/public/what-is-nex-preview/17.jpg`
+- `frontend/public/what-is-nex-preview/18.jpg`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-23*
+
+### 2026-03-21: UX Sprint - Referrals Page (Top Bar Standard + Share Assets + KPI State/Timestamp)
+**Goal**: ปรับหน้า `/manage/referrals` ให้สอดคล้อง NEX UX/UI standard โดยคง business logic เดิม และเน้นความชัดเจนของข้อมูลสำคัญ
+
+**What changed**:
+1. Top bar standardization
+   - ย้ายจาก navbar เฉพาะหน้า ไปใช้ `ManageTopBar` เหมือนหน้า manage อื่น
+   - คง action ฝั่งขวา (`Admin Panel`, `ออกจากระบบ`) ในรูปแบบเดียวกับระบบหลังบ้าน
+
+2. Color role alignment
+   - ลดสีที่แข่งกันในหน้าและปรับกลับเข้าสู่ระบบสี NEX (`navy / orange / neutral`)
+   - ลด gradient noise ในหลาย block เพื่อให้ hierarchy ชัดและอ่านง่ายขึ้น
+
+3. Share Assets consolidation
+   - รวมส่วน `ลิงก์แนะนำ + QR + รหัสแนะนำ` เป็น section เดียวชื่อ `Share Assets`
+   - เพิ่ม action copy แยกทั้งลิงก์และรหัสแนะนำ
+
+4. KPI state + timestamp
+   - เพิ่มสถานะข้อมูล KPI: `loading`, `success`, `error`
+   - เพิ่ม badge สถานะและข้อความ `อัปเดตล่าสุด` ตามเวลาที่ดึงข้อมูลสำเร็จ
+   - เพิ่ม skeleton ขณะโหลด และปุ่ม retry เมื่อโหลดไม่สำเร็จ
+
+5. Deploy + push
+   - deploy ด้วย `docker compose up -d --build web`
+   - push แล้วบน `main` commit `80f95117cfc40da3fb3ff4696213e97f95e095bf`
+
+**Files updated (main push 80f95117cfc40da3fb3ff4696213e97f95e095bf)**:
+- `frontend/src/app/manage/referrals/page.tsx`
+
+*Updated by Codex on 2026-03-21*
+
 ### 2026-03-20: UX Sprint - Home CTA Row Alignment + Register CTA Orange + Public Profile Logo Scale
 **Goal**: เก็บงานปรับหน้าแรกตาม feedback ล่าสุดให้ CTA ชัดเจนขึ้น และขยายโลโก้บนหน้าพรีวิวโปรไฟล์สาธารณะให้มองเห็นง่ายขึ้น
 
