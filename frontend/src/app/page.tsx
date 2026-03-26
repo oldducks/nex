@@ -10,6 +10,7 @@ const quickActions = [
   { label: "สร้างบัญชีผู้ใช้ใหม่", href: "/register", isRegisterModal: true },
   { label: "NEX Solution คืออะไร", href: "/what-is-nex-preview" },
   { label: "NEX Digital Asset Partner", href: "/nex-digital-asset-partner-preview" },
+  { label: "NEX Platform", href: "#", isComingSoon: true },
   { label: "โซลูชันสำหรับองค์กร", href: "https://nexsolution.cloud/enterprise" },
 ];
 
@@ -179,32 +180,45 @@ export default function LandingPage() {
                 )}
               </div>
 
-              {quickActions.slice(2).map((item) =>
-                item.isRegisterModal ? (
+              {quickActions.slice(2).map((item) => {
+                const actionLabel = item.label?.trim() || (item.isComingSoon ? "NEX Platform" : "เมนู");
+
+                return item.isRegisterModal ? (
                   <button
-                    key={item.label}
+                    key={`${actionLabel}-${item.href}`}
                     type="button"
                     onClick={() => setIsRegisterModalOpen(true)}
                     className={`w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]`}
                   >
                     <span className="flex items-center justify-between gap-3">
-                      <span>{item.label}</span>
+                      <span>{actionLabel}</span>
+                      <ArrowRight size={18} className="shrink-0" />
+                    </span>
+                  </button>
+                ) : item.isComingSoon ? (
+                  <button
+                    key={`${actionLabel}-${item.href}`}
+                    type="button"
+                    className={`w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] cursor-default`}
+                  >
+                    <span className="flex items-center justify-between gap-3">
+                      <span>{actionLabel}</span>
                       <ArrowRight size={18} className="shrink-0" />
                     </span>
                   </button>
                 ) : (
                   <a
-                    key={item.label}
+                    key={`${actionLabel}-${item.href}`}
                     href={item.href}
                     className={`block w-full rounded-[24px] px-6 py-5 text-left text-base font-bold transition border border-[#D9E1F2] bg-[#050579] text-white shadow-[0_24px_50px_-38px_rgba(5,5,121,0.55)] hover:bg-[#07079A]`}
                   >
                     <span className="flex items-center justify-between gap-3">
-                      <span>{item.label}</span>
+                      <span>{actionLabel}</span>
                       <ArrowRight size={18} className="shrink-0" />
                     </span>
                   </a>
-                ),
-              )}
+                );
+              })}
             </div>
           </section>
         </div>
