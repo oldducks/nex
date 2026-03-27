@@ -34,12 +34,32 @@ interface LandingPage {
     created_at: string;
 }
 
+const sanitizeSlug = (value: string): string =>
+    value
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .replace(/-{2,}/g, '-');
+
+const generateSlugFallback = (): string => {
+    const now = new Date();
+    const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+    const randomPart = Math.random().toString(36).slice(2, 6);
+    return `lp-${datePart}-${randomPart}`;
+};
+
+const createSmartSlug = (value: string): string => {
+    const sanitized = sanitizeSlug(value);
+    return sanitized || generateSlugFallback();
+};
+
 export default function LandingPagesListPage() {
     const router = useRouter();
     const [pages, setPages] = useState<LandingPage[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [newPage, setNewPage] = useState({ title: '', slug: '' });
+    const [slugEdited, setSlugEdited] = useState(false);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
@@ -113,7 +133,7 @@ export default function LandingPagesListPage() {
     };
 
     const deletePage = async (id: number) => {
-        if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบหน้าแคมเปญนี้?')) return;
+        if (!confirm('คุณแน่ใจหรือไม่ว่าต้องการลบหน้าร้านนี้?')) return;
         try {
             const res = await fetch(`${API_URL}/landing-pages/${id}`, {
                 method: 'DELETE',
@@ -153,36 +173,43 @@ export default function LandingPagesListPage() {
 
             <ManageTopBar
                 backHref="/manage/control-center"
-                subtitle="ระบบจัดการหน้าแลนดิ้งเพจ"
-                title="จัดการหน้าแลนดิ้งเพจ"
+                subtitle="ระบบจัดการหน้าร้านดิจิทัล"
+                title="จัดการหน้าร้านดิจิทัล"
                 actions={(
-                    <button onClick={() => setShowModal(true)} className="bg-[#F97316] hover:bg-[#EA580C] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md">
+                    <button
+                        onClick={() => {
+                            setNewPage({ title: '', slug: '' });
+                            setSlugEdited(false);
+                            setShowModal(true);
+                        }}
+                        className="bg-[#F97316] hover:bg-[#EA580C] text-white px-5 py-2.5 rounded-xl font-bold flex items-center gap-2 shadow-md"
+                    >
                         <Plus size={18} /> <span>สร้างใหม่</span>
                     </button>
                 )}
             />
 
-            <main className="max-w-7xl mx-auto px-6 mt-10">
-                <div className="flex flex-col gap-6">
+            <main className="max-w-7xl mx-auto px-6 mt-8">
+                <div className="flex flex-col gap-4">
                     {pages.map((page) => {
                         const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/lp/${page.slug}`;
                         return (
-                            <div key={page.id} className="bg-white rounded-[32px] border border-[#D9E1F2] shadow-sm overflow-hidden flex flex-col md:flex-row h-full md:h-auto group">
+                            <div key={page.id} className="bg-white rounded-[30px] border border-[#D9E1F2] shadow-sm overflow-hidden flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_300px] group">
                                 {/* Left Content */}
-                                <div className="flex-1 p-8 md:p-10 flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#D9E1F2]">
-                                    <div className="space-y-6">
-                                        <div className="flex items-start gap-5">
-                                            <div className="w-16 h-16 bg-[#F0FDF4] rounded-2xl flex items-center justify-center text-[#16A34A] shadow-inner">
-                                                <Layout size={32} strokeWidth={2.5} />
+                                <div className="p-6 md:p-7 flex flex-col justify-between border-b md:border-b-0 md:border-r border-[#D9E1F2]">
+                                    <div className="space-y-4">
+                                        <div className="flex items-start gap-4">
+                                            <div className="w-14 h-14 bg-[#F0FDF4] rounded-2xl flex items-center justify-center text-[#16A34A] shadow-inner">
+                                                <Layout size={28} strokeWidth={2.5} />
                                             </div>
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="text-2xl font-black text-[#050579] tracking-tight">{page.title}</h3>
+                                                    <h3 className="text-[2rem] font-black text-[#050579] tracking-tight leading-tight">{page.title}</h3>
                                                     <span className="bg-[#F0FDF4] text-[#16A34A] text-[10px] font-black uppercase px-3 py-1 rounded-full border border-[#DCFCE7]">
                                                         • Active
                                                     </span>
                                                 </div>
-                                                <p className="text-[#64748B] font-medium">{page.description || 'สร้างแคมเปญ Landing Page'}</p>
+                                                <p className="text-[#64748B] font-medium">{page.description || 'สร้างหน้าร้านดิจิทัลสำหรับขายสินค้าและเก็บข้อมูลลูกค้า'}</p>
                                                 <div className="mt-2 text-[11px] font-bold text-[#94A3B8] uppercase tracking-wider">
                                                     {viewCounts[page.id] ?? 0} views • สร้างเมื่อ {new Date(page.created_at).toLocaleDateString('th-TH')}
                                                 </div>
@@ -190,65 +217,65 @@ export default function LandingPagesListPage() {
                                         </div>
 
                                         {/* Action Buttons */}
-                                        <div className="flex flex-wrap items-center gap-3 mt-8">
+                                        <div className="flex flex-wrap items-center gap-2.5 mt-5">
                                             <Link 
                                                 href={`/manage/landing-pages/${page.id}`}
-                                                className="bg-[#050579] text-white px-8 py-3.5 rounded-full font-black text-sm tracking-wide hover:bg-[#0a0a8f] transition-all shadow-md active:scale-95"
+                                                className="bg-[#050579] text-white px-6 py-3 rounded-2xl font-black text-sm tracking-wide hover:bg-[#0a0a8f] transition-all shadow-md active:scale-95"
                                             >
-                                                จัดการแคมเปญ
+                                                จัดการหน้าร้าน
                                             </Link>
                                             <Link 
                                                 href={`/lp/${page.slug}`} 
                                                 target="_blank"
-                                                className="bg-[#E2E8F0] text-[#050579] px-6 py-3.5 rounded-full font-black text-sm tracking-wide flex items-center gap-2 hover:bg-[#CBD5E0] transition-all"
+                                                className="border border-[#D9E1F2] bg-[#F6F8FF] text-[#050579] px-4 py-3 rounded-2xl font-bold text-sm tracking-wide flex items-center gap-2 hover:bg-white transition-all"
                                             >
                                                 <ExternalLink size={16} /> ดูหน้าสาธารณะ
                                             </Link>
                                             <button 
                                                 onClick={() => toggleVisibility(page)}
-                                                className="w-12 h-12 rounded-full border border-[#D9E1F2] flex items-center justify-center text-[#64748B] hover:bg-gray-50 transition-all active:scale-95"
+                                                className="w-10 h-10 rounded-2xl border border-[#D9E1F2] flex items-center justify-center text-[#64748B] hover:bg-gray-50 transition-all active:scale-95"
                                             >
-                                                <Edit2 size={18} />
+                                                <Edit2 size={16} />
                                             </button>
                                             <button 
                                                 onClick={() => deletePage(page.id)}
-                                                className="w-12 h-12 rounded-full border border-[#D9E1F2] flex items-center justify-center text-red-500 hover:bg-red-50 transition-all active:scale-95"
+                                                className="w-10 h-10 rounded-2xl border border-[#F6D5BF] flex items-center justify-center text-red-500 hover:bg-red-50 transition-all active:scale-95"
                                             >
-                                                <Trash2 size={18} />
+                                                <Trash2 size={16} />
                                             </button>
                                         </div>
                                     </div>
                                 </div>
 
                                 {/* Right QR & Social */}
-                                <div className="w-full md:w-[320px] bg-[#F8FAFC] p-8 flex flex-col items-center justify-center text-center">
-                                    <div className="bg-white p-3 rounded-2xl shadow-sm border border-[#E2E8F0] mb-4">
+                                <div className="w-full bg-[#F8FAFC] p-6 flex flex-col items-center justify-center text-center">
+                                    <div className="bg-white p-3 rounded-2xl shadow-sm border border-[#E2E8F0] mb-3">
                                         <QrCodeImage url={shareUrl} size={150} />
                                     </div>
-                                    <p className="text-[11px] font-black text-[#94A3B8] uppercase tracking-[0.15em] mb-6">สแกนเพื่อเข้าชมแคมเปญ</p>
+                                    <p className="text-[10px] font-black text-[#94A3B8] uppercase tracking-[0.14em] mb-4">สแกนเพื่อเข้าชมหน้าร้าน</p>
                                     
                                     {/* Social Icons */}
-                                    <div className="flex items-center gap-3">
+                                    <div className="flex items-center gap-2.5">
                                         <a 
                                             href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} 
                                             target="_blank" 
-                                            className="w-11 h-11 bg-[#1877F2]/10 text-[#1877F2] rounded-full flex items-center justify-center hover:bg-[#1877F2] hover:text-white transition-all transform hover:-translate-y-1"
+                                            className="w-10 h-10 bg-[#1877F2]/10 text-[#1877F2] rounded-full flex items-center justify-center hover:bg-[#1877F2] hover:text-white transition-all transform hover:-translate-y-1"
                                         >
-                                            <Facebook size={20} fill="currentColor" />
+                                            <Facebook size={18} fill="currentColor" />
                                         </a>
                                         <a 
                                             href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`} 
                                             target="_blank" 
-                                            className="w-11 h-11 bg-[#00B900]/10 text-[#00B900] rounded-full flex items-center justify-center hover:bg-[#00B900] hover:text-white transition-all transform hover:-translate-y-1"
+                                            className="w-10 h-10 bg-[#00B900]/10 text-[#00B900] rounded-full flex items-center justify-center hover:bg-[#00B900] hover:text-white transition-all transform hover:-translate-y-1"
                                         >
-                                            <LineIcon size={22} />
+                                            <LineIcon size={20} />
                                         </a>
                                         <a 
                                             href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`} 
                                             target="_blank" 
-                                            className="w-11 h-11 bg-[#25D366]/10 text-[#25D366] rounded-full flex items-center justify-center hover:bg-[#25D366] hover:text-white transition-all transform hover:-translate-y-1"
+                                            className="w-10 h-10 bg-[#25D366]/10 text-[#25D366] rounded-full flex items-center justify-center hover:bg-[#25D366] hover:text-white transition-all transform hover:-translate-y-1"
                                         >
-                                            <WhatsAppIcon size={22} />
+                                            <WhatsAppIcon size={20} />
                                         </a>
                                         <button 
                                             onClick={async () => {
@@ -257,9 +284,9 @@ export default function LandingPagesListPage() {
                                                     alert('คัดลอกลิงก์แล้ว!');
                                                 } catch {}
                                             }}
-                                            className="w-11 h-11 bg-gray-200 text-[#64748B] rounded-full flex items-center justify-center hover:bg-[#050579] hover:text-white transition-all transform hover:-translate-y-1"
+                                            className="w-10 h-10 bg-gray-200 text-[#64748B] rounded-full flex items-center justify-center hover:bg-[#050579] hover:text-white transition-all transform hover:-translate-y-1"
                                         >
-                                            <Copy size={18} />
+                                            <Copy size={16} />
                                         </button>
                                     </div>
                                 </div>
@@ -274,23 +301,23 @@ export default function LandingPagesListPage() {
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#050579]/40 backdrop-blur-md" onClick={() => setShowModal(false)} />
                     <div className="bg-white border border-[#D9E1F2] rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-2xl">
-                        <h2 className="text-2xl font-black text-[#050579] mb-2">สร้างแคมเปญใหม่</h2>
-                        <p className="text-[#64748B] text-sm mb-8 font-medium">เริ่มต้นสร้างหน้า Landing Page สำหรับโปรเจกต์ของคุณ</p>
+                        <h2 className="text-2xl font-black text-[#050579] mb-2">สร้างหน้าร้านใหม่</h2>
+                        <p className="text-[#64748B] text-sm mb-8 font-medium">เริ่มต้นสร้างหน้า NEX Sale Page สำหรับโปรเจกต์ของคุณ</p>
                         
                         <form onSubmit={createPage} className="space-y-6">
                             <div>
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase mb-2 ml-1 tracking-widest">ชื่อแคมเปญ</label>
+                                <label className="block text-[10px] font-black text-[#64748B] uppercase mb-2 ml-1 tracking-widest">ชื่อหน้าร้าน</label>
                                 <input
                                     required
                                     className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all font-bold text-[#050579]"
-                                    placeholder="เช่นโปรโมชั่นลดราคา..."
+                                    placeholder="เช่น หน้าร้านโปรโมชันเปิดตัว..."
                                     value={newPage.title}
                                     onChange={e => {
                                         const val = e.target.value;
-                                        setNewPage({ 
-                                            title: val, 
-                                            slug: val.toLowerCase().replace(/[^a-z0-9]/g, '-') 
-                                        });
+                                        setNewPage((prev) => ({
+                                            title: val,
+                                            slug: slugEdited ? prev.slug : createSmartSlug(val),
+                                        }));
                                     }}
                                 />
                             </div>
@@ -303,13 +330,19 @@ export default function LandingPagesListPage() {
                                         className="bg-transparent border-none focus:ring-0 w-full outline-none font-bold text-[#050579]"
                                         placeholder="url-slug"
                                         value={newPage.slug}
-                                        onChange={e => setNewPage({ ...newPage, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]/g, '-') })}
+                                        onChange={e => {
+                                            setSlugEdited(true);
+                                            setNewPage({ ...newPage, slug: createSmartSlug(e.target.value) });
+                                        }}
                                     />
                                 </div>
+                                <p className="mt-2 ml-1 text-[11px] font-medium text-[#94A3B8]">
+                                    ระบบรองรับเฉพาะอังกฤษ ตัวเลข และขีด ถ้าชื่อเป็นภาษาไทยจะสร้าง slug อัตโนมัติแบบปลอดภัยให้
+                                </p>
                             </div>
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 rounded-2xl border border-[#D9E1F2] font-black text-xs uppercase tracking-widest text-[#64748B] hover:bg-gray-50 transition-colors">ยกเลิก</button>
-                                <button className="flex-[2] bg-[#F97316] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-[#EA580C] transition-all active:scale-95">สร้างแคมเปญ</button>
+                                <button className="flex-[2] bg-[#F97316] text-white py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-md hover:bg-[#EA580C] transition-all active:scale-95">สร้างหน้าร้าน</button>
                             </div>
                         </form>
                     </div>

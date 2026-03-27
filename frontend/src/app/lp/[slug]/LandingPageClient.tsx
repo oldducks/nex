@@ -3,13 +3,13 @@
 import { useEffect, useState } from 'react';
 import { 
   Globe, ExternalLink, Share2, Facebook, Twitter, 
-  ChevronRight, MessageSquare, Package, Layout, Image as ImageIcon
+  ChevronRight, MessageSquare, Package, Layout, Image as ImageIcon,
+  Copy
 } from 'lucide-react';
-import Link from 'next/link';
-import { LeadForm } from '@/components/LeadForm';
-import { LogoInline, LogoFooter } from '@/components/Logo';
+import ManageTopBar from '@/components/ManageTopBar';
 import Cookies from 'js-cookie';
 import { getEmbedUrl } from '@/lib/videoUtils';
+import { QrCodeImage } from '@/components/QrCode';
 
 interface Block {
     id: string;
@@ -31,9 +31,20 @@ interface LandingPage {
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
 
+const LineIcon = ({ size = 20 }: { size?: number }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
+        <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.346 0 .627.285.627.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254l2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314"/>
+    </svg>
+);
+
+const WhatsAppIcon = ({ size = 20 }: { size?: number }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+);
+
 export default function LandingPageClient({ page }: { page: LandingPage }) {
     useEffect(() => {
-        // Log landing page view on mount
         if (page.owner_uid) {
             logLandingPageView(page.owner_uid, page.id, page.slug);
         }
@@ -69,35 +80,68 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
     };
 
     const theme = page.theme_config || {};
-    // Use NEX brand colors as default
     const primary = theme.primary_color || '#050579';
-    const accent = '#F97316';
-    const bg = theme.bg_color || '#EFF6FF';
-    const isLight = bg === '#ffffff' || bg === '#EFF6FF';
-
-    console.log('LandingPageClient rendering, content_blocks count:', page.content_blocks?.length);
-    console.log('Content blocks types:', page.content_blocks?.map((b: Block) => b.type));
+    const accent = theme.accent_color || '#F97316';
+    const shareUrl = `${SITE_URL}/lp/${page.slug}`;
 
     return (
-        <div className="relative min-h-screen overflow-hidden transition-colors duration-500" style={{ fontFamily: theme.font_family || 'inherit', backgroundColor: '#EFF6FF', color: '#0F172A' }}>
-            {/* Background gradients matching homepage */}
-            <div className="pointer-events-none absolute inset-0">
-                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.22),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.45),transparent_42%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.08),transparent_26%),linear-gradient(180deg,#f8fbff_0%,#eef6ff_48%,#e0f2fe_100%)]" />
+        <div style={{ 
+            minHeight: '100vh',
+            fontFamily: theme.font_family || 'inherit', 
+            backgroundColor: '#EFF6FF', 
+            color: '#0F172A'
+        }}>
+            {/* Background decorations */}
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, pointerEvents: 'none', zIndex: 0 }}>
+                <div style={{ 
+                    position: 'absolute', 
+                    inset: 0, 
+                    background: 'radial-gradient(circle at top left, rgba(96,165,250,0.22), transparent 34%), radial-gradient(circle at top center, rgba(191,219,254,0.45), transparent 42%), radial-gradient(circle at top right, rgba(249,115,22,0.08), transparent 26%), linear-gradient(180deg, #f8fbff 0%, #eef6ff 48%, #e0f2fe 100%)'
+                }} />
+                <div style={{ 
+                    position: 'absolute', 
+                    left: '-8rem', 
+                    top: '4rem', 
+                    width: '20rem', 
+                    height: '20rem', 
+                    borderRadius: '9999px', 
+                    backgroundColor: 'rgba(125, 211, 252, 0.25)', 
+                    filter: 'blur(120px)' 
+                }} />
+                <div style={{ 
+                    position: 'absolute', 
+                    right: '-6rem', 
+                    top: '8rem', 
+                    width: '18rem', 
+                    height: '18rem', 
+                    borderRadius: '9999px', 
+                    backgroundColor: 'rgba(186, 230, 253, 0.3)', 
+                    filter: 'blur(110px)' 
+                }} />
             </div>
-            <div className="pointer-events-none absolute left-[-8rem] top-16 h-80 w-80 rounded-full bg-sky-300/25 blur-[120px]" />
-            <div className="pointer-events-none absolute right-[-6rem] top-32 h-72 w-72 rounded-full bg-sky-200/30 blur-[110px]" />
-            
-            <nav className="fixed top-0 left-0 w-full h-16 backdrop-blur-xl flex items-center justify-between px-6 z-50" style={{ backgroundColor: 'rgba(255,255,255,0.75)', borderBottom: '1px solid rgba(0,0,0,0.05)' }}>
-                <LogoInline />
-            </nav>
 
-            <main className="max-w-4xl mx-auto px-6 pt-28 pb-20 md:pt-40 md:pb-32 flex flex-col gap-2.5">
+            <div style={{ fontFamily: "var(--font-sans), 'Sarabun', sans-serif" }}>
+                <ManageTopBar
+                    backHref="/manage/landing-pages"
+                    subtitle="ระบบจัดการหน้าร้านดิจิทัล"
+                    title={page.title || `หน้าร้าน /lp/${page.slug}`}
+                />
+            </div>
+
+            {/* Main Content */}
+            <main style={{ 
+                position: 'relative',
+                zIndex: 10,
+                maxWidth: '56rem',
+                margin: '0 auto',
+                padding: '7rem 1.5rem 2rem'
+            }}>
                 {page.content_blocks.map(block => (
-                    <div key={block.id} style={{ opacity: 1, visibility: 'visible' }}>
+                    <div key={block.id} style={{ marginBottom: '2.5rem' }}>
                         <PublicBlock 
                             block={block} 
                             theme={theme} 
-                            isLight={theme.bg_color === '#ffffff'} 
+                            isLight={true} 
                             ownerUid={page.owner_uid}
                             pageId={page.id}
                             pageSlug={page.slug}
@@ -106,79 +150,202 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                     </div>
                 ))}
 
-                {/* Lead Form - ฝากข้อมูลติดต่อกลับ (Disabled/Removed to use block-based form instead) */}
-                {/* {page.owner_uid && page.theme_config?.show_lead_form !== false && (
-                    <LeadForm targetUid={page.owner_uid} />
-                )} */}
+                {/* QR Code and Social Sharing Section - ALWAYS VISIBLE */}
+                <div style={{ 
+                    marginTop: '5rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    paddingBottom: '3rem'
+                }}>
+                    {/* QR Code Box */}
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '1rem',
+                        borderRadius: '40px',
+                        boxShadow: '0 20px 50px rgba(0,0,0,0.08)',
+                        border: '1px solid white',
+                        marginBottom: '1.5rem'
+                    }}>
+                        <QrCodeImage url={shareUrl} size={180} />
+                    </div>
+                    
+                    {/* QR Label */}
+                    <p style={{
+                        fontSize: '14px',
+                        fontWeight: 900,
+                        color: '#94A3B8',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.2em',
+                        marginBottom: '2rem'
+                    }}>
+                        สแกนเพื่อเข้าชมหน้าร้าน
+                    </p>
 
-                {/* Footer / Social Sharing */}
-                <footer className="pt-16 text-center" style={{ borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}` }}>
-                   <p className="font-semibold uppercase tracking-widest text-xs mb-6" style={{ color: isLight ? '#6b7280' : '#6b7280' }}>Share this campaign</p>
-                   <div className="flex items-center justify-center gap-3">
-                        <ShareButton 
-                            icon={Facebook} 
-                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}`} 
-                            isLight={isLight}
-                        />
-                        <ShareButton 
-                            icon={Twitter} 
-                            href={`https://twitter.com/intent/tweet?url=${encodeURIComponent(typeof window !== 'undefined' ? window.location.href : '')}&text=${encodeURIComponent(page.title)}`} 
-                            isLight={isLight}
-                        />
-                   </div>
-                   <div className="mt-16 opacity-30 hover:opacity-80 transition-opacity">
-                        <Link href="/" className="font-semibold text-xs uppercase tracking-tight">
-                            Powered by <LogoFooter />
-                        </Link>
-                   </div>
-                </footer>
+                    {/* Social Buttons */}
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '1.25rem',
+                        marginBottom: '4rem'
+                    }}>
+                        {/* Facebook */}
+                        <a 
+                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{
+                                width: '3.5rem',
+                                height: '3.5rem',
+                                backgroundColor: 'rgba(24,119,242,0.1)',
+                                color: '#1877F2',
+                                borderRadius: '9999px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            <Facebook size={24} fill="currentColor" />
+                        </a>
+
+                        {/* Line */}
+                        <a 
+                            href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{
+                                width: '3.5rem',
+                                height: '3.5rem',
+                                backgroundColor: 'rgba(0,185,0,0.1)',
+                                color: '#00B900',
+                                borderRadius: '9999px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            <LineIcon size={26} />
+                        </a>
+
+                        {/* WhatsApp */}
+                        <a 
+                            href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            style={{
+                                width: '3.5rem',
+                                height: '3.5rem',
+                                backgroundColor: 'rgba(37,211,102,0.1)',
+                                color: '#25D366',
+                                borderRadius: '9999px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            <WhatsAppIcon size={26} />
+                        </a>
+
+                        {/* Share / Copy Link */}
+                        <button 
+                            onClick={async () => {
+                                try {
+                                    if (navigator.share) {
+                                        await navigator.share({
+                                            title: page.title,
+                                            url: shareUrl
+                                        });
+                                    } else {
+                                        await navigator.clipboard.writeText(shareUrl);
+                                        alert('คัดลอกลิงก์แล้ว!');
+                                    }
+                                } catch (err) {}
+                            }}
+                            style={{
+                                height: '3.5rem',
+                                padding: '0 1.5rem',
+                                backgroundColor: '#FFFFFF',
+                                color: '#050579',
+                                borderRadius: '9999px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.75rem',
+                                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                                border: '1px solid rgba(0,0,0,0.05)',
+                                cursor: 'pointer',
+                                fontSize: '14px',
+                                fontWeight: 900,
+                                textTransform: 'uppercase',
+                                letterSpacing: '0.05em'
+                            }}
+                        >
+                            <Share2 size={20} />
+                            <span>แชร์หน้านี้</span>
+                        </button>
+                    </div>
+
+                    {/* Footer - ALWAYS VISIBLE */}
+                    <footer style={{
+                        width: '100%',
+                        paddingTop: '2.5rem',
+                        borderTop: '1px solid rgba(0,0,0,0.05)',
+                        opacity: 1
+                    }}>
+                        <p style={{
+                            margin: 0,
+                            textAlign: 'center',
+                            fontSize: '14px',
+                            fontWeight: 400,
+                            lineHeight: '1.75rem',
+                            color: '#64748B'
+                        }}>
+                            © NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.
+                        </p>
+                    </footer>
+                </div>
             </main>
-
-            <style jsx global>{`
-                ::selection {
-                   background: ${primary};
-                   color: white;
-                }
-            `}</style>
         </div>
     );
 }
 
-function ShareButton({ icon: Icon, href, isLight }: { icon: any, href: string, isLight: boolean }) {
-    return (
-        <a 
-            href={href} 
-            target="_blank" 
-            className="w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-200 hover:scale-110"
-            style={{ 
-                backgroundColor: isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
-                color: isLight ? '#374151' : '#9ca3af'
-            }}
-        >
-            <Icon size={20} />
-        </a>
-    );
-}
-
 function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, contentBlocks }: { block: Block, theme: any, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string, contentBlocks: Block[] }) {
-    console.log('PublicBlock rendering block.type:', block.type, 'block.id:', block.id);
     const primary = theme.primary_color || '#050579';
-    const accent = '#F97316';
+    const accent = theme.accent_color || '#F97316';
+    const DEFAULT_REFERRAL_URL = 'https://nexsolution.cloud/manage/referrals';
     
     switch (block.type) {
         case 'text':
             return (
-                <div className="max-w-3xl mx-auto text-center relative z-10">
-                    <h2 
-                        className="text-4xl md:text-6xl lg:text-7xl font-black tracking-tight mb-6 leading-[1.1]"
-                        style={{ color: '#050579' }}
-                    >
+                <div style={{ maxWidth: '48rem', margin: '0 auto', textAlign: 'center', position: 'relative', zIndex: 10 }}>
+                    <h2 style={{ 
+                        fontSize: 'clamp(2rem, 5vw, 4.5rem)',
+                        fontWeight: 900,
+                        letterSpacing: '-0.025em',
+                        marginBottom: '1.5rem',
+                        lineHeight: 1.1,
+                        color: '#050579'
+                    }}>
                         {block.content.title}
                     </h2>
-                    <p
-                        className="text-lg md:text-xl lg:text-2xl leading-relaxed whitespace-pre-wrap font-medium max-w-2xl mx-auto"
-                        style={{ color: '#475569' }}
-                    >
+                    <p style={{
+                        fontSize: 'clamp(1.125rem, 2.5vw, 1.5rem)',
+                        lineHeight: 1.625,
+                        whiteSpace: 'pre-wrap',
+                        fontWeight: 500,
+                        maxWidth: '42rem',
+                        margin: '0 auto',
+                        color: '#475569'
+                    }}>
                         {block.content.body}
                     </p>
                 </div>
@@ -186,27 +353,43 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
         case 'image':
             const imageUrl = block.content.url;
             const hasImage = imageUrl && imageUrl.length > 0;
+            const imageLink = block.content.link || DEFAULT_REFERRAL_URL;
             
             return (
-                <div className="max-w-4xl mx-auto relative z-10">
-                    <div
-                        className="rounded-3xl overflow-hidden shadow-2xl border transition-all duration-300 bg-white"
-                        style={{ borderColor: 'rgba(0,0,0,0.08)' }}
-                    >
+                <div style={{ maxWidth: '56rem', margin: '0 auto', position: 'relative', zIndex: 10 }}>
+                    <div style={{
+                        borderRadius: '40px',
+                        overflow: 'hidden',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        border: '1px solid rgba(0,0,0,0.05)',
+                        backgroundColor: 'white'
+                    }}>
                         {hasImage ? (
-                            block.content.link ? (
-                                <a href={block.content.link} target="_blank" rel="noopener noreferrer" className="block">
-                                    <img src={imageUrl} alt="Campaign visual" className="w-full h-auto hover:scale-[1.02] transition-transform duration-500" />
-                                </a>
-                            ) : (
-                                <img src={imageUrl} alt="Campaign visual" className="w-full h-auto" />
-                            )
+                            <a href={imageLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                <img src={imageUrl} alt="Campaign visual" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                            </a>
                         ) : (
-                            <div className="flex flex-col items-center justify-center py-20 px-8" style={{ minHeight: '300px' }}>
-                                <div className="w-20 h-20 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: `${primary}20` }}>
+                            <div style={{ 
+                                display: 'flex', 
+                                flexDirection: 'column', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                padding: '5rem 2rem',
+                                minHeight: '300px'
+                            }}>
+                                <div style={{
+                                    width: '5rem',
+                                    height: '5rem',
+                                    borderRadius: '1rem',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    marginBottom: '1rem',
+                                    backgroundColor: `${primary}10`
+                                }}>
                                     <ImageIcon size={40} style={{ color: primary }} />
                                 </div>
-                                <p className="text-sm font-medium" style={{ color: isLight ? '#6b7280' : '#6b7280' }}>
+                                <p style={{ fontSize: '0.875rem', fontWeight: 500, color: '#9CA3AF' }}>
                                     ยังไม่มีรูปภาพ
                                 </p>
                             </div>
@@ -219,68 +402,143 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
             const sourceType = block.content.source_type || 'embed';
             const embedUrl = getEmbedUrl(block.content.url);
             const hasVideo = (sourceType === 'upload' && videoConfig?.url) || (sourceType === 'embed' && embedUrl);
-
-            const isLastBlock = contentBlocks[contentBlocks.length - 1]?.id === block.id;
+            const videoLink = (block.content as any).link || videoConfig?.link_url || DEFAULT_REFERRAL_URL;
             
             return (
-                <div key={block.id} suppressHydrationWarning style={{ width: '100%', maxWidth: '80rem', marginLeft: 'auto', marginRight: 'auto', marginBottom: isLastBlock ? '-4rem' : undefined }}>
-                    <div suppressHydrationWarning style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', backgroundColor: '#000', borderRadius: '3rem', overflow: 'hidden' }}>
+                <div style={{ width: '100%', maxWidth: '80rem', marginLeft: 'auto', marginRight: 'auto' }}>
+                    <div style={{ 
+                        position: 'relative', 
+                        width: '100%', 
+                        paddingBottom: '56.25%', 
+                        backgroundColor: '#000', 
+                        borderRadius: '3rem', 
+                        overflow: 'hidden', 
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+                    }}>
                         {!hasVideo ? (
-                            <div suppressHydrationWarning style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: '1.25rem' }}>
+                            <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ 
+                                position: 'absolute', 
+                                top: 0, 
+                                left: 0, 
+                                width: '100%', 
+                                height: '100%', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                color: '#fff', 
+                                fontSize: '1.25rem',
+                                textDecoration: 'none'
+                             }}>
                                 <span>ยังไม่มีวิดีโอ</span>
-                            </div>
+                            </a>
                         ) : sourceType === 'upload' && videoConfig?.url ? (
-                            <video
-                                src={videoConfig.url.startsWith('http') ? videoConfig.url : videoConfig.url.startsWith('/api') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
-                                autoPlay={videoConfig.autoplay}
-                                muted={videoConfig.autoplay}
-                                loop
-                                playsInline
-                                controls
-                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
+                            <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                <video
+                                    src={videoConfig.url.startsWith('http') ? videoConfig.url : videoConfig.url.startsWith('/api') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
+                                    autoPlay={videoConfig.autoplay}
+                                    muted={videoConfig.autoplay}
+                                    loop
+                                    playsInline
+                                    controls
+                                    style={{ 
+                                        position: 'absolute', 
+                                        top: 0, 
+                                        left: 0, 
+                                        width: '100%', 
+                                        height: '100%', 
+                                        objectFit: 'cover' 
+                                    }}
+                                />
+                            </a>
                         ) : (
-                            <iframe
-                                src={embedUrl}
-                                title="Video content"
-                                frameBorder="0"
-                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                allowFullScreen
-                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%' }}
-                            />
+                            <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                <iframe
+                                    src={embedUrl}
+                                    title="Video content"
+                                    frameBorder="0"
+                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                    allowFullScreen
+                                    style={{ 
+                                        position: 'absolute', 
+                                        top: 0, 
+                                        left: 0, 
+                                        width: '100%', 
+                                        height: '100%' 
+                                    }}
+                                />
+                            </a>
                         )}
                     </div>
                 </div>
             );
         }
         case 'button':
+            const btnUrl = block.content.url || DEFAULT_REFERRAL_URL;
             return (
-                <div className="text-center relative z-10">
+                <div style={{ textAlign: 'center', position: 'relative', zIndex: 10, padding: '1rem 0' }}>
                     <a 
-                        href={block.content.url} 
+                        href={btnUrl} 
                         target="_blank"
-                        className="inline-flex items-center gap-3 px-10 py-5 rounded-2xl font-bold text-lg shadow-xl hover:scale-105 hover:shadow-2xl transition-all duration-300"
-                        style={{ backgroundColor: accent, color: '#fff', boxShadow: `0 10px 40px ${accent}40` }}
+                        rel="noopener noreferrer"
+                        style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '1rem',
+                            padding: '1.5rem 3rem',
+                            borderRadius: '32px',
+                            fontWeight: 900,
+                            fontSize: '1.25rem',
+                            boxShadow: '0 20px 40px rgba(249,115,22,0.3)',
+                            backgroundColor: accent,
+                            color: '#fff',
+                            textDecoration: 'none'
+                        }}
                     >
-                        {block.content.label} <ChevronRight size={24} />
+                        {block.content.label} <ChevronRight size={28} />
                     </a>
                 </div>
             );
         case 'form':
-            // Debug logging
-            console.log('Form block detected:', block.content);
-            // โหมดดั้งเดิม: ปุ่มเปิด external form
             if (!block.content?.mode || block.content.mode === 'external') {
                 return (
-                    <div className="max-w-3xl mx-auto">
-                        <div className={`p-12 md:p-20 rounded-[56px] text-center border ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-[#0a0a0a] border-white/5'}`}>
-                            <MessageSquare size={48} className="mx-auto mb-8 text-primary" />
-                            <h3 className="text-3xl md:text-5xl font-black mb-6 tracking-tight">ติดต่อเราทันที</h3>
-                            <p className={`text-lg md:text-xl mb-12 ${isLight ? 'text-gray-600' : 'text-gray-500'}`}>เราพร้อมเป็นส่วนหนึ่งในความสำเร็จของคุณ กรุณากรอกรายละเอียดเพื่อรับข้อเสนอพิเศษ</p>
+                    <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
+                        <div style={{
+                            padding: '3rem 2rem',
+                            borderRadius: '56px',
+                            textAlign: 'center',
+                            border: '1px solid rgba(0,0,0,0.05)',
+                            backgroundColor: 'white',
+                            boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+                        }}>
+                            <MessageSquare size={48} style={{ margin: '0 auto 2rem', color: '#050579' }} />
+                            <h3 style={{ 
+                                fontSize: 'clamp(1.5rem, 4vw, 3rem)',
+                                fontWeight: 900,
+                                marginBottom: '1.5rem',
+                                letterSpacing: '-0.025em',
+                                color: '#050579'
+                            }}>ติดต่อเราทันที</h3>
+                            <p style={{ 
+                                fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+                                marginBottom: '3rem',
+                                color: '#6B7280'
+                            }}>เราพร้อมเป็นส่วนหนึ่งในความสำเร็จของคุณ กรุณากรอกรายละเอียดเพื่อรับข้อเสนอพิเศษ</p>
                             <a 
                                 href={block.content.url} 
                                 target="_blank"
-                                className={`inline-flex items-center gap-3 px-12 py-6 font-black rounded-[32px] text-xl transition-all ${isLight ? 'bg-black text-white hover:bg-gray-800' : 'bg-white text-black hover:bg-gray-200'}`}
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '0.75rem',
+                                    padding: '1.5rem 3rem',
+                                    fontWeight: 900,
+                                    borderRadius: '32px',
+                                    fontSize: '1.25rem',
+                                    backgroundColor: '#050579',
+                                    color: 'white',
+                                    textDecoration: 'none'
+                                }}
                             >
                                 Open Contact Form <ExternalLink size={24} />
                             </a>
@@ -303,7 +561,6 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
 }
 
 function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { block: Block, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string }) {
-    console.log('InternalLandingForm rendering, block.content:', block.content);
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
     const [phone, setPhone] = useState('');
@@ -312,35 +569,11 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [formFields, setFormFields] = useState<any[]>([]);
-    const [loadingForm, setLoadingForm] = useState(false);
-
-    useEffect(() => {
-        if (block.content.mode === 'internal' && block.content.form_id) {
-            fetchFormFields();
-        }
-    }, [block.content.form_id]);
-
-    const fetchFormFields = async () => {
-        setLoadingForm(true);
-        try {
-            const res = await fetch(`${API_URL}/public/forms/${block.content.form_id}`);
-            if (res.ok) {
-                const data = await res.json();
-                setFormFields(data.fields || []);
-            }
-        } catch (err) {
-            console.error('Failed to fetch form fields:', err);
-        } finally {
-            setLoadingForm(false);
-        }
-    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!ownerUid) return;
 
-        // สำหรับโหมด internal ต้องเลือกฟอร์มก่อน
         if (block.content.mode === 'internal' && !block.content.form_id) {
             setError('ฟอร์มนี้ยังไม่ได้กำหนดค่า (ยังไม่ได้เลือกฟอร์มจากระบบ)');
             return;
@@ -359,22 +592,11 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
 
             const submissionData = block.content.mode === 'internal'
                 ? {
-                    data: {
-                        name,
-                        email,
-                        phone,
-                        message,
-                    },
-                    source: {
-                        referrer: pageSlug,
-                        utm_source: 'landing_page',
-                    }
+                    data: { name, email, phone, message },
+                    source: { referrer: pageSlug, utm_source: 'landing_page' }
                   }
                 : {
-                    name,
-                    email,
-                    phone,
-                    message,
+                    name, email, phone, message,
                     pdpa_consent: true,
                     source_type: 'landing_page',
                     source_id: pageId,
@@ -386,11 +608,8 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(submissionData),
             });
-            if (!res.ok) {
-                throw new Error('ส่งข้อมูลไม่สำเร็จ');
-            }
+            if (!res.ok) throw new Error('ส่งข้อมูลไม่สำเร็จ');
             
-            // log analytics for form submission
             try {
                 let vid = Cookies.get('vid');
                 if (!vid) {
@@ -401,33 +620,18 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        uid: ownerUid,
-                        action: 'SUBMIT_LANDING_FORM',
-                        visitorId: vid,
-                        metadata: {
-                            type: 'landing_page_form',
-                            pageId,
-                            slug: pageSlug,
-                        },
+                        uid: ownerUid, action: 'SUBMIT_LANDING_FORM', visitorId: vid,
+                        metadata: { type: 'landing_page_form', pageId, slug: pageSlug },
                     }),
                 });
-            } catch (err) {
-                console.error('Landing form analytics error:', err);
-            }
+            } catch {}
 
-            const thankYouText = block.content.thank_you_message || 'ขอบคุณสำหรับการติดต่อ ทีมงานจะติดต่อกลับโดยเร็วที่สุด';
-            setSuccess(thankYouText);
-            setName('');
-            setEmail('');
-            setPhone('');
-            setMessage('');
-            setConsent(false);
+            setSuccess(block.content.thank_you_message || 'ขอบคุณสำหรับการติดต่อ ทีมงานจะติดต่อกลับโดยเร็วที่สุด');
+            setName(''); setEmail(''); setPhone(''); setMessage(''); setConsent(false);
 
             if (block.content.redirect_url) {
                 const delaySec = typeof block.content.redirect_delay === 'number' ? block.content.redirect_delay : 3;
-                setTimeout(() => {
-                    window.location.href = block.content.redirect_url;
-                }, Math.max(0, delaySec) * 1000);
+                setTimeout(() => { window.location.href = block.content.redirect_url; }, delaySec * 1000);
             }
         } catch (err: any) {
             setError(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
@@ -436,97 +640,154 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
         }
     };
 
-    console.log('InternalLandingForm: checking condition, mode=', block.content?.mode, 'form_id=', block.content?.form_id);
-
     if (block.content.mode === 'internal' && !block.content.form_id) {
-        console.log('InternalLandingForm: returning "not configured" message');
         return (
-            <div className="max-w-3xl mx-auto">
-                <div className={`p-12 md:p-16 rounded-[56px] border text-center ${isLight ? 'bg-gray-50 border-gray-200' : 'bg-[#0a0a0a] border-white/5'}`}>
-                    <MessageSquare size={40} className="mx-auto mb-4 text-gray-400" />
-                    <p className="text-gray-500 font-medium">ฟอร์มนี้ยังไม่ได้เลือกรายการจากระบบ</p>
+            <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
+                <div style={{
+                    padding: '3rem 2rem',
+                    borderRadius: '56px',
+                    border: '1px solid rgba(0,0,0,0.05)',
+                    textAlign: 'center',
+                    backgroundColor: 'white',
+                    boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)'
+                }}>
+                    <MessageSquare size={40} style={{ margin: '0 auto 1rem', color: '#D1D5DB' }} />
+                    <p style={{ color: '#9CA3AF', fontWeight: 500 }}>ฟอร์มนี้ยังไม่ได้เลือกรายการจากระบบ</p>
                 </div>
             </div>
         );
     }
 
-    console.log('InternalLandingForm: returning form UI');
     return (
-        <div className="max-w-3xl mx-auto relative z-20">
-            <div className={`p-12 md:p-20 rounded-[56px] border ${isLight ? 'bg-white border-gray-200' : 'bg-[#0a0a0a] border-white/5'}`}>
-                <MessageSquare size={48} className="mx-auto mb-8 text-[#050579]" />
-                <h3 className="text-3xl md:text-5xl font-black mb-6 tracking-tight text-center text-gray-900">ติดต่อเราทันที</h3>
+        <div style={{ maxWidth: '48rem', margin: '0 auto', position: 'relative', zIndex: 20 }}>
+            <div style={{
+                padding: '3rem 2rem',
+                borderRadius: '56px',
+                border: '1px solid rgba(0,0,0,0.05)',
+                backgroundColor: 'white',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+            }}>
+                <MessageSquare size={48} style={{ margin: '0 auto 2rem', color: '#050579' }} />
+                <h3 style={{ 
+                    fontSize: 'clamp(1.5rem, 4vw, 3rem)',
+                    fontWeight: 900,
+                    marginBottom: '1.5rem',
+                    letterSpacing: '-0.025em',
+                    textAlign: 'center',
+                    color: '#050579'
+                }}>ติดต่อเราทันที</h3>
                 {success ? (
-                    <p className={`text-lg md:text-xl text-center ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>
+                    <p style={{ 
+                        fontSize: 'clamp(1rem, 2vw, 1.25rem)',
+                        textAlign: 'center',
+                        color: '#16A34A',
+                        fontWeight: 700
+                    }}>
                         {success}
                     </p>
                 ) : (
-                    <form onSubmit={handleSubmit} className="space-y-5">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="space-y-1">
-                                <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>ชื่อ-นามสกุล *</label>
+                    <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+                        <div style={{ 
+                            display: 'grid', 
+                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
+                            gap: '1rem'
+                        }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>ชื่อ-นามสกุล *</label>
                                 <input
-                                    required
-                                    value={name}
-                                    onChange={(e) => setName(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500"
+                                    required value={name} onChange={(e) => setName(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '1rem 1.25rem',
+                                        borderRadius: '16px',
+                                        backgroundColor: '#F9FAFB',
+                                        border: '1px solid #F3F4F6',
+                                        fontWeight: 700,
+                                        color: '#111827',
+                                        outline: 'none'
+                                    }}
                                     placeholder="กรอกชื่อ-นามสกุล"
                                 />
                             </div>
-                            <div className="space-y-1">
-                                <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>อีเมล *</label>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                                <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>อีเมล *</label>
                                 <input
-                                    required
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500"
+                                    required type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                                    style={{
+                                        width: '100%',
+                                        padding: '1rem 1.25rem',
+                                        borderRadius: '16px',
+                                        backgroundColor: '#F9FAFB',
+                                        border: '1px solid #F3F4F6',
+                                        fontWeight: 700,
+                                        color: '#111827',
+                                        outline: 'none'
+                                    }}
                                     placeholder="กรอกอีเมล"
                                 />
                             </div>
                         </div>
-                        <div className="space-y-1">
-                            <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>เบอร์โทรศัพท์</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>เบอร์โทรศัพท์</label>
                             <input
-                                value={phone}
-                                onChange={(e) => setPhone(e.target.value)}
-                                className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500"
+                                value={phone} onChange={(e) => setPhone(e.target.value)}
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem 1.25rem',
+                                    borderRadius: '16px',
+                                    backgroundColor: '#F9FAFB',
+                                    border: '1px solid #F3F4F6',
+                                    fontWeight: 700,
+                                    color: '#111827',
+                                    outline: 'none'
+                                }}
                                 placeholder="กรอกเบอร์โทรศัพท์"
                             />
                         </div>
-                        <div className="space-y-1">
-                            <label className={`text-xs font-semibold ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>รายละเอียดที่ต้องการสอบถาม *</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>รายละเอียด *</label>
                             <textarea
-                                required
-                                value={message}
-                                onChange={(e) => setMessage(e.target.value)}
-                                rows={4}
-                                className="w-full px-4 py-3 rounded-2xl bg-gray-100 border border-gray-300 focus:outline-none focus:ring-2 focus:ring-[#050579]/40 text-sm text-gray-900 placeholder-gray-500 resize-none"
+                                required value={message} onChange={(e) => setMessage(e.target.value)} rows={4}
+                                style={{
+                                    width: '100%',
+                                    padding: '1rem 1.25rem',
+                                    borderRadius: '16px',
+                                    backgroundColor: '#F9FAFB',
+                                    border: '1px solid #F3F4F6',
+                                    fontWeight: 700,
+                                    color: '#111827',
+                                    outline: 'none',
+                                    resize: 'none'
+                                }}
                                 placeholder="กรอกรายละเอียดที่ต้องการสอบถาม"
                             />
                         </div>
-                        <div className="flex items-start gap-2">
+                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.5rem' }}>
                             <input
-                                id="pdpa-consent"
-                                type="checkbox"
-                                checked={consent}
-                                onChange={(e) => setConsent(e.target.checked)}
-                                className="mt-1 w-4 h-4 accent-[#050579]"
+                                id="pdpa-consent" type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
+                                style={{ marginTop: '4px', width: '1.25rem', height: '1.25rem', accentColor: '#050579' }}
                             />
-                            <label htmlFor="pdpa-consent" className={`text-xs ${isLight ? 'text-gray-800' : 'text-gray-300'}`}>
-                                ฉันยินยอมให้จัดเก็บและใช้ข้อมูลนี้เพื่อการติดต่อกลับ ตามนโยบายความเป็นส่วนตัว (PDPA)
+                            <label htmlFor="pdpa-consent" style={{ fontSize: '11px', fontWeight: 700, color: '#6B7280', lineHeight: 1.25, textTransform: 'uppercase' }}>
+                                ฉันยินยอมให้จัดเก็บและใช้ข้อมูลนี้เพื่อการติดต่อกลับตามนโยบายความเป็นส่วนตัว (PDPA)
                             </label>
                         </div>
-                        {error && (
-                            <p className="text-sm text-red-600 font-medium">{error}</p>
-                        )}
-                        <div className="pt-2">
+                        {error && <p style={{ fontSize: '0.875rem', color: '#DC2626', fontWeight: 700, textAlign: 'center' }}>{error}</p>}
+                        <div style={{ paddingTop: '1rem' }}>
                             <button
-                                type="submit"
-                                disabled={submitting || !ownerUid}
-                                className={`w-full inline-flex items-center justify-center gap-3 px-12 py-4 font-black rounded-[32px] text-lg transition-all ${
-                                    isLight ? 'bg-[#050579] text-white hover:bg-[#04045f]' : 'bg-white text-black hover:bg-gray-200'
-                                } disabled:opacity-60 shadow-lg`}
+                                type="submit" disabled={submitting || !ownerUid}
+                                style={{
+                                    width: '100%',
+                                    padding: '1.25rem',
+                                    fontWeight: 900,
+                                    borderRadius: '32px',
+                                    fontSize: '1.25rem',
+                                    backgroundColor: '#050579',
+                                    color: 'white',
+                                    border: 'none',
+                                    cursor: submitting || !ownerUid ? 'not-allowed' : 'pointer',
+                                    opacity: submitting || !ownerUid ? 0.5 : 1,
+                                    boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
+                                }}
                             >
                                 {submitting ? 'กำลังส่งข้อมูล...' : 'ส่งข้อมูลให้ทีมงานติดต่อกลับ'}
                             </button>

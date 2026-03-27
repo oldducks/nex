@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import Image from 'next/image';
 import Cookies from 'js-cookie';
 import {
   LogOut, BookOpen, CreditCard, ArrowRight,
@@ -12,6 +11,7 @@ import {
 } from 'lucide-react';
 import { QrCodeImage } from '@/components/QrCode';
 import Link from 'next/link';
+import ManageTopBar from '@/components/ManageTopBar';
 
 interface FeatureConfig {
   catalog: boolean;
@@ -21,6 +21,8 @@ interface FeatureConfig {
   analytics: boolean;
   profile: boolean;
   referrals: boolean;
+  learning?: boolean;
+  ai?: boolean;
 }
 
 type FeatureTone = 'navy' | 'orange' | 'green' | 'blue';
@@ -41,18 +43,23 @@ interface UserData {
 // Map FEATURE_LIST IDs to feature_config keys
 const FEATURE_CONFIG_MAP: Record<string, keyof FeatureConfig> = {
   'landing': 'profile',
+  'landing-id': 'profile',
   'leads': 'leads',
   'catalog': 'catalog',
   'namecard': 'namecard',
   'landing-pages': 'landing-pages',
   'analytics': 'analytics',
+  'qr-custom': 'profile',
+  'create-lite': 'catalog',
+  'learning-center': 'learning',
+  'nex-ai': 'ai',
   'referrals': 'referrals',
 };
 
 const FEATURE_LIST = [
   {
     id: 'landing',
-    title: 'นามบัตรดิจิทัล',
+    title: 'นามบัตรดิจิทัล (NEX Digital id)',
     description: 'จัดการ Profile นามบัตรดิจิทัล แก้ไขข้อมูลแบบ Real-time เพิ่มลิงก์โซเชียล และธีมส่วนตัว',
     icon: Smartphone,
     href: '/manage/profile',
@@ -60,8 +67,17 @@ const FEATURE_LIST = [
     tags: ['Real-time', 'ธีม', 'vCard']
   },
   {
+    id: 'landing-id',
+    title: 'ระบบพันธมิตรแนะนำลูกค้า (NEX Affiliate)',
+    description: 'จัดการ Profile นามบัตรดิจิทัล แก้ไขข้อมูลแบบ Real-time เพิ่มลิงก์โซเชียล และธีมส่วนตัว',
+    icon: UserCircle,
+    href: '/manage/profile',
+    tone: 'blue' as FeatureTone,
+    tags: ['Business', 'Pro']
+  },
+  {
     id: 'catalog',
-    title: 'แคตตาล็อกสินค้า',
+    title: 'แคตาล็อกออนไลน์ (NEX eCatalog)',
     description: 'สร้างแคตตาล็อกสินค้าออนไลน์ และเลือกรูปแบบการแสดงผลแบบพรีเมียม เพื่อส่งต่อให้ลูกค้า',
     icon: BookOpen,
     href: '/manage',
@@ -70,43 +86,16 @@ const FEATURE_LIST = [
   },
   {
     id: 'landing-pages',
-    title: 'หน้าเซลล์เพจ (Landing Pages)',
-    description: 'สร้างหน้าแคมเปญการตลาดแบบครบวงจร รองรับระบบลากวาง (Drag & Drop) และฟอร์มโต้ตอบ',
+    title: 'หน้าร้านค้าดิจิทัล (NEX Sale Page)',
+    description: 'สร้างหน้าร้านค้าดิจิทัลแบบครบวงจร รองรับระบบลากวาง (Drag & Drop) และฟอร์มโต้ตอบ',
     icon: Layout,
     href: '/manage/landing-pages',
     tone: 'navy' as FeatureTone,
-    tags: ['แคมเปญ', 'ลากวาง']
-  },
-  {
-    id: 'leads',
-    title: 'ระบบรายชื่อลูกค้า (Leads)',
-    description: 'ดูรายชื่อลูกค้าที่สนใจติดต่อกลับจากหน้าโปรไฟล์ของคุณ พร้อมข้อมูลเบอร์โทร สังกัด และอาชีพ',
-    icon: Users,
-    href: '/manage/leads',
-    tone: 'green' as FeatureTone,
-    tags: ['ข้อมูลลูกค้า', 'ใหม่']
-  },
-  {
-    id: 'analytics',
-    title: 'สถิติและการวิเคราะห์',
-    description: 'วิเคราะห์ยอดผู้เข้าชมโปรไฟล์ สถิติการแชร์ และพฤติกรรมการคลิกของลูกค้าแบบละเอียด',
-    icon: BarChart3,
-    href: '/manage/dashboard',
-    tone: 'blue' as FeatureTone,
-    tags: ['ข้อมูลเชิงลึก', 'ยอดชม']
-  },
-  {
-    id: 'namecard',
-    title: 'ดีไซน์นามบัตร',
-    description: 'ออกแบบนามบัตรกระดาษจำลอง ใส่ QR Code และโลโก้ ดาวน์โหลดเป็นไฟล์ภาพสำหรับสั่งพิมพ์',
-    icon: CreditCard,
-    href: '/manage/namecard',
-    tone: 'navy' as FeatureTone,
-    tags: ['ไฟล์ภาพ PNG', 'เลย์เอาท์']
+    tags: ['หน้าร้าน', 'ลากวาง']
   },
   {
     id: 'qr-custom',
-    title: 'สร้าง QR แบบกำหนดเอง',
+    title: 'สร้าง QR (NEX QR Code)',
     description: 'ทดลองเลือกสีพื้นหลัง/ลาย QR และวางโลโก้ตรงกลาง เพื่อใช้กับเพจและฟอร์มของคุณ',
     icon: QrCode,
     href: '/manage/qr',
@@ -115,7 +104,7 @@ const FEATURE_LIST = [
   },
   {
     id: 'create-lite',
-    title: 'NEX Create Lite',
+    title: 'ดีไซน์ (NEX Design)',
     description: 'เลือกเทมเพลตงานกราฟิกสำหรับโพสต์ขายสินค้า โปรโมชัน และกิจกรรม พร้อมใช้งานทันที',
     icon: ImageIcon,
     href: '/manage/create-lite',
@@ -123,8 +112,53 @@ const FEATURE_LIST = [
     tags: ['Templates', 'Creative']
   },
   {
+    id: 'leads',
+    title: 'ข้อมูลการติดต่อ (NEX Response)',
+    description: 'ดูรายชื่อลูกค้าที่สนใจติดต่อกลับจากหน้าโปรไฟล์ของคุณ พร้อมข้อมูลเบอร์โทร สังกัด และอาชีพ',
+    icon: Users,
+    href: '/manage/leads',
+    tone: 'green' as FeatureTone,
+    tags: ['ข้อมูลลูกค้า', 'Leads']
+  },
+  {
+    id: 'namecard',
+    title: 'ดีไซน์นามบัตร (Nex Namecard)',
+    description: 'ออกแบบนามบัตรกระดาษจำลอง ใส่ QR Code และโลโก้ ดาวน์โหลดเป็นไฟล์ภาพสำหรับสั่งพิมพ์',
+    icon: CreditCard,
+    href: '/manage/namecard',
+    tone: 'navy' as FeatureTone,
+    tags: ['ไฟล์ภาพ PNG', 'เลย์เอาท์']
+  },
+  {
+    id: 'learning-center',
+    title: 'ศูนย์การเรียนรู้ (Nex Center)',
+    description: 'ศูนย์รวมบทความ วิดีโอสอนการใช้งาน และเทคนิคการทำการตลาดแบบมืออาชีพ',
+    icon: BookOpen,
+    href: '/manage/learning',
+    tone: 'green' as FeatureTone,
+    tags: ['Learning', 'Center']
+  },
+  {
+    id: 'analytics',
+    title: 'แดชบอร์ด (NEX Dashboard)',
+    description: 'วิเคราะห์ยอดผู้เข้าชมโปรไฟล์ สถิติการแชร์ และพฤติกรรมการคลิกของลูกค้าแบบละเอียด',
+    icon: BarChart3,
+    href: '/manage/dashboard',
+    tone: 'blue' as FeatureTone,
+    tags: ['สถิติ', 'ยอดชม']
+  },
+  {
+    id: 'nex-ai',
+    title: 'NEX AI Creator',
+    description: 'ใช้ API หรือ AGENT AI ช่วยในการทำการตลาด สร้างคอนเทนต์ และวิเคราะห์ข้อมูลอัจฉริยะ',
+    icon: Zap,
+    href: '/manage/ai',
+    tone: 'navy' as FeatureTone,
+    tags: ['AI', 'Assistant']
+  },
+  {
     id: 'referrals',
-    title: 'ระบบแนะนำสมาชิก',
+    title: 'ระบบแนะนำสมาชิก (Nex Team)',
     description: 'แชร์ลิงก์แนะนำเพื่อนและรับค่าคอมมิชชั่น 10% ต่อเนื่องสูงสุด 10 ชั้น',
     icon: Gift,
     href: '/manage/referrals',
@@ -132,6 +166,9 @@ const FEATURE_LIST = [
     tags: ['คอมมิชชั่น', 'แนะนำเพื่อน']
   },
 ];
+
+const HIDDEN_FEATURE_IDS = new Set(['namecard']);
+const VISIBLE_FEATURE_LIST = FEATURE_LIST.filter((feature) => !HIDDEN_FEATURE_IDS.has(feature.id));
 
 const TONE_STYLES: Record<FeatureTone, {
   iconWrap: string;
@@ -200,7 +237,17 @@ export default function ControlCenterPage() {
   const [leadCount, setLeadCount] = useState(0);
   const [isLeadsLoading, setIsLeadsLoading] = useState(true);
   const [showUpgradeModal, setShowUpgradeModal] = useState(false);
+  const [selectedPackage, setSelectedPackage] = useState<'standard' | 'id' | 'book' | 'page' | 'art'>('standard');
   const [upgradeLoading, setUpgradeLoading] = useState(false);
+  
+  const PACKAGES = [
+    { id: 'standard', name: 'Standard', total: 7800, special: 1500, discount: '81%', icon: Star, color: 'navy' },
+    { id: 'id', name: 'Nex id', total: 6000, special: 5500, discount: '8%', icon: Smartphone, color: 'blue' },
+    { id: 'book', name: 'Nex Book', total: 10000, special: 6000, discount: '40%', icon: BookOpen, color: 'orange' },
+    { id: 'page', name: 'Nex Page', total: 30000, special: 20000, discount: '33%', icon: Layout, color: 'navy' },
+    { id: 'art', name: 'Nex Art', total: 0, special: 0, discount: '', icon: ImageIcon, color: 'green', commingSoon: true },
+  ];
+
   const [copied, setCopied] = useState(false);
   const [copiedReferral, setCopiedReferral] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
@@ -350,38 +397,24 @@ export default function ControlCenterPage() {
           </div>
         </div>
       )}
-      {/* Navbar */}
-      <nav className="sticky top-0 z-50 px-4 pt-4 sm:px-6">
-        <div className="mx-auto flex h-20 max-w-7xl items-center justify-between rounded-[28px] border border-[#D9E1F2] bg-white/84 px-5 shadow-[0_22px_60px_-42px_rgba(15,23,42,0.28)] backdrop-blur-2xl">
-          <Link href="/" className="flex items-center gap-4">
-            <div className="relative h-14 w-20 sm:h-16 sm:w-24">
-              <Image
-                src="/nex_logo_nobg.png"
-                alt="NEX Solution"
-                fill
-                className="object-contain"
-                unoptimized
-              />
-            </div>
-            <div className="hidden sm:block">
-              <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B]">NEX Solution</div>
-              <div className="text-sm font-semibold text-[#050579]">Control Center</div>
-            </div>
-          </Link>
-
-          <div className="flex items-center gap-3 sm:gap-4">
-             {user?.role === 'super_admin' && (
-               <Link href="/admin/dashboard" className="hidden items-center gap-2 rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#475569] transition-colors hover:border-[#C7D2E5] hover:bg-white hover:text-[#050579] md:flex">
-                 <ShieldCheck size={16} /> Admin Panel
-               </Link>
-             )}
-             <button onClick={() => setShowLogoutConfirm(true)} className="group flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 transition-colors hover:border-[#F3C3C3] hover:bg-[#FEF2F2]">
-               <LogOut size={18} className="text-[#64748B] transition-colors group-hover:text-[#DC2626]" />
-               <span className="hidden text-sm font-bold text-[#475569] transition-colors group-hover:text-[#B91C1C] sm:inline">ออกจากระบบ</span>
-             </button>
-          </div>
-        </div>
-      </nav>
+      <ManageTopBar
+        backHref="/"
+        title="Control Center"
+        subtitle="NEX SOLUTION"
+        actions={(
+          <>
+            {user?.role === 'super_admin' && (
+              <Link href="/admin/dashboard" className="hidden items-center gap-2 rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] text-[#475569] transition-colors hover:border-[#C7D2E5] hover:bg-white hover:text-[#050579] md:flex">
+                <ShieldCheck size={16} /> Admin Panel
+              </Link>
+            )}
+            <button onClick={() => setShowLogoutConfirm(true)} className="group flex h-11 items-center justify-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3.5 transition-colors hover:border-[#F3C3C3] hover:bg-[#FEF2F2]">
+              <LogOut size={18} className="text-[#64748B] transition-colors group-hover:text-[#DC2626]" />
+              <span className="hidden text-sm font-bold text-[#475569] transition-colors group-hover:text-[#B91C1C] sm:inline">ออกจากระบบ</span>
+            </button>
+          </>
+        )}
+      />
 
       {/* Main Content */}
       <main className="relative z-10 mx-auto max-w-7xl px-6 py-8 md:py-10">
@@ -456,7 +489,7 @@ export default function ControlCenterPage() {
 
         {/* Feature Sections */}
         <div className="grid grid-cols-1 gap-6 md:grid-cols-2 xl:grid-cols-3">
-          {FEATURE_LIST.map((feature) => {
+          {VISIBLE_FEATURE_LIST.map((feature) => {
             // Check if feature is enabled (default to true for backward compatibility)
             const configKey = FEATURE_CONFIG_MAP[feature.id];
             const isEnabled = !user?.feature_config || user.feature_config[configKey] !== false;
@@ -905,7 +938,7 @@ export default function ControlCenterPage() {
               <Star size={24} className="text-[#F97316]" /> สถานะฟีเจอร์ของคุณ
             </h3>
             <div className="grid grid-cols-2 gap-4 md:grid-cols-4 lg:grid-cols-7">
-              {FEATURE_LIST.map((feature) => {
+              {VISIBLE_FEATURE_LIST.map((feature) => {
                 const configKey = FEATURE_CONFIG_MAP[feature.id];
                 const isEnabled = !user?.feature_config || user.feature_config[configKey] !== false;
                 return (
@@ -951,83 +984,95 @@ export default function ControlCenterPage() {
         )}
 
       </main>
-
+      {/* Upgrade Modal */}
       {/* Upgrade Modal */}
       {showUpgradeModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/32 p-4 backdrop-blur-sm animate-in fade-in duration-300">
-          <div className="relative w-full max-w-lg rounded-[32px] border border-[#D9E1F2] bg-white p-8 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-[#0F172A]/45 p-4 backdrop-blur-md animate-in fade-in duration-300">
+          <div className="relative w-full max-w-[460px] rounded-[44px] border border-[#D9E1F2] bg-white shadow-[0_50px_140px_-40px_rgba(15,23,42,0.5)] overflow-hidden animate-in zoom-in-95 duration-300">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(249,115,22,0.1),transparent_35%),radial-gradient(circle_at_bottom_left,rgba(5,5,121,0.06),transparent_40%)]" />
+            
             <button 
               onClick={() => setShowUpgradeModal(false)}
-              className="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-[#EEF0FF]"
+              className="absolute right-6 top-6 z-20 flex h-10 w-10 items-center justify-center rounded-full border border-[#D9E1F2] bg-white transition-all hover:bg-[#F6F8FF] hover:border-[#C7D2E5]"
             >
-              <XCircle size={20} className="text-[#64748B]" />
+              <XCircle size={22} className="text-[#64748B]" />
             </button>
 
-            {/* Header */}
-            <div className="mb-8 text-center">
-              <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-[28px] border border-[#F6D5BF] bg-[#FFF1E8] shadow-[0_18px_40px_-24px_rgba(249,115,22,0.18)]">
-                <Crown size={40} className="text-[#F97316]" />
-              </div>
-              <h3 className="mb-2 text-2xl font-black tracking-tight text-[#050579]">อัพเกรดเป็น Premium</h3>
-              <p className="text-sm text-[#475569]">ปลดล็อคทุกฟีเจอร์และใช้งานได้เต็มที่ไม่มีข้อจำกัด</p>
-            </div>
-
-            {/* Features List */}
-            <div className="mb-8 space-y-2">
-              {[
-                'ปลดล็อคทุกฟีเจอร์ทันที',
-                'สร้างแคตตาล็อกได้ไม่จำกัด',
-                'ไม่มีลายน้ำบนหน้าโปรไฟล์',
-                'สถิติและการวิเคราะห์เชิงลึก',
-                'ระบบ Landing Pages แบบลากวาง',
-                'ระบบแนะนำสมาชิกและคอมมิชชั่น',
-              ].map((item, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-2xl border border-[#DCEFE0] bg-[#F3FCF5] p-3">
-                  <CheckCircle size={18} className="shrink-0 text-[#16A34A]" />
-                  <span className="text-sm font-bold text-[#0F172A]">{item}</span>
+            <div className="relative z-10 p-8 sm:p-10">
+              {/* Header */}
+              <div className="mb-8 text-center" >
+                <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl border border-[#F6D5BF] bg-[#FFF1E8] shadow-[0_12px_30px_-10px_rgba(249,115,22,0.25)]">
+                  <Crown size={36} className="text-[#F97316]" />
                 </div>
-              ))}
-            </div>
+                <h3 className="mb-2 text-2xl font-black tracking-tight text-[#050579]">โปรโมชันอัปเกรดจำกัดเวลา</h3>
+                <p className="text-sm text-[#475569]">ปลดล็อคทุกเครื่องมือระดับโปรเพื่อยอดขายของคุณ</p>
+              </div>
 
-            {/* Pricing */}
-            <div className="mb-8 rounded-[28px] border border-[#F6D5BF] bg-[#FFF7F1] p-6 text-center">
-              <div className="mb-2 text-[10px] font-black uppercase tracking-[0.2em] text-[#F97316]">ราคาพิเศษช่วงแนะนำ</div>
-              <div className="text-4xl font-black text-[#C2410C]">฿299<span className="ml-1 text-lg font-bold text-[#64748B]">/เดือน</span></div>
-              <div className="mt-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">หรือ ฿2,499/ปี (ประหยัดกว่า 30%)</div>
-            </div>
+              {/* Pricing List Box */}
+              <div className="mb-0 rounded-[32px] border-2 border-[#F97316] bg-[#FFF9F5] p-7 shadow-[0_20px_45px_-20px_rgba(249,115,22,0.18)]">
+                <div className="mb-6 space-y-2.5 max-h-[220px] overflow-y-auto pr-2 custom-scrollbar">
+                  {[
+                    { name: "Feature Standard", price: 7800 },
+                    { name: "Feature Nex id", price: 6000 },
+                    { name: "Feature Nex Book", price: 10000 },
+                    { name: "Feature Nex Page", price: 5000 },
+                    { name: "Feature Nex QR", price: 5000 },
+                    { name: "Feature Nex Art", price: 5000 },
+                    { name: "Feature Nex Leads", price: 5000 },
+                    { name: "Feature Nex Namecard", price: 5000 },
+                    { name: "Feature Nex Center", price: 5000 },
+                    { name: "Feature Nex AI", price: 10000 },
+                  ].map((item, idx) => (
+                    <div key={idx} className="flex justify-between items-center text-[13px]">
+                      <span className="font-bold text-[#475569]">{item.name}</span>
+                      <span className="font-bold text-[#94A3B8] line-through">฿{item.price.toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
 
-            {/* Actions */}
-            <div className="flex gap-4">
-              <button
-                onClick={() => setShowUpgradeModal(false)}
-                className="flex-1 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] py-4 text-sm font-black uppercase tracking-widest text-[#0F172A] transition-colors hover:bg-[#EEF0FF]"
-              >
-                ยกเลิก
-              </button>
-              <button
-                onClick={handleUpgradeRequest}
-                disabled={upgradeLoading}
-                className="flex flex-[2] items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-4 text-sm font-black uppercase tracking-widest text-white transition-colors hover:bg-[#EA580C] disabled:opacity-50"
-              >
-                {upgradeLoading ? (
-                  <Loader2 size={20} className="animate-spin" />
-                ) : (
-                  <>
-                    <Zap size={20} />
-                    อัพเกรดเลย
-                  </>
-                )}
-              </button>
-            </div>
+                <div className="mb-6 flex justify-center">
+                  <div className="px-5 py-2 rounded-full bg-[#F97316]/10 border border-[#F97316]/20 text-[11px] font-black uppercase tracking-[0.2em] text-[#C2410C]">
+                    มูลค่ารวม ฿63,800
+                  </div>
+                </div>
 
-            {/* Contact Admin Option */}
-            <div className="mt-6 text-center">
-              <p className="mb-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">
-                มีคำถามเพิ่มเติม?
-              </p>
-              <a href="mailto:support@nexsolution.cloud" className="text-sm font-black tracking-tight text-[#050579] hover:underline">
-                   support@nexsolution.cloud
-              </a>
+                <div className="text-center pt-6 border-t border-[#F6D5BF]">
+                   <p className="text-xs font-black uppercase tracking-[0.25em] text-[#F97316] mb-2">โปรโมชันตอนนี้จ่ายเพียง</p>
+                   <div className="flex items-center justify-center gap-2 mb-2">
+                      <span className="text-5xl font-black text-[#C2410C]">฿1,500</span>
+                   </div>
+                   <div className="inline-block py-1.5 px-4 bg-[#F97316] text-white text-[12px] font-black rounded-xl shadow-lg shadow-[#F97316]/20">
+                     ปลดล็อคทุกฟีเจอร์!
+                   </div>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-8 flex gap-3">
+                <button
+                  onClick={() => setShowUpgradeModal(false)}
+                  className="flex-1 rounded-2xl border border-[#D9E1F2] bg-white py-4 text-xs font-black uppercase tracking-widest text-[#475569] transition-all hover:bg-[#F6F8FF]"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  onClick={handleUpgradeRequest}
+                  disabled={upgradeLoading}
+                  className="flex-[2] flex items-center justify-center gap-3 rounded-2xl bg-[#050579] py-4 text-sm font-black uppercase tracking-[0.15em] text-white shadow-[0_15px_35px_-10px_rgba(5,5,121,0.3)] transition-all hover:bg-[#07079A] hover:-translate-y-1 active:translate-y-0 disabled:opacity-50"
+                >
+                  {upgradeLoading ? (
+                    <Loader2 size={24} className="animate-spin" />
+                  ) : (
+                    <>ยืนยันการอัปเกรด</>
+                  )}
+                </button>
+              </div>
+
+              <div className="mt-8 text-center">
+                 <a href="mailto:support@nexsolution.cloud" className="text-[10px] font-black uppercase tracking-[0.2em] text-[#94A3B8] hover:text-[#050579] transition-colors">
+                    ต้องการความช่วยเหลือ? ติดต่อทีมงาน
+                 </a>
+              </div>
             </div>
           </div>
         </div>
