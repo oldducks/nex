@@ -1,20 +1,28 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, User, LayoutDashboard, Pencil, Share2, Copy, Check, X, Download, ArrowLeft } from 'lucide-react';
+import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, Pencil, Share2, Copy, Check, X, Download, Trash2, AlertTriangle, Upload, Image as ImageIcon } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '@/components/QrCode';
-import { LogoInline } from '@/components/Logo';
+import ManageTopBar from '@/components/ManageTopBar';
 
 interface Catalog {
     id: number;
     title: string;
     description: string;
     pdf_url?: string;
+    layout_config?: {
+        brand_logo?: string;
+        [key: string]: unknown;
+    } | null;
     created_at: string;
-    products: any[];
+    products: Array<{
+        id: number;
+        name?: string;
+        images_json?: string[];
+    }>;
 }
 
 // Social Media Icons
@@ -41,12 +49,17 @@ export default function Dashboard() {
     const [catalogs, setCatalogs] = useState<Catalog[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [newCatalog, setNewCatalog] = useState({ title: '', description: '' });
+    const [newCatalog, setNewCatalog] = useState({ title: '', description: '', brand_logo: '' });
     const [generatingId, setGeneratingId] = useState<number | null>(null);
     const [editingCatalog, setEditingCatalog] = useState<Catalog | null>(null);
-    const [editCatalog, setEditCatalog] = useState({ title: '', description: '' });
+    const [editCatalog, setEditCatalog] = useState({ title: '', description: '', brand_logo: '' });
     const [shareModalCatalog, setShareModalCatalog] = useState<Catalog | null>(null);
     const [copiedId, setCopiedId] = useState<number | null>(null);
+    const [deletingCatalog, setDeletingCatalog] = useState<Catalog | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [uploadingLogoTarget, setUploadingLogoTarget] = useState<'create' | 'edit' | null>(null);
+    const createLogoInputRef = useRef<HTMLInputElement | null>(null);
+    const editLogoInputRef = useRef<HTMLInputElement | null>(null);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
@@ -67,6 +80,104 @@ export default function Dashboard() {
         return url;
     };
 
+    const getCatalogPreviewImages = (catalog: Catalog) => {
+        const images = (catalog.products || [])
+            .map((product) => ({
+                src: product.images_json?.[0] ? getImageUrl(product.images_json[0]) : '',
+                alt: product.name || 'Product image',
+            }))
+            .filter((item) => Boolean(item.src))
+            .slice(0, 4);
+
+        return images;
+    };
+
+    const uploadLogoImage = async (file: File, target: 'create' | 'edit') => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.type)) {
+            alert('รองรับเฉพาะไฟล์รูปภาพ jpg, png, gif, webp');
+            return;
+        }
+        if (file.size > 5 * 1024 * 1024) {
+            alert('ไฟล์มีขนาดเกิน 5MB');
+            return;
+        }
+
+        setUploadingLogoTarget(target);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+
+            const res = await fetch(`${API_URL}/uploads/image`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData,
+            });
+
+            if (!res.ok) {
+                throw new Error('อัปโหลดโลโก้ไม่สำเร็จ');
+            }
+
+            const data = await res.json();
+            let imageUrl = data.url as string | undefined;
+
+            if (data.jobId) {
+                imageUrl = await new Promise<string>((resolve, reject) => {
+                    const started = Date.now();
+                    const interval = setInterval(async () => {
+                        try {
+                            const jobRes = await fetch(`${API_URL}/uploads/job/${data.jobId}`, {
+                                headers: { Authorization: `Bearer ${token}` },
+                            });
+
+                            if (!jobRes.ok) return;
+                            const status = await jobRes.json();
+                            if (status.state === 'completed' && status.result?.url) {
+                                clearInterval(interval);
+                                resolve(status.result.url);
+                                return;
+                            }
+
+                            if (status.state === 'failed') {
+                                clearInterval(interval);
+                                reject(new Error(status.failedReason || 'ประมวลผลรูปโลโก้ไม่สำเร็จ'));
+                                return;
+                            }
+
+                            if (Date.now() - started > 60_000) {
+                                clearInterval(interval);
+                                reject(new Error('อัปโหลดโลโก้ใช้เวลานานเกินไป กรุณาลองใหม่'));
+                            }
+                        } catch {
+                            // keep polling
+                        }
+                    }, 1000);
+                });
+            }
+
+            if (!imageUrl) {
+                throw new Error('ไม่พบ URL รูปหลังอัปโหลด');
+            }
+
+            if (target === 'create') {
+                setNewCatalog((prev) => ({ ...prev, brand_logo: imageUrl || '' }));
+            } else {
+                setEditCatalog((prev) => ({ ...prev, brand_logo: imageUrl || '' }));
+            }
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'อัปโหลดโลโก้ไม่สำเร็จ';
+            alert(message);
+        } finally {
+            setUploadingLogoTarget(null);
+            if (target === 'create' && createLogoInputRef.current) {
+                createLogoInputRef.current.value = '';
+            }
+            if (target === 'edit' && editLogoInputRef.current) {
+                editLogoInputRef.current.value = '';
+            }
+        }
+    };
+
     const fetchCatalogs = async () => {
         try {
             const res = await fetch(`${API_URL}/catalogs`, {
@@ -85,17 +196,25 @@ export default function Dashboard() {
     const createCatalog = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+            const payload: Record<string, unknown> = {
+                title: newCatalog.title,
+                description: newCatalog.description,
+            };
+            if (newCatalog.brand_logo) {
+                payload.layout_config = { brand_logo: newCatalog.brand_logo };
+            }
+
             const res = await fetch(`${API_URL}/catalogs`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(newCatalog)
+                body: JSON.stringify(payload)
             });
             if (res.ok) {
                 setShowModal(false);
-                setNewCatalog({ title: '', description: '' });
+                setNewCatalog({ title: '', description: '', brand_logo: '' });
                 fetchCatalogs();
             }
         } catch (error) {
@@ -105,25 +224,42 @@ export default function Dashboard() {
 
     const openEditModal = (catalog: Catalog) => {
         setEditingCatalog(catalog);
-        setEditCatalog({ title: catalog.title, description: catalog.description || '' });
+        setEditCatalog({
+            title: catalog.title,
+            description: catalog.description || '',
+            brand_logo: catalog.layout_config?.brand_logo || '',
+        });
     };
 
     const closeEditModal = () => {
         setEditingCatalog(null);
-        setEditCatalog({ title: '', description: '' });
+        setEditCatalog({ title: '', description: '', brand_logo: '' });
     };
 
     const updateCatalog = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingCatalog) return;
         try {
+            const nextLayoutConfig: Record<string, unknown> = {
+                ...(editingCatalog.layout_config || {}),
+            };
+            if (editCatalog.brand_logo) {
+                nextLayoutConfig.brand_logo = editCatalog.brand_logo;
+            } else {
+                delete nextLayoutConfig.brand_logo;
+            }
+
             const res = await fetch(`${API_URL}/catalogs/${editingCatalog.id}`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                     Authorization: `Bearer ${token}`
                 },
-                body: JSON.stringify(editCatalog)
+                body: JSON.stringify({
+                    title: editCatalog.title,
+                    description: editCatalog.description,
+                    layout_config: nextLayoutConfig,
+                })
             });
             if (res.ok) {
                 closeEditModal();
@@ -131,6 +267,40 @@ export default function Dashboard() {
             }
         } catch (error) {
             console.error(error);
+        }
+    };
+
+    const openDeleteModal = (catalog: Catalog) => {
+        setDeletingCatalog(catalog);
+    };
+
+    const closeDeleteModal = () => {
+        if (deleting) return;
+        setDeletingCatalog(null);
+    };
+
+    const deleteCatalog = async () => {
+        if (!deletingCatalog) return;
+
+        setDeleting(true);
+        try {
+            const res = await fetch(`${API_URL}/catalogs/${deletingCatalog.id}`, {
+                method: 'DELETE',
+                headers: { Authorization: `Bearer ${token}` }
+            });
+
+            if (!res.ok) {
+                const error = await res.json().catch(() => ({}));
+                throw new Error(error?.message || 'ไม่สามารถลบแคตตาล็อกได้');
+            }
+
+            setDeletingCatalog(null);
+            fetchCatalogs();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'ไม่สามารถลบแคตตาล็อกได้';
+            alert(message);
+        } finally {
+            setDeleting(false);
         }
     };
 
@@ -181,76 +351,75 @@ export default function Dashboard() {
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
-            <Loader2 className="animate-spin text-primary" size={32} />
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] flex items-center justify-center">
+            <Loader2 className="animate-spin text-[#F97316]" size={32} />
         </div>
     );
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-            {/* Navbar */}
-            <nav className="border-b border-foreground/5 bg-background/50 backdrop-blur-md sticky top-0 z-50">
-                <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                        <Link
-                            href="/manage/control-center"
-                            className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group"
-                            title="กลับหน้าเมนูหลัก"
-                        >
-                            <ArrowLeft size={20} className="text-foreground/40 group-hover:text-foreground transition-all" />
-                        </Link>
-                        <LogoInline className="hidden sm:flex" />
-                        <div className="h-6 w-px bg-foreground/10 mx-2 hidden sm:block" />
-                        <span className="text-foreground/40 font-bold text-sm">แคตตาล็อกสินค้า</span>
-                    </div>
-
-                    <div className="flex items-center gap-2 sm:gap-4">
-                        <div className="h-6 w-px bg-foreground/10 mx-1" />
-                        <button onClick={handleLogout} className="w-10 h-10 rounded-xl hover:bg-red-500/5 hover:text-red-500 text-foreground/40 transition-all flex items-center justify-center" title="ออกจากระบบ">
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] transition-colors duration-500">
+            <ManageTopBar
+                backHref="/manage/control-center"
+                title="แคตตาล็อกสินค้า"
+                actions={(
+                    <>
+                        <div className="h-6 w-px bg-[#D9E1F2] mx-1" />
+                        <button onClick={handleLogout} className="w-10 h-10 rounded-xl hover:bg-red-50 hover:text-red-600 text-[#64748B] transition-all flex items-center justify-center" title="ออกจากระบบ">
                             <LogOut size={20} />
                         </button>
-                    </div>
-                </div>
-            </nav>
+                    </>
+                )}
+            />
 
             {/* Content */}
             <main className="max-w-7xl mx-auto px-6 py-10">
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-10">
                     <div>
-                        <h1 className="text-3xl font-black mb-2 tracking-tight">แคตตาล็อกของฉัน</h1>
-                        <p className="text-foreground/60">จัดการคอลเลกชันสินค้าและไฟล์ PDF สำหรับลูกค้า</p>
+                        <h1 className="text-3xl font-black mb-2 tracking-tight text-[#050579]">แคตตาล็อกของฉัน</h1>
+                        <p className="text-[#475569]">จัดการคอลเลกชันสินค้าและไฟล์ PDF สำหรับลูกค้า</p>
                     </div>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="bg-primary hover:bg-primary/90 text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-lg shadow-primary/20 transition-all active:scale-95"
+                        className="bg-[#F97316] hover:bg-[#EA580C] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-all active:scale-95"
                     >
                         <Plus size={18} /> สร้างแคตตาล็อกใหม่
                     </button>
                 </div>
 
                 {catalogs.length === 0 ? (
-                    <div className="text-center py-24 border-2 border-dashed border-foreground/10 rounded-[32px] bg-foreground/5">
-                        <div className="bg-foreground/5 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Package size={40} className="text-foreground/20" />
+                    <div className="text-center py-24 border-2 border-dashed border-[#D9E1F2] rounded-[32px] bg-white">
+                        <div className="bg-[#F6F8FF] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <Package size={40} className="text-[#94A3B8]" />
                         </div>
-                        <h3 className="text-2xl font-bold mb-2">ยังไม่มีแคตตาล็อก</h3>
-                        <p className="text-foreground/40 mb-8 max-w-sm mx-auto">เริ่มสร้างแคตตาล็อกแรกของคุณเพื่อเพิ่มรายการสินค้าและแชร์กับลูกค้าของคุณ</p>
-                        <button onClick={() => setShowModal(true)} className="bg-foreground text-background px-8 py-3 rounded-xl font-bold hover:opacity-90 transition-opacity">สร้างแคตตาล็อกตอนนี้</button>
+                        <h3 className="text-2xl font-bold mb-2 text-[#050579]">ยังไม่มีแคตตาล็อก</h3>
+                        <p className="text-[#64748B] mb-8 max-w-sm mx-auto">เริ่มสร้างแคตตาล็อกแรกของคุณเพื่อเพิ่มรายการสินค้าและแชร์กับลูกค้าของคุณ</p>
+                        <button onClick={() => setShowModal(true)} className="bg-[#F97316] hover:bg-[#EA580C] text-white px-8 py-3 rounded-xl font-bold transition-colors">สร้างแคตตาล็อกตอนนี้</button>
                     </div>
                 ) : (
                     <div className="space-y-6">
-                        {catalogs.map(catalog => (
-                            <div key={catalog.id} className="glass-card bg-foreground/5 border border-foreground/10 rounded-[24px] hover:border-primary/30 transition-all group relative overflow-hidden">
+                        {catalogs.map(catalog => {
+                            const previewImages = getCatalogPreviewImages(catalog);
+
+                            return (
+                            <div key={catalog.id} className="bg-white border border-[#D9E1F2] rounded-[24px] hover:border-[#C7D2E5] shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] transition-all group relative overflow-hidden">
                                 <div className="flex flex-col lg:flex-row">
                                     {/* Left Side - Catalog Info */}
                                     <div className="flex-1 p-6 lg:p-8">
                                         <div className="flex items-start gap-4 mb-4">
-                                            <div className="bg-primary/10 p-3 rounded-xl text-primary flex-shrink-0">
-                                                <FileText size={24} />
+                                            <div className="bg-[#EEF2FF] p-3 rounded-xl text-[#050579] flex-shrink-0 w-[52px] h-[52px] flex items-center justify-center overflow-hidden">
+                                                {catalog.layout_config?.brand_logo ? (
+                                                    <img
+                                                        src={getImageUrl(catalog.layout_config.brand_logo)}
+                                                        alt={`Brand logo ${catalog.title}`}
+                                                        className="w-full h-full object-contain"
+                                                    />
+                                                ) : (
+                                                    <FileText size={24} />
+                                                )}
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="text-xl font-bold group-hover:text-primary transition-colors truncate">{catalog.title}</h3>
+                                                    <h3 className="text-xl font-bold text-[#0F172A] group-hover:text-[#050579] transition-colors truncate">{catalog.title}</h3>
                                                     {catalog.pdf_url && (
                                                         <a
                                                             href={`${API_URL}${catalog.pdf_url}`}
@@ -262,37 +431,44 @@ export default function Dashboard() {
                                                         </a>
                                                     )}
                                                 </div>
-                                                <p className="text-foreground/60 text-sm line-clamp-2">{catalog.description || 'ไม่มีคำอธิบาย'}</p>
-                                                <p className="text-foreground/40 text-xs mt-2">{catalog.products?.length || 0} สินค้า</p>
+                                                <p className="text-[#475569] text-sm line-clamp-2">{catalog.description || 'ไม่มีคำอธิบาย'}</p>
+                                                <p className="text-[#94A3B8] text-xs mt-2">{catalog.products?.length || 0} สินค้า</p>
                                             </div>
                                         </div>
 
                                         {/* Action Buttons */}
                                         <div className="flex flex-wrap gap-2 mt-4">
-                                            <Link
+                                                <Link
                                                 href={`/manage/catalogs/${catalog.id}`}
-                                                className="bg-foreground text-background px-4 py-2.5 rounded-xl text-center font-bold text-sm transition-all hover:scale-[1.02] active:scale-[0.98]"
+                                                className="bg-[#050579] hover:bg-[#07079A] text-white px-4 py-2.5 rounded-xl text-center font-bold text-sm transition-colors"
                                             >
                                                 จัดการสินค้า
                                             </Link>
                                             <Link
                                                 href={`/catalog/${catalog.id}`}
                                                 target="_blank"
-                                                className="bg-foreground/10 hover:bg-foreground/20 px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2"
+                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white px-4 py-2.5 rounded-xl font-bold text-sm text-[#0F172A] transition-colors flex items-center gap-2"
                                             >
                                                 <ExternalLink size={16} /> ดูหน้าสาธารณะ
                                             </Link>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); openEditModal(catalog); }}
-                                                className="bg-foreground/10 hover:bg-foreground/20 p-2.5 rounded-xl text-foreground/60 hover:text-primary transition-all"
+                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white p-2.5 rounded-xl text-[#64748B] hover:text-[#050579] transition-colors"
                                                 title="แก้ไขแคตตาล็อก"
                                             >
                                                 <Pencil size={18} />
                                             </button>
                                             <button
+                                                onClick={(e) => { e.stopPropagation(); openDeleteModal(catalog); }}
+                                                className="border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] p-2.5 rounded-xl text-[#DC2626] hover:text-[#B91C1C] transition-colors"
+                                                title="ลบแคตตาล็อก"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                            <button
                                                 onClick={() => generatePdf(catalog.id)}
                                                 disabled={generatingId === catalog.id}
-                                                className="bg-foreground/10 hover:bg-foreground/20 p-2.5 rounded-xl text-foreground/60 hover:text-foreground transition-all flex items-center gap-2 px-4"
+                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white p-2.5 rounded-xl text-[#64748B] hover:text-[#0F172A] transition-colors flex items-center gap-2 px-4"
                                                 title="สร้าง PDF ใหม่"
                                             >
                                                 {generatingId === catalog.id ? <Loader2 size={18} className="animate-spin" /> : <Settings size={18} />}
@@ -304,19 +480,59 @@ export default function Dashboard() {
                                                     href={getImageUrl(catalog.pdf_url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="bg-primary text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-all flex items-center gap-2 shadow-lg shadow-primary/20"
+                                                    className="bg-[#F97316] hover:bg-[#EA580C] text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)]"
                                                 >
                                                     <Download size={18} /> Download PDF
                                                 </a>
                                             )}
                                         </div>
+
+                                        <div className="mt-6 pt-5 border-t border-[#E2E8F0]">
+                                            <div className="flex items-center justify-between mb-3">
+                                                <p className="text-[10px] font-black tracking-[0.18em] uppercase text-[#64748B]">
+                                                    Product Preview
+                                                </p>
+                                                <p className="text-xs font-semibold text-[#94A3B8]">
+                                                    สูงสุด 4 รูป
+                                                </p>
+                                            </div>
+
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                                {Array.from({ length: 4 }).map((_, index) => {
+                                                    const preview = previewImages[index];
+                                                    if (!preview) {
+                                                        return (
+                                                            <div
+                                                                key={`placeholder-${catalog.id}-${index}`}
+                                                                className="aspect-[4/3] rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] flex items-center justify-center"
+                                                            >
+                                                                <Package size={18} className="text-[#CBD5E1]" />
+                                                            </div>
+                                                        );
+                                                    }
+
+                                                    return (
+                                                        <div
+                                                            key={`preview-${catalog.id}-${index}`}
+                                                            className="aspect-[4/3] rounded-xl overflow-hidden border border-[#D9E1F2] bg-[#EEF2FF]"
+                                                        >
+                                                            <img
+                                                                src={preview.src}
+                                                                alt={preview.alt}
+                                                                className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"
+                                                            />
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
                                     </div>
 
                                     {/* Right Side - QR Code & Share */}
-                                    <div className="lg:w-72 p-6 lg:p-8 border-t lg:border-t-0 lg:border-l border-foreground/10 bg-foreground/5 flex flex-col items-center justify-center">
+                                    <div className="lg:w-72 p-6 lg:p-8 border-t lg:border-t-0 lg:border-l border-[#D9E1F2] bg-[#F6F8FF] flex flex-col items-center justify-center">
                                         <QrCodeImage url={getCatalogUrl(catalog.id)} size={120} className="mb-4" />
 
-                                        <p className="text-xs text-foreground/40 mb-3 text-center">สแกนเพื่อดูแคตตาล็อก</p>
+                                        <p className="text-xs text-[#64748B] mb-3 text-center">สแกนเพื่อดูแคตตาล็อก</p>
 
                                         {/* Share Buttons */}
                                         <div className="flex items-center gap-2 mb-3">
@@ -346,7 +562,7 @@ export default function Dashboard() {
                                                 className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
                                                     copiedId === catalog.id
                                                         ? 'bg-green-500 text-white'
-                                                        : 'bg-foreground/10 hover:bg-foreground/20 text-foreground/60 hover:text-foreground'
+                                                        : 'bg-white border border-[#D9E1F2] hover:bg-[#EEF0FF] text-[#64748B] hover:text-[#0F172A]'
                                                 }`}
                                                 title="คัดลอกลิงก์"
                                             >
@@ -357,14 +573,14 @@ export default function Dashboard() {
                                         {/* More Share Options Button */}
                                         <button
                                             onClick={() => setShareModalCatalog(catalog)}
-                                            className="text-xs text-primary hover:underline flex items-center gap-1"
+                                            className="text-xs text-[#050579] hover:underline flex items-center gap-1"
                                         >
                                             <Share2 size={14} /> แชร์เพิ่มเติม
                                         </button>
                                     </div>
                                 </div>
                             </div>
-                        ))}
+                        )})}
                     </div>
                 )}
             </main>
@@ -372,34 +588,83 @@ export default function Dashboard() {
             {/* Create Modal */}
             {showModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowModal(false)} />
-                    <div className="bg-card-bg border border-glass-border rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                        <h2 className="text-2xl font-black mb-6 tracking-tight">สร้างแคตตาล็อกใหม่</h2>
+                    <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowModal(false)} />
+                    <div className="bg-white border border-[#D9E1F2] rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <h2 className="text-2xl font-black mb-6 tracking-tight text-[#050579]">สร้างแคตตาล็อกใหม่</h2>
                         <form onSubmit={createCatalog} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="block text-xs font-bold text-foreground/40 uppercase tracking-widest ml-1">หัวข้อแคตตาล็อก</label>
+                                <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">หัวข้อแคตตาล็อก</label>
                                 <input
                                     required
-                                    className="w-full bg-foreground/5 border border-glass-border rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-foreground/20"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all placeholder:text-[#94A3B8]"
                                     value={newCatalog.title}
                                     placeholder="เช่น คอลเลกชันฤดูร้อน 2024"
                                     onChange={e => setNewCatalog({ ...newCatalog, title: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="block text-xs font-bold text-foreground/40 uppercase tracking-widest ml-1">คำอธิบาย</label>
+                                <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">คำอธิบาย</label>
                                 <textarea
-                                    className="w-full bg-foreground/5 border border-glass-border rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 resize-none placeholder:text-foreground/20"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all h-32 resize-none placeholder:text-[#94A3B8]"
                                     value={newCatalog.description}
                                     placeholder="เพิ่มรายละเอียดเกี่ยวกับแคตตาล็อกนี้..."
                                     onChange={e => setNewCatalog({ ...newCatalog, description: e.target.value })}
                                 />
                             </div>
+                            <div className="space-y-3">
+                                <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">โลโก้แบรนด์สินค้า</label>
+                                <input
+                                    ref={createLogoInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) uploadLogoImage(file, 'create');
+                                    }}
+                                />
+
+                                <div className="flex items-center gap-3">
+                                    <div className="w-20 h-20 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] flex items-center justify-center overflow-hidden">
+                                        {newCatalog.brand_logo ? (
+                                            <img
+                                                src={getImageUrl(newCatalog.brand_logo)}
+                                                alt="Brand logo preview"
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <ImageIcon size={24} className="text-[#94A3B8]" />
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button
+                                            type="button"
+                                            onClick={() => createLogoInputRef.current?.click()}
+                                            disabled={uploadingLogoTarget === 'create'}
+                                            className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white px-3 py-2 rounded-xl text-sm font-bold text-[#334155] transition-colors disabled:opacity-60 flex items-center gap-2"
+                                        >
+                                            {uploadingLogoTarget === 'create' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                                            {uploadingLogoTarget === 'create' ? 'กำลังอัปโหลด...' : 'อัปโหลดโลโก้'}
+                                        </button>
+                                        {newCatalog.brand_logo && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setNewCatalog((prev) => ({ ...prev, brand_logo: '' }))}
+                                                disabled={uploadingLogoTarget === 'create'}
+                                                className="border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-3 py-2 rounded-xl text-sm font-bold text-[#B91C1C] transition-colors disabled:opacity-60"
+                                            >
+                                                ลบรูป
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-[#94A3B8]">รองรับ JPG, PNG, GIF, WebP ขนาดไม่เกิน 5MB</p>
+                            </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 text-foreground/60 hover:text-foreground font-bold py-4 transition-colors">
+                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 text-[#64748B] hover:text-[#0F172A] font-bold py-4 transition-colors">
                                     ยกเลิก
                                 </button>
-                                <button className="flex-[2] bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95">
+                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white font-bold py-4 rounded-2xl shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-colors active:scale-95">
                                     สร้างแคตตาล็อก
                                 </button>
                             </div>
@@ -411,34 +676,83 @@ export default function Dashboard() {
             {/* Edit Modal */}
             {editingCatalog && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-300" onClick={closeEditModal} />
-                    <div className="bg-card-bg border border-glass-border rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                        <h2 className="text-2xl font-black mb-6 tracking-tight">แก้ไขแคตตาล็อก</h2>
+                    <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-md animate-in fade-in duration-300" onClick={closeEditModal} />
+                    <div className="bg-white border border-[#D9E1F2] rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <h2 className="text-2xl font-black mb-6 tracking-tight text-[#050579]">แก้ไขแคตตาล็อก</h2>
                         <form onSubmit={updateCatalog} className="space-y-6">
                             <div className="space-y-2">
-                                <label className="block text-xs font-bold text-foreground/40 uppercase tracking-widest ml-1">หัวข้อแคตตาล็อก</label>
+                                <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">หัวข้อแคตตาล็อก</label>
                                 <input
                                     required
-                                    className="w-full bg-foreground/5 border border-glass-border rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-foreground/20"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all placeholder:text-[#94A3B8]"
                                     value={editCatalog.title}
                                     placeholder="เช่น คอลเลกชันฤดูร้อน 2024"
                                     onChange={e => setEditCatalog({ ...editCatalog, title: e.target.value })}
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label className="block text-xs font-bold text-foreground/40 uppercase tracking-widest ml-1">คำอธิบาย</label>
+                                <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">คำอธิบาย</label>
                                 <textarea
-                                    className="w-full bg-foreground/5 border border-glass-border rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 resize-none placeholder:text-foreground/20"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all h-32 resize-none placeholder:text-[#94A3B8]"
                                     value={editCatalog.description}
                                     placeholder="เพิ่มรายละเอียดเกี่ยวกับแคตตาล็อกนี้..."
                                     onChange={e => setEditCatalog({ ...editCatalog, description: e.target.value })}
                                 />
                             </div>
+                            <div className="space-y-3">
+                                <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">โลโก้แบรนด์สินค้า</label>
+                                <input
+                                    ref={editLogoInputRef}
+                                    type="file"
+                                    accept="image/jpeg,image/png,image/gif,image/webp"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) uploadLogoImage(file, 'edit');
+                                    }}
+                                />
+
+                                <div className="flex items-center gap-3">
+                                    <div className="w-20 h-20 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] flex items-center justify-center overflow-hidden">
+                                        {editCatalog.brand_logo ? (
+                                            <img
+                                                src={getImageUrl(editCatalog.brand_logo)}
+                                                alt="Brand logo preview"
+                                                className="w-full h-full object-contain"
+                                            />
+                                        ) : (
+                                            <ImageIcon size={24} className="text-[#94A3B8]" />
+                                        )}
+                                    </div>
+                                    <div className="flex gap-2 flex-wrap">
+                                        <button
+                                            type="button"
+                                            onClick={() => editLogoInputRef.current?.click()}
+                                            disabled={uploadingLogoTarget === 'edit'}
+                                            className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white px-3 py-2 rounded-xl text-sm font-bold text-[#334155] transition-colors disabled:opacity-60 flex items-center gap-2"
+                                        >
+                                            {uploadingLogoTarget === 'edit' ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                                            {uploadingLogoTarget === 'edit' ? 'กำลังอัปโหลด...' : 'อัปโหลดโลโก้'}
+                                        </button>
+                                        {editCatalog.brand_logo && (
+                                            <button
+                                                type="button"
+                                                onClick={() => setEditCatalog((prev) => ({ ...prev, brand_logo: '' }))}
+                                                disabled={uploadingLogoTarget === 'edit'}
+                                                className="border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] px-3 py-2 rounded-xl text-sm font-bold text-[#B91C1C] transition-colors disabled:opacity-60"
+                                            >
+                                                ลบรูป
+                                            </button>
+                                        )}
+                                    </div>
+                                </div>
+                                <p className="text-xs text-[#94A3B8]">รองรับ JPG, PNG, GIF, WebP ขนาดไม่เกิน 5MB</p>
+                            </div>
                             <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={closeEditModal} className="flex-1 text-foreground/60 hover:text-foreground font-bold py-4 transition-colors">
+                                <button type="button" onClick={closeEditModal} className="flex-1 text-[#64748B] hover:text-[#0F172A] font-bold py-4 transition-colors">
                                     ยกเลิก
                                 </button>
-                                <button className="flex-[2] bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 transition-all active:scale-95">
+                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white font-bold py-4 rounded-2xl shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-colors active:scale-95">
                                     บันทึกการแก้ไข
                                 </button>
                             </div>
@@ -450,17 +764,17 @@ export default function Dashboard() {
             {/* Share Modal */}
             {shareModalCatalog && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShareModalCatalog(null)} />
-                    <div className="bg-card-bg border border-glass-border rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-2xl animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                    <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShareModalCatalog(null)} />
+                    <div className="bg-white border border-[#D9E1F2] rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
                         <button
                             onClick={() => setShareModalCatalog(null)}
-                            className="absolute top-4 right-4 w-10 h-10 bg-foreground/5 hover:bg-foreground/10 rounded-full flex items-center justify-center transition-colors"
+                            className="absolute top-4 right-4 w-10 h-10 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center transition-colors text-[#64748B]"
                         >
                             <X size={20} />
                         </button>
 
-                        <h2 className="text-2xl font-black mb-2 tracking-tight">แชร์แคตตาล็อก</h2>
-                        <p className="text-foreground/60 text-sm mb-6">{shareModalCatalog.title}</p>
+                        <h2 className="text-2xl font-black mb-2 tracking-tight text-[#050579]">แชร์แคตตาล็อก</h2>
+                        <p className="text-[#475569] text-sm mb-6">{shareModalCatalog.title}</p>
 
                         {/* QR Code */}
                         <div className="flex justify-center mb-6">
@@ -468,9 +782,9 @@ export default function Dashboard() {
                         </div>
 
                         {/* Link Display */}
-                        <div className="bg-foreground/5 rounded-xl p-4 mb-6">
-                            <p className="text-xs text-foreground/40 mb-1">ลิงก์แคตตาล็อก</p>
-                            <p className="text-sm font-mono break-all">{getCatalogUrl(shareModalCatalog.id)}</p>
+                        <div className="bg-[#F6F8FF] border border-[#D9E1F2] rounded-xl p-4 mb-6">
+                            <p className="text-xs text-[#64748B] mb-1">ลิงก์แคตตาล็อก</p>
+                            <p className="text-sm font-mono break-all text-[#0F172A]">{getCatalogUrl(shareModalCatalog.id)}</p>
                         </div>
 
                         {/* Share Buttons */}
@@ -501,11 +815,52 @@ export default function Dashboard() {
                                 className={`flex flex-col items-center gap-2 p-4 rounded-xl transition-all ${
                                     copiedId === shareModalCatalog.id
                                         ? 'bg-green-500 text-white'
-                                        : 'bg-foreground/10 hover:bg-foreground/20 text-foreground/60'
+                                        : 'bg-[#F6F8FF] hover:bg-[#EEF0FF] text-[#475569]'
                                 }`}
                             >
                                 {copiedId === shareModalCatalog.id ? <Check size={20} /> : <Copy size={20} />}
                                 <span className="text-xs font-medium">{copiedId === shareModalCatalog.id ? 'คัดลอกแล้ว!' : 'คัดลอก'}</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Delete Confirm Modal */}
+            {deletingCatalog && (
+                <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#0F172A]/40 backdrop-blur-md animate-in fade-in duration-300" onClick={closeDeleteModal} />
+                    <div className="bg-white border border-[#FECACA] rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <div className="w-14 h-14 rounded-2xl bg-[#FEF2F2] border border-[#FECACA] flex items-center justify-center text-[#DC2626] mb-5">
+                            <AlertTriangle size={28} />
+                        </div>
+
+                        <h2 className="text-2xl font-black mb-2 tracking-tight text-[#991B1B]">ยืนยันการลบแคตตาล็อก</h2>
+                        <p className="text-[#7F1D1D] text-sm leading-relaxed mb-2">
+                            คุณกำลังจะลบแคตตาล็อกนี้:
+                        </p>
+                        <p className="font-bold text-[#0F172A] mb-6 break-words">{deletingCatalog.title}</p>
+                        <p className="text-[#B91C1C] text-sm font-semibold mb-8">
+                            การลบนี้ไม่สามารถย้อนกลับได้ และสินค้าภายในแคตตาล็อกจะถูกลบทั้งหมด
+                        </p>
+
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={closeDeleteModal}
+                                disabled={deleting}
+                                className="flex-1 text-[#64748B] hover:text-[#0F172A] font-bold py-4 transition-colors disabled:opacity-60"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                type="button"
+                                onClick={deleteCatalog}
+                                disabled={deleting}
+                                className="flex-[2] bg-[#DC2626] hover:bg-[#B91C1C] text-white font-bold py-4 rounded-2xl shadow-[0_18px_40px_-26px_rgba(220,38,38,0.45)] transition-colors active:scale-95 disabled:opacity-60 flex items-center justify-center gap-2"
+                            >
+                                {deleting ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
+                                {deleting ? 'กำลังลบ...' : 'ยืนยันลบแคตตาล็อก'}
                             </button>
                         </div>
                     </div>

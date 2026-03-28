@@ -9,6 +9,9 @@ import {
 } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
 import Flipbook, { FlipbookProductPage } from '@/components/Flipbook';
+import { getEmbedUrl } from '@/lib/videoUtils';
+
+const DEFAULT_REFERRAL_URL = 'https://nexsolution.cloud/manage/referrals';
 
 interface Product {
   id: number;
@@ -30,6 +33,13 @@ interface Catalog {
   layout_config?: any;
   interactive_links?: any;
   pdf_url?: string;
+  video_config?: {
+    url: string;
+    autoplay: boolean;
+    link_url?: string;
+    link_enabled: boolean;
+    enabled: boolean;
+  };
   products: Product[];
 }
 
@@ -44,6 +54,13 @@ export default function PublicCatalog() {
   const [showShareModal, setShowShareModal] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+  const nexPageVars = {
+    '--background': '#EEF0FF',
+    '--foreground': '#0F172A',
+    '--primary': '#050579',
+    '--glass-border': 'rgba(15,23,42,0.08)',
+    '--card': '#FFFFFF',
+  } as React.CSSProperties;
 
   useEffect(() => {
     fetchCatalog();
@@ -105,7 +122,7 @@ export default function PublicCatalog() {
   );
 
   const theme = catalog.layout_config || {};
-  const primary = theme.primary_color || '#6366F1';
+  const primary = theme.primary_color || '#050579';
 
   const styles = {
     '--primary': primary,
@@ -118,10 +135,24 @@ export default function PublicCatalog() {
       id: product.id,
       content: <FlipbookProductPage product={product} />
     }));
+    const brandLogoUrl = catalog.layout_config?.brand_logo
+      ? getImageUrl(catalog.layout_config.brand_logo)
+      : '';
 
     const coverPage = (
       <div className="w-full h-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center p-8" style={{ '--primary': primary } as any}>
-        <div className="text-center text-white">
+        <div className="text-center text-white w-full max-w-[420px]">
+          {brandLogoUrl && (
+            <div className="mb-8 flex justify-center">
+              <div className="h-24 md:h-28 w-full rounded-2xl border border-white/30 bg-white/10 backdrop-blur-sm p-3 flex items-center justify-center">
+                <img
+                  src={brandLogoUrl}
+                  alt={`Brand logo ${catalog.title}`}
+                  className="max-h-full max-w-full object-contain"
+                />
+              </div>
+            </div>
+          )}
           <div className="text-4xl md:text-6xl font-black tracking-tighter mb-4">{catalog.title}</div>
           <div className="text-lg opacity-80">{catalog.description || 'Digital Collection'}</div>
           <div className="mt-8 text-sm opacity-60">{catalog.products.length} Products</div>
@@ -146,13 +177,13 @@ export default function PublicCatalog() {
   }
 
   return (
-    <div className="min-h-screen transition-colors duration-500 bg-background text-foreground" style={styles}>
+    <div className="min-h-screen transition-colors duration-500 bg-background text-foreground" style={{ ...nexPageVars, ...styles }}>
       <div className="min-h-screen">
         
         {/* Header */}
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-foreground/10">
           <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-            <h1 className="text-xl font-black tracking-tight uppercase">{catalog.title}</h1>
+            <h1 className="text-xl font-black tracking-tight uppercase text-[#050579]">{catalog.title}</h1>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => setViewMode('flipbook')}
@@ -195,13 +226,42 @@ export default function PublicCatalog() {
         <main className="max-w-6xl mx-auto px-6 py-12">
           {/* Welcome Section */}
           <div className="mb-16 text-center md:text-left">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter">
+            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-[#050579]">
               {catalog.description || 'Welcome to our digital collection'}
             </h2>
-            <p className="text-gray-500 max-w-2xl text-lg leading-relaxed">
+            <p className="text-[#475569] max-w-2xl text-lg leading-relaxed">
               เลือกชมสินค้าที่คุณสนใจ และคลิกเพื่อดูรายละเอียดเชิงลึก หรือสั่งซื้อผ่านลิงก์ได้ทันที
             </p>
           </div>
+
+          {/* Hero Video Section if enabled */}
+          {catalog.video_config?.enabled && (
+             <div className="mb-20">
+                <div className="relative w-full aspect-video rounded-[40px] overflow-hidden shadow-2xl bg-black group">
+                    {catalog.video_config.url ? (
+                        <a href={catalog.video_config.link_url || DEFAULT_REFERRAL_URL} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                            <video 
+                                src={catalog.video_config.url.startsWith('http') ? catalog.video_config.url : `${API_URL}${catalog.video_config.url}`}
+                                autoPlay={catalog.video_config.autoplay}
+                                muted={catalog.video_config.autoplay}
+                                loop
+                                playsInline
+                                controls
+                                className="w-full h-full object-cover"
+                            />
+                        </a>
+                    ) : (
+                        <a href={catalog.video_config.link_url || DEFAULT_REFERRAL_URL} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
+                            <iframe
+                                src={getEmbedUrl(catalog.video_config.link_url || '')}
+                                className="w-full h-full"
+                                allow="autoplay; fullscreen"
+                            />
+                        </a>
+                    )}
+                </div>
+             </div>
+          )}
 
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -213,12 +273,20 @@ export default function PublicCatalog() {
               >
                 {/* Image */}
                 <div className="aspect-[4/5] relative overflow-hidden">
-                  <img
-                    src={getImageUrl(product.images_json?.[0])}
-                    alt={product.name}
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity"></div>
+                  <a 
+                    href={product.interactive_links?.order_form || product.interactive_links?.website || DEFAULT_REFERRAL_URL} 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className="block w-full h-full"
+                  >
+                    <img
+                      src={getImageUrl(product.images_json?.[0])}
+                      alt={product.name}
+                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+                    />
+                  </a>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity pointer-events-none"></div>
                 </div>
 
                 {/* Content Overlay/Bar */}
@@ -230,7 +298,7 @@ export default function PublicCatalog() {
                     ฿{product.price.toLocaleString()}
                   </div>
 
-                  <p className="text-gray-500 text-sm line-clamp-2 md:line-clamp-3 mb-6">
+                  <p className="text-[#475569] text-sm line-clamp-2 md:line-clamp-3 mb-6">
                     {product.description}
                   </p>
 
@@ -308,10 +376,10 @@ function CatalogLinks({ links }: { links?: any }) {
 function QrCodeModal({ url, title, onClose }: { url: string, title: string, onClose: () => void }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
       
-      <div className="bg-[#101010] border border-white/10 rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-black/50 hover:bg-black rounded-full flex items-center justify-center text-white transition-colors border border-white/10">
+      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
           <ArrowLeft size={24} />
         </button>
 
@@ -321,7 +389,7 @@ function QrCodeModal({ url, title, onClose }: { url: string, title: string, onCl
           </div>
           
           <h3 className="text-2xl font-black mb-4">QR Code</h3>
-          <p className="text-gray-400 mb-8">สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ</p>
+          <p className="text-[#475569] mb-8">สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ</p>
           
           <div className="bg-white p-6 rounded-2xl mb-6">
             <QrCodeImage 
@@ -331,8 +399,8 @@ function QrCodeModal({ url, title, onClose }: { url: string, title: string, onCl
             />
           </div>
           
-          <p className="text-sm text-gray-500 mb-2">{title}</p>
-          <p className="text-xs text-gray-600">{url}</p>
+          <p className="text-sm text-[#475569] mb-2">{title}</p>
+          <p className="text-xs text-[#64748B]">{url}</p>
         </div>
       </div>
     </div>
@@ -374,10 +442,10 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
       
-      <div className="bg-[#101010] border border-white/10 rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-black/50 hover:bg-black rounded-full flex items-center justify-center text-white transition-colors border border-white/10">
+      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
           <ArrowLeft size={24} />
         </button>
 
@@ -387,7 +455,7 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
           </div>
           
           <h3 className="text-2xl font-black mb-4">แชร์แคตตาล็อก</h3>
-          <p className="text-gray-400 mb-8">เชิญเพื่อนๆ มาชมสินค้าในแคตตาล็อกของคุณ</p>
+          <p className="text-[#475569] mb-8">เชิญเพื่อนๆ มาชมสินค้าในแคตตาล็อกของคุณ</p>
           
           <div className="space-y-3 mb-6">
             {shareLinks.map((link) => (
@@ -395,7 +463,7 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
                 key={link.name}
                 href={link.href}
                 target="_blank"
-                className="w-full flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all group"
+                className="w-full flex items-center gap-4 p-4 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-2xl transition-all group"
               >
                 <div className={`w-12 h-12 ${link.color} rounded-xl flex items-center justify-center text-white`}>
                   <link.icon size={20} />
@@ -421,18 +489,30 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
 function ProductModal({ product, onClose, getImageUrl }: { product: Product, onClose: () => void, getImageUrl: (url: string | undefined) => string }) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/95 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+      <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
       
-      <div className="bg-[#101010] border border-white/10 rounded-[40px] w-full max-w-4xl relative z-10 overflow-hidden shadow-2xl animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-black/50 hover:bg-black rounded-full flex items-center justify-center text-white transition-colors border border-white/10">
+      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-4xl relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
+        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
           <ArrowLeft size={24} />
         </button>
 
         <div className="flex flex-col md:flex-row h-full max-h-[90vh]">
           {/* Gallery Sidebar/Image */}
           <div className="md:w-1/2 p-4 md:p-8">
-            <div className="relative aspect-[4/5] rounded-[32px] overflow-hidden bg-black">
-              <img src={getImageUrl(product.images_json?.[0])} alt={product.name} className="w-full h-full object-cover" />
+            <div className="relative aspect-[4/5] rounded-[32px] overflow-hidden bg-black group">
+              <a 
+                href={product.interactive_links?.order_form || product.interactive_links?.website || DEFAULT_REFERRAL_URL} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="block w-full h-full"
+              >
+                <img src={getImageUrl(product.images_json?.[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+                    <div className="opacity-0 group-hover:opacity-100 bg-white/90 text-primary px-4 py-2 rounded-full font-bold text-sm shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all">
+                        คลิกเพื่อดูรายละเอียด/สั่งซื้อ
+                    </div>
+                </div>
+              </a>
             </div>
           </div>
 
@@ -443,40 +523,39 @@ function ProductModal({ product, onClose, getImageUrl }: { product: Product, onC
               <div className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full font-bold text-lg mb-6">
                 ฿{product.price.toLocaleString()}
               </div>
-              <p className="text-gray-400 leading-relaxed text-lg">
+              <p className="text-[#475569] leading-relaxed text-lg">
                 {product.description}
               </p>
             </div>
 
             {/* Interactive Links for Product */}
             <div className="space-y-4">
-               <h4 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+               <h4 className="text-xs font-bold text-[#64748B] uppercase tracking-widest mb-4 flex items-center gap-2">
                  <Info size={14} /> Actions & Links
                </h4>
                
                <div className="grid grid-cols-1 gap-3">
-                 {product.interactive_links?.order_form && (
-                   <a 
-                    href={product.interactive_links.order_form} 
+                  <a 
+                    href={product.interactive_links?.order_form || product.interactive_links?.website || DEFAULT_REFERRAL_URL} 
                     target="_blank"
                     className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-5 rounded-2xl transition-all flex items-center justify-center gap-3 group"
-                   >
-                     Order Now <ShoppingCart size={20} className="group-hover:translate-x-1 transition-transform" />
-                   </a>
-                 )}
+                  >
+                    {product.interactive_links?.order_form ? 'Order Now' : 'Check Details'} 
+                    <ShoppingCart size={20} className="group-hover:translate-x-1 transition-transform" />
+                  </a>
 
-                 <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-2 gap-3">
                     {product.interactive_links?.website && (
-                      <a href={product.interactive_links.website} target="_blank" className="bg-white/5 hover:bg-white/10 py-5 rounded-2xl flex items-center justify-center gap-2 transition-all">
+                      <a href={product.interactive_links.website} target="_blank" className="bg-[#F6F8FF] hover:bg-[#EEF0FF] py-5 rounded-2xl flex items-center justify-center gap-2 transition-all">
                         <Globe size={18} /> Website
                       </a>
                     )}
                     {product.interactive_links?.facebook && (
-                      <a href={product.interactive_links.facebook} target="_blank" className="bg-white/5 hover:bg-white/10 py-5 rounded-2xl flex items-center justify-center gap-2 transition-all">
+                      <a href={product.interactive_links.facebook} target="_blank" className="bg-[#F6F8FF] hover:bg-[#EEF0FF] py-5 rounded-2xl flex items-center justify-center gap-2 transition-all">
                         <Facebook size={18} /> Facebook
                       </a>
                     )}
-                 </div>
+                  </div>
                </div>
             </div>
           </div>
