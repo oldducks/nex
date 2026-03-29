@@ -1,19 +1,19 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { 
   Globe, ExternalLink, Share2, Facebook, Twitter, 
   ChevronRight, MessageSquare, Package, Layout, Image as ImageIcon,
-  Copy
+  Copy, Mail, MapPin, Play
 } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
 import Cookies from 'js-cookie';
-import { getEmbedUrl } from '@/lib/videoUtils';
+import { getEmbedUrl, isEmbedableVideo } from '@/lib/videoUtils';
 import { QrCodeImage } from '@/components/QrCode';
 
 interface Block {
     id: string;
-    type: 'text' | 'image' | 'video' | 'button' | 'form';
+    type: 'text' | 'image' | 'video' | 'button' | 'form' | 'location';
     content: any;
 }
 
@@ -83,11 +83,12 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
     const primary = theme.primary_color || '#050579';
     const accent = theme.accent_color || '#F97316';
     const shareUrl = `${SITE_URL}/lp/${page.slug}`;
+    const baseSans = "var(--font-sans), 'Noto Sans Thai', 'Segoe UI', system-ui, -apple-system, sans-serif";
 
     return (
         <div style={{ 
             minHeight: '100vh',
-            fontFamily: theme.font_family || 'inherit', 
+            fontFamily: baseSans,
             backgroundColor: '#EFF6FF', 
             color: '#0F172A'
         }}>
@@ -120,7 +121,7 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                 }} />
             </div>
 
-            <div style={{ fontFamily: "var(--font-sans), 'Sarabun', sans-serif" }}>
+            <div style={{ fontFamily: baseSans }}>
                 <ManageTopBar
                     backHref="/manage/landing-pages"
                     subtitle="ระบบจัดการหน้าร้านดิจิทัล"
@@ -294,6 +295,68 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                         </button>
                     </div>
 
+                    {/* Contact Channels Section */}
+                    <div style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        gap: '1.25rem',
+                        marginBottom: '5rem',
+                        padding: '2.5rem 1.5rem',
+                        backgroundColor: 'rgba(255,255,255,0.6)',
+                        backdropFilter: 'blur(10px)',
+                        borderRadius: '40px',
+                        border: '1px solid white',
+                        boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05)',
+                        width: '100%',
+                        maxWidth: '440px'
+                    }}>
+                        <p style={{
+                            fontSize: '11px',
+                            fontWeight: 900,
+                            color: '#050579',
+                            textTransform: 'uppercase',
+                            letterSpacing: '0.15em',
+                            opacity: 0.5
+                        }}>ติดต่อสอบถามข้อมูลเพิ่มเติม</p>
+                        
+                        <div style={{ display: 'flex', gap: '1.5rem', width: '100%', justifyContent: 'center' }}>
+                            <a 
+                                href="https://line.me/ti/p/@nexsolution" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+                            >
+                                <div style={{ width: '56px', height: '56px', backgroundColor: '#00B900', color: 'white', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 15px -5px rgba(0,185,0,0.3)' }}>
+                                    <LineIcon size={28} />
+                                </div>
+                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#050579' }}>Line OA</span>
+                            </a>
+
+                            <a 
+                                href="https://m.me/nexsolution.cloud" 
+                                target="_blank" 
+                                rel="noopener noreferrer"
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+                            >
+                                <div style={{ width: '56px', height: '56px', backgroundColor: '#0668E1', color: 'white', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 15px -5px rgba(6,104,225,0.3)' }}>
+                                    <Facebook size={28} fill="currentColor" />
+                                </div>
+                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#050579' }}>Facebook</span>
+                            </a>
+
+                            <a 
+                                href="mailto:support@nexsolution.cloud" 
+                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
+                            >
+                                <div style={{ width: '56px', height: '56px', backgroundColor: '#050579', color: 'white', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 15px -5px rgba(5,5,121,0.3)' }}>
+                                    <Mail size={28} />
+                                </div>
+                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#050579' }}>Email</span>
+                            </a>
+                        </div>
+                    </div>
+
                     {/* Footer - ALWAYS VISIBLE */}
                     <footer style={{
                         width: '100%',
@@ -321,7 +384,26 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
 function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, contentBlocks }: { block: Block, theme: any, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string, contentBlocks: Block[] }) {
     const primary = theme.primary_color || '#050579';
     const accent = theme.accent_color || '#F97316';
-    const DEFAULT_REFERRAL_URL = 'https://nexsolution.cloud/manage/referrals';
+    const [isVideoPlaying, setIsVideoPlaying] = useState(false);
+    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const normalizeUrl = (value?: unknown): string | null => {
+        if (typeof value !== 'string') return null;
+        let trimmed = value.trim();
+        if (trimmed.length === 0) return null;
+        
+        // If it looks like a domain but doesn't have a protocol, add https://
+        // Don't add for relative paths starting with / or # or common protocols
+        if (!trimmed.startsWith('http://') && 
+            !trimmed.startsWith('https://') && 
+            !trimmed.startsWith('mailto:') && 
+            !trimmed.startsWith('tel:') && 
+            !trimmed.startsWith('/') && 
+            !trimmed.startsWith('#')) {
+            trimmed = 'https://' + trimmed;
+        }
+        
+        return trimmed;
+    };
     
     switch (block.type) {
         case 'text':
@@ -353,7 +435,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
         case 'image':
             const imageUrl = block.content.url;
             const hasImage = imageUrl && imageUrl.length > 0;
-            const imageLink = block.content.link || DEFAULT_REFERRAL_URL;
+            const imageLink = normalizeUrl(block.content.link);
             
             return (
                 <div style={{ maxWidth: '56rem', margin: '0 auto', position: 'relative', zIndex: 10 }}>
@@ -365,9 +447,13 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                         backgroundColor: 'white'
                     }}>
                         {hasImage ? (
-                            <a href={imageLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                            imageLink ? (
+                                <a href={imageLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                    <img src={imageUrl} alt="Campaign visual" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                                </a>
+                            ) : (
                                 <img src={imageUrl} alt="Campaign visual" style={{ width: '100%', height: 'auto', display: 'block' }} />
-                            </a>
+                            )
                         ) : (
                             <div style={{ 
                                 display: 'flex', 
@@ -398,30 +484,52 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                 </div>
             );
         case 'video': {
-            const videoConfig = block.content.video_config;
-            const sourceType = block.content.source_type || 'embed';
-            const embedUrl = getEmbedUrl(block.content.url);
-            const hasVideo = (sourceType === 'upload' && videoConfig?.url) || (sourceType === 'embed' && embedUrl);
-            const videoLink = (block.content as any).link || videoConfig?.link_url || DEFAULT_REFERRAL_URL;
+            const videoConfig = block.content.video_config || {};
+            const url = block.content.url || videoConfig.url;
+            const autoplay = block.content.autoplay ?? videoConfig.autoplay ?? false;
+            
+            const isEmbed = isEmbedableVideo(url);
+            const embedUrl = isEmbed ? getEmbedUrl(url) : '';
+            
+            const getFullUrl = (val?: string) => {
+                if (!val) return '';
+                if (val.startsWith('http')) return val;
+                if (val.startsWith('/api')) return val;
+                return `${API_URL}${val}`;
+            };
+
+            const videoUrl = getFullUrl(url);
+            const hasVideo = !!url;
+            const videoLink = normalizeUrl((block.content as any).link) || normalizeUrl(videoConfig?.link_url);
+            const showCenteredPlayButton = hasVideo && !isEmbed && !autoplay && !isVideoPlaying;
+
+            const handlePlayClick = async (event: React.MouseEvent<HTMLButtonElement>) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (!videoRef.current) return;
+                try {
+                    await videoRef.current.play();
+                    setIsVideoPlaying(true);
+                } catch (error) {
+                    console.error('Unable to start video playback:', error);
+                }
+            };
             
             return (
                 <div style={{ width: '100%', maxWidth: '80rem', marginLeft: 'auto', marginRight: 'auto' }}>
                     <div style={{ 
                         position: 'relative', 
-                        width: '100%', 
-                        paddingBottom: '56.25%', 
+                        width: '100%',
                         backgroundColor: '#000', 
                         borderRadius: '3rem', 
                         overflow: 'hidden', 
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        aspectRatio: isEmbed ? '16/9' : 'auto'
                     }}>
                         {!hasVideo ? (
-                            <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ 
-                                position: 'absolute', 
-                                top: 0, 
-                                left: 0, 
-                                width: '100%', 
-                                height: '100%', 
+                            <div style={{ 
+                                paddingBottom: '56.25%',
+                                position: 'relative',
                                 display: 'flex', 
                                 alignItems: 'center', 
                                 justifyContent: 'center', 
@@ -429,77 +537,251 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                 fontSize: '1.25rem',
                                 textDecoration: 'none'
                              }}>
-                                <span>ยังไม่มีวิดีโอ</span>
-                            </a>
-                        ) : sourceType === 'upload' && videoConfig?.url ? (
-                            <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                <span style={{ position: 'absolute', top: '50%', transform: 'translateY(-50%)' }}>ยังไม่มีวิดีโอ</span>
+                            </div>
+                        ) : !isEmbed ? (
+                            videoLink ? (
+                                <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                    <video
+                                        ref={videoRef}
+                                        src={videoUrl}
+                                        autoPlay={autoplay}
+                                        muted={autoplay}
+                                        loop
+                                        playsInline
+                                        controls={autoplay ? false : isVideoPlaying}
+                                        onPlay={() => setIsVideoPlaying(true)}
+                                        onPause={() => setIsVideoPlaying(false)}
+                                        onEnded={() => setIsVideoPlaying(false)}
+                                        style={{ 
+                                            width: '100%', 
+                                            height: 'auto',
+                                            display: 'block'
+                                        }}
+                                    />
+                                </a>
+                            ) : (
                                 <video
-                                    src={videoConfig.url.startsWith('http') ? videoConfig.url : videoConfig.url.startsWith('/api') ? videoConfig.url : `${API_URL}${videoConfig.url}`}
-                                    autoPlay={videoConfig.autoplay}
-                                    muted={videoConfig.autoplay}
+                                    ref={videoRef}
+                                    src={videoUrl}
+                                    autoPlay={autoplay}
+                                    muted={autoplay}
                                     loop
                                     playsInline
-                                    controls
+                                    controls={autoplay ? false : isVideoPlaying}
+                                    onPlay={() => setIsVideoPlaying(true)}
+                                    onPause={() => setIsVideoPlaying(false)}
+                                    onEnded={() => setIsVideoPlaying(false)}
                                     style={{ 
-                                        position: 'absolute', 
-                                        top: 0, 
-                                        left: 0, 
                                         width: '100%', 
-                                        height: '100%', 
-                                        objectFit: 'cover' 
+                                        height: 'auto',
+                                        display: 'block'
                                     }}
                                 />
-                            </a>
+                            )
                         ) : (
-                            <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
-                                <iframe
-                                    src={embedUrl}
-                                    title="Video content"
-                                    frameBorder="0"
-                                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                                    allowFullScreen
-                                    style={{ 
-                                        position: 'absolute', 
-                                        top: 0, 
-                                        left: 0, 
-                                        width: '100%', 
-                                        height: '100%' 
-                                    }}
-                                />
-                            </a>
+                            <div style={{ position: 'relative', paddingBottom: '56.25%' }}>
+                                {videoLink ? (
+                                    <a href={videoLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
+                                        <iframe
+                                            src={embedUrl}
+                                            title="Video content"
+                                            frameBorder="0"
+                                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                            allowFullScreen
+                                            style={{ 
+                                                position: 'absolute', 
+                                                top: 0, 
+                                                left: 0, 
+                                                width: '100%', 
+                                                height: '100%' 
+                                            }}
+                                        />
+                                    </a>
+                                ) : (
+                                    <iframe
+                                        src={embedUrl}
+                                        title="Video content"
+                                        frameBorder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                        allowFullScreen
+                                        style={{ 
+                                            position: 'absolute', 
+                                            top: 0, 
+                                            left: 0, 
+                                            width: '100%', 
+                                            height: '100%' 
+                                        }}
+                                    />
+                                )}
+                            </div>
+                        )}
+                        {showCenteredPlayButton && (
+                            <button
+                                type="button"
+                                aria-label="Play video"
+                                onClick={handlePlayClick}
+                                style={{
+                                    position: 'absolute',
+                                    top: '50%',
+                                    left: '50%',
+                                    transform: 'translate(-50%, -50%)',
+                                    width: '86px',
+                                    height: '86px',
+                                    borderRadius: '9999px',
+                                    border: 'none',
+                                    backgroundColor: 'rgba(255,255,255,0.9)',
+                                    color: '#0F172A',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    cursor: 'pointer',
+                                    boxShadow: '0 16px 35px rgba(15, 23, 42, 0.35)',
+                                    zIndex: 20
+                                }}
+                            >
+                                <Play size={36} style={{ marginLeft: '4px' }} />
+                            </button>
                         )}
                     </div>
                 </div>
             );
         }
+        case 'location':
+            return (
+                <div style={{ maxWidth: '48rem', margin: '0 auto', position: 'relative', zIndex: 10 }}>
+                    <div style={{
+                        backgroundColor: 'white',
+                        padding: '1.5rem',
+                        borderRadius: '40px',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)',
+                        border: '1px solid rgba(0,0,0,0.05)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '1.5rem'
+                    }}>
+                        {block.content.embed_url ? (
+                            <div style={{ 
+                                width: '100%', 
+                                height: '350px', 
+                                borderRadius: '25px', 
+                                overflow: 'hidden',
+                                border: '1px solid #F1F5F9'
+                            }}>
+                                <iframe
+                                    src={block.content.embed_url}
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    allowFullScreen
+                                    loading="lazy"
+                                />
+                            </div>
+                        ) : (
+                            <div style={{ 
+                                width: '100%', 
+                                height: '200px', 
+                                backgroundColor: '#F8FAFC', 
+                                borderRadius: '25px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1px dashed #E2E8F0'
+                            }}>
+                                <MapPin size={40} style={{ color: '#CBD5E1' }} />
+                            </div>
+                        )}
+                        
+                        {(block.content.address || block.content.map_url) && (
+                            <div style={{ textAlign: 'center', padding: '0.5rem 0' }}>
+                                {block.content.address && (
+                                    <h3 style={{ 
+                                        fontSize: '20px', 
+                                        fontWeight: 900, 
+                                        color: '#050579', 
+                                        marginBottom: '1rem',
+                                        lineHeight: 1.4
+                                    }}>
+                                        {block.content.address}
+                                    </h3>
+                                )}
+                                {block.content.map_url && (
+                                    <a
+                                        href={block.content.map_url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        style={{
+                                            display: 'inline-flex',
+                                            alignItems: 'center',
+                                            gap: '0.75rem',
+                                            padding: '1.25rem 2.5rem',
+                                            backgroundColor: '#050579',
+                                            color: 'white',
+                                            borderRadius: '24px',
+                                            fontWeight: 900,
+                                            fontSize: '1rem',
+                                            textDecoration: 'none',
+                                            boxShadow: '0 10px 20px rgba(5,5,121,0.2)'
+                                        }}
+                                    >
+                                        <MapPin size={20} /> กดที่นี่เพื่อเข้าสู่การนำทาง
+                                    </a>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
         case 'button':
-            const btnUrl = block.content.url || DEFAULT_REFERRAL_URL;
+            const btnUrl = normalizeUrl(block.content.link) || normalizeUrl(block.content.url);
+            const buttonLabel = block.content.text || block.content.label || 'ดูรายละเอียด';
             return (
                 <div style={{ textAlign: 'center', position: 'relative', zIndex: 10, padding: '1rem 0' }}>
-                    <a 
-                        href={btnUrl} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '1rem',
-                            padding: '1.5rem 3rem',
-                            borderRadius: '32px',
-                            fontWeight: 900,
-                            fontSize: '1.25rem',
-                            boxShadow: '0 20px 40px rgba(249,115,22,0.3)',
-                            backgroundColor: accent,
-                            color: '#fff',
-                            textDecoration: 'none'
-                        }}
-                    >
-                        {block.content.label} <ChevronRight size={28} />
-                    </a>
+                    {btnUrl ? (
+                        <a 
+                            href={btnUrl} 
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '1rem',
+                                padding: '1.5rem 3rem',
+                                borderRadius: '32px',
+                                fontWeight: 900,
+                                fontSize: '1.25rem',
+                                boxShadow: '0 20px 40px rgba(249,115,22,0.3)',
+                                backgroundColor: accent,
+                                color: '#fff',
+                                textDecoration: 'none'
+                            }}
+                        >
+                            {buttonLabel} <ChevronRight size={28} />
+                        </a>
+                    ) : (
+                        <div
+                            style={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '1rem',
+                                padding: '1.5rem 3rem',
+                                borderRadius: '32px',
+                                fontWeight: 900,
+                                fontSize: '1.25rem',
+                                boxShadow: '0 20px 40px rgba(249,115,22,0.18)',
+                                backgroundColor: accent,
+                                color: '#fff',
+                                opacity: 0.8
+                            }}
+                        >
+                            {buttonLabel} <ChevronRight size={28} />
+                        </div>
+                    )}
                 </div>
             );
         case 'form':
-            if (!block.content?.mode || block.content.mode === 'external') {
+            if (block.content?.mode === 'external') {
+                const externalUrl = typeof block.content?.url === 'string' ? block.content.url.trim() : '';
                 return (
                     <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
                         <div style={{
@@ -523,25 +805,44 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                 marginBottom: '3rem',
                                 color: '#6B7280'
                             }}>เราพร้อมเป็นส่วนหนึ่งในความสำเร็จของคุณ กรุณากรอกรายละเอียดเพื่อรับข้อเสนอพิเศษ</p>
-                            <a 
-                                href={block.content.url} 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                style={{
-                                    display: 'inline-flex',
-                                    alignItems: 'center',
-                                    gap: '0.75rem',
-                                    padding: '1.5rem 3rem',
-                                    fontWeight: 900,
-                                    borderRadius: '32px',
-                                    fontSize: '1.25rem',
-                                    backgroundColor: '#050579',
-                                    color: 'white',
-                                    textDecoration: 'none'
-                                }}
-                            >
-                                Open Contact Form <ExternalLink size={24} />
-                            </a>
+                            {externalUrl ? (
+                                <a 
+                                    href={externalUrl} 
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        padding: '1.5rem 3rem',
+                                        fontWeight: 900,
+                                        borderRadius: '32px',
+                                        fontSize: '1.25rem',
+                                        backgroundColor: '#050579',
+                                        color: 'white',
+                                        textDecoration: 'none'
+                                    }}
+                                >
+                                    Open Contact Form <ExternalLink size={24} />
+                                </a>
+                            ) : (
+                                <div
+                                    style={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: '0.75rem',
+                                        padding: '1.5rem 3rem',
+                                        fontWeight: 900,
+                                        borderRadius: '32px',
+                                        fontSize: '1.25rem',
+                                        backgroundColor: '#94A3B8',
+                                        color: 'white',
+                                        opacity: 0.8
+                                    }}
+                                >
+                                    กรุณาตั้งค่า URL ฟอร์ม <ExternalLink size={24} />
+                                </div>
+                            )}
                         </div>
                     </div>
                 );
@@ -693,7 +994,7 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                             gap: '1rem'
                         }}>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>ชื่อ-นามสกุล *</label>
+                                <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>ชื่อ-นามสกุล *</label>
                                 <input
                                     required value={name} onChange={(e) => setName(e.target.value)}
                                     style={{
@@ -702,7 +1003,9 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                         borderRadius: '16px',
                                         backgroundColor: '#F9FAFB',
                                         border: '1px solid #F3F4F6',
-                                        fontWeight: 700,
+                                        fontWeight: 500,
+                                        fontSize: '16px',
+                                        lineHeight: 1.5,
                                         color: '#111827',
                                         outline: 'none'
                                     }}
@@ -710,7 +1013,7 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                 />
                             </div>
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>อีเมล *</label>
+                                <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>อีเมล *</label>
                                 <input
                                     required type="email" value={email} onChange={(e) => setEmail(e.target.value)}
                                     style={{
@@ -719,7 +1022,9 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                         borderRadius: '16px',
                                         backgroundColor: '#F9FAFB',
                                         border: '1px solid #F3F4F6',
-                                        fontWeight: 700,
+                                        fontWeight: 500,
+                                        fontSize: '16px',
+                                        lineHeight: 1.5,
                                         color: '#111827',
                                         outline: 'none'
                                     }}
@@ -728,7 +1033,7 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                             </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>เบอร์โทรศัพท์</label>
+                            <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>เบอร์โทรศัพท์</label>
                             <input
                                 value={phone} onChange={(e) => setPhone(e.target.value)}
                                 style={{
@@ -737,7 +1042,9 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                     borderRadius: '16px',
                                     backgroundColor: '#F9FAFB',
                                     border: '1px solid #F3F4F6',
-                                    fontWeight: 700,
+                                    fontWeight: 500,
+                                    fontSize: '16px',
+                                    lineHeight: 1.5,
                                     color: '#111827',
                                     outline: 'none'
                                 }}
@@ -745,7 +1052,7 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                             />
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <label style={{ fontSize: '12px', fontWeight: 700, color: '#050579', textTransform: 'uppercase', marginLeft: '4px' }}>รายละเอียด *</label>
+                            <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>รายละเอียด *</label>
                             <textarea
                                 required value={message} onChange={(e) => setMessage(e.target.value)} rows={4}
                                 style={{
@@ -754,7 +1061,9 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                     borderRadius: '16px',
                                     backgroundColor: '#F9FAFB',
                                     border: '1px solid #F3F4F6',
-                                    fontWeight: 700,
+                                    fontWeight: 500,
+                                    fontSize: '16px',
+                                    lineHeight: 1.5,
                                     color: '#111827',
                                     outline: 'none',
                                     resize: 'none'
@@ -767,11 +1076,11 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                 id="pdpa-consent" type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
                                 style={{ marginTop: '4px', width: '1.25rem', height: '1.25rem', accentColor: '#050579' }}
                             />
-                            <label htmlFor="pdpa-consent" style={{ fontSize: '11px', fontWeight: 700, color: '#6B7280', lineHeight: 1.25, textTransform: 'uppercase' }}>
+                            <label htmlFor="pdpa-consent" style={{ fontSize: '13px', fontWeight: 500, color: '#475569', lineHeight: 1.5 }}>
                                 ฉันยินยอมให้จัดเก็บและใช้ข้อมูลนี้เพื่อการติดต่อกลับตามนโยบายความเป็นส่วนตัว (PDPA)
                             </label>
                         </div>
-                        {error && <p style={{ fontSize: '0.875rem', color: '#DC2626', fontWeight: 700, textAlign: 'center' }}>{error}</p>}
+                        {error && <p style={{ fontSize: '14px', color: '#DC2626', fontWeight: 700, textAlign: 'center' }}>{error}</p>}
                         <div style={{ paddingTop: '1rem' }}>
                             <button
                                 type="submit" disabled={submitting || !ownerUid}

@@ -17,7 +17,7 @@ import {
   Copy,
 } from "lucide-react";
 
-type QrTargetType = "landing_page" | "form" | "external_url";
+type QrTargetType = "landing_page" | "form" | "external_url" | "profile" | "catalog" | "referral";
 
 interface QrFormState {
   name: string;
@@ -28,6 +28,18 @@ interface QrFormState {
   logoDataUrl?: string;
 }
 
+interface UserData {
+  uid: string;
+  url_prefix: string;
+  referral_code?: string;
+}
+
+interface CatalogOption {
+  id: number;
+  title: string;
+  custom_slug: string;
+}
+
 interface SavedQrItem {
   id: number;
   name: string;
@@ -36,6 +48,9 @@ interface SavedQrItem {
   size: string;
   scan_count: number;
   qr_data: string;
+  fg_color?: string;
+  bg_color?: string;
+  logo_data?: string;
   created_at: string;
 }
 
@@ -74,9 +89,43 @@ export default function ManageQrPage() {
 
   const [landingPages, setLandingPages] = useState<LandingPageOption[]>([]);
   const [forms, setForms] = useState<FormOption[]>([]);
+  const [catalogs, setCatalogs] = useState<CatalogOption[]>([]);
+  const [user, setUser] = useState<UserData | null>(null);
   const [loadingTargets, setLoadingTargets] = useState(false);
   const [selectedLandingId, setSelectedLandingId] = useState<number | null>(null);
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
+  const [selectedCatalogId, setSelectedCatalogId] = useState<number | null>(null);
+  const [previewConfig, setPreviewConfig] = useState<{
+    url: string;
+    fgColor: string;
+    bgColor: string;
+    logoDataUrl?: string;
+  } | null>(null);
+  const [exportConfig, setExportConfig] = useState<SavedQrItem | null>(null);
+
+  useEffect(() => {
+    if (exportConfig) {
+      const timer = setTimeout(() => {
+        const canvas = document.getElementById('qr-export-canvas') as HTMLCanvasElement;
+        if (canvas) {
+          try {
+            const url = canvas.toDataURL('image/png');
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `QR_${exportConfig.name.replace(/\s+/g, '_') || exportConfig.id}.png`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+          } catch (err) {
+            console.error("Export failed", err);
+          }
+        }
+        setExportConfig(null);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [exportConfig]);
+
   const nexPageVars = {
     "--background": "#EEF0FF",
     "--foreground": "#0F172A",
@@ -139,6 +188,20 @@ export default function ManageQrPage() {
         const fs = await formRes.json();
         setForms(fs);
       }
+      const [catRes, userRes] = await Promise.all([
+        fetch(`${API_URL}/catalogs`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+        fetch(`${API_URL}/users/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        })
+      ]);
+      if (catRes.ok) {
+        setCatalogs(await catRes.json());
+      }
+      if (userRes.ok) {
+        setUser(await userRes.json());
+      }
     } catch (e) {
       console.error("โหลดรายการแลนดิ้งเพจและฟอร์มไม่สำเร็จ", e);
     } finally {
@@ -159,6 +222,19 @@ export default function ManageQrPage() {
     if (type === "external_url") {
       setSelectedLandingId(null);
       setSelectedFormId(null);
+      setSelectedCatalogId(null);
+    } else if (type === "profile") {
+      if (user) {
+        updateForm({ targetUrl: `${SITE_URL}/${user.url_prefix}/${user.uid}` });
+      } else {
+        setError("ไม่พบข้อมูลผู้ใช้เพื่อโหลดหน้าโปรไฟล์");
+      }
+    } else if (type === "referral") {
+      if (user?.referral_code) {
+        updateForm({ targetUrl: `${SITE_URL}/register?ref=${user.referral_code}` });
+      } else {
+        updateForm({ targetUrl: `${SITE_URL}/register` });
+      }
     }
   };
 
@@ -184,11 +260,33 @@ export default function ManageQrPage() {
     return form.targetUrl.trim();
   };
 
+  const handleGeneratePreview = () => {
+    const finalUrl = getFinalUrl();
+    if (!finalUrl) {
+      setError("กรุณาระบุ URL ปลายทางก่อนพรีวิว");
+      return;
+    }
+    setError(null);
+    setPreviewConfig({
+      url: finalUrl,
+      fgColor: form.foregroundColor,
+      bgColor: form.backgroundColor,
+      logoDataUrl: form.logoDataUrl,
+    });
+  };
+
   const getQrTypeLabel = (qrType: string) => {
     if (qrType === "external_url") return "ลิงก์ภายนอก";
     if (qrType === "landing_page") return "หน้าแลนดิ้งเพจ";
     if (qrType === "form") return "ฟอร์มเก็บลีด";
+    if (qrType === "profile") return "นามบัตรดิจิทัล";
+    if (qrType === "catalog") return "แคตตาล็อก";
+    if (qrType === "referral") return "ระบบแนะนำ";
     return qrType;
+  };
+
+  const handleDownloadQrImage = (qr: SavedQrItem) => {
+    setExportConfig(qr);
   };
 
   const handleSaveQr = async () => {
@@ -200,6 +298,10 @@ export default function ManageQrPage() {
     }
     if (form.targetType === "form" && !selectedFormId) {
       setError("กรุณาเลือกฟอร์มที่ต้องการใช้กับ QR นี้");
+      return;
+    }
+    if (form.targetType === "catalog" && !selectedCatalogId) {
+      setError("กรุณาเลือกแคตตาล็อกที่ต้องการใช้กับ QR นี้");
       return;
     }
 
@@ -232,6 +334,9 @@ export default function ManageQrPage() {
           target_url: finalUrl,
           target_id: targetId,
           size: "medium",
+          fg_color: form.foregroundColor,
+          bg_color: form.backgroundColor,
+          logo_data: form.logoDataUrl,
         }),
       });
       if (!res.ok) {
@@ -288,7 +393,7 @@ export default function ManageQrPage() {
   const finalUrl = getFinalUrl();
 
   return (
-    <div className="min-h-screen bg-background text-foreground transition-colors duration-500" style={nexPageVars}>
+    <div className="qr-manage-page min-h-screen bg-background text-foreground transition-colors duration-500" style={nexPageVars}>
       <ManageTopBar
         backHref="/manage/control-center"
         subtitle="ระบบจัดการคิวอาร์โค้ด"
@@ -324,7 +429,7 @@ export default function ManageQrPage() {
               <label className="block text-xs font-black text-[#64748B] uppercase tracking-[0.12em] ml-1">
                 ประเภทปลายทาง
               </label>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                 <button
                   type="button"
                   onClick={() => setTargetType("external_url")}
@@ -336,9 +441,43 @@ export default function ManageQrPage() {
                 >
                   <LinkIcon size={16} />
                   <div>
-                    <div className="font-semibold">ลิงก์ภายนอก</div>
-                    <div className="text-sm text-[#64748B] leading-snug">
-                      วาง URL เอง เช่น เว็บไซต์ หรือหน้าโปรโมชัน
+                    <div className="font-semibold text-xs uppercase tracking-wider">อื่นๆ</div>
+                    <div className="text-[11px] text-[#64748B] leading-snug">
+                      วาง URL ปลายทางเอง
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetType("profile")}
+                  className={`px-4 py-3 rounded-2xl text-sm border text-left flex items-center gap-3 transition-all ${
+                    form.targetType === "profile"
+                      ? "border-[#050579]/40 bg-[#050579]/10 text-[#050579]"
+                      : "border-[#D9E1F2] hover:border-[#050579]/30 text-[#0F172A]"
+                  }`}
+                >
+                  <Calendar size={16} />
+                  <div>
+                    <div className="font-semibold text-xs uppercase tracking-wider">นามบัตรดิจิทัล</div>
+                    <div className="text-[11px] text-[#64748B] leading-snug">
+                      ลิงก์ไปยังหน้าโปรไฟล์หลัก
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetType("catalog")}
+                  className={`px-4 py-3 rounded-2xl text-sm border text-left flex items-center gap-3 transition-all ${
+                    form.targetType === "catalog"
+                      ? "border-[#050579]/40 bg-[#050579]/10 text-[#050579]"
+                      : "border-[#D9E1F2] hover:border-[#050579]/30 text-[#0F172A]"
+                  }`}
+                >
+                  <Copy size={16} />
+                  <div>
+                    <div className="font-semibold text-xs uppercase tracking-wider">แคตตาล็อก</div>
+                    <div className="text-[11px] text-[#64748B] leading-snug">
+                      เลือกจากรายการแคตตาล็อก
                     </div>
                   </div>
                 </button>
@@ -353,9 +492,9 @@ export default function ManageQrPage() {
                 >
                   <Globe size={16} />
                   <div>
-                    <div className="font-semibold">หน้าแลนดิ้งเพจ</div>
-                    <div className="text-sm text-[#64748B] leading-snug">
-                      ใช้งานกับหน้าที่สร้างไว้ในระบบ
+                    <div className="font-semibold text-xs uppercase tracking-wider">แลนดิ้งเพจ</div>
+                    <div className="text-[11px] text-[#64748B] leading-snug">
+                      หน้าที่สร้างในระบบ
                     </div>
                   </div>
                 </button>
@@ -370,14 +509,79 @@ export default function ManageQrPage() {
                 >
                   <Droplets size={16} />
                   <div>
-                    <div className="font-semibold">ฟอร์มเก็บลีด</div>
-                    <div className="text-sm text-[#64748B] leading-snug">
-                      ใช้งานกับฟอร์มที่สร้างไว้ในระบบ
+                    <div className="font-semibold text-xs uppercase tracking-wider">ฟอร์มเก็บลีด</div>
+                    <div className="text-[11px] text-[#64748B] leading-snug">
+                      แบบฟอร์มรับข้อมูล
+                    </div>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setTargetType("referral")}
+                  className={`px-4 py-3 rounded-2xl text-sm border text-left flex items-center gap-3 transition-all ${
+                    form.targetType === "referral"
+                      ? "border-[#050579]/40 bg-[#050579]/10 text-[#050579]"
+                      : "border-[#D9E1F2] hover:border-[#050579]/30 text-[#0F172A]"
+                  }`}
+                >
+                  <LinkIcon size={16} />
+                  <div>
+                    <div className="font-semibold text-xs uppercase tracking-wider">ระบบแนะนำ</div>
+                    <div className="text-[11px] text-[#64748B] leading-snug">
+                      ลิงก์เชิญเพื่อนสมัคร
                     </div>
                   </div>
                 </button>
               </div>
             </div>
+
+            {form.targetType === "catalog" && (
+              <div className="space-y-2">
+                <label className="block text-xs font-black text-[#64748B] uppercase tracking-[0.12em] ml-1">
+                  เลือกแคตตาล็อกในระบบ
+                </label>
+                {loadingTargets ? (
+                  <div className="flex items-center gap-2 text-sm text-[#475569] ml-1">
+                    <Loader2 className="animate-spin" size={14} />
+                    <span>กำลังโหลดรายรายการแคตตาล็อก...</span>
+                  </div>
+                ) : catalogs.length === 0 ? (
+                  <p className="text-sm text-[#64748B] ml-1">
+                    ยังไม่มีแคตตาล็อกในระบบ ไปสร้างได้ที่เมนู{" "}
+                    <span className="font-semibold">จัดการแคตตาล็อกดิจิทัล</span>{" "}
+                    ก่อน แล้วกลับมาสร้าง QR อีกครั้ง
+                  </p>
+                ) : (
+                  <select
+                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-2.5 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30"
+                    style={{ colorScheme: "light" }}
+                    value={selectedCatalogId ?? ""}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      const id = value ? Number(value) : null;
+                      setSelectedCatalogId(id);
+                      if (id) {
+                        const cat = catalogs.find((c) => c.id === id);
+                        if (cat) {
+                          updateForm({
+                            targetUrl: `${SITE_URL}/catalog/public/${cat.custom_slug}`,
+                          });
+                        }
+                      }
+                    }}
+                  >
+                    <option value="" style={{ color: "#0F172A", backgroundColor: "#FFFFFF" }}>
+                      -- เลือกแคตตาล็อกที่ต้องการ --
+                    </option>
+                    {catalogs.map((c) => (
+                      <option key={c.id} value={c.id} style={{ color: "#0F172A", backgroundColor: "#FFFFFF" }}>
+                        {c.title}
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            )}
 
             {form.targetType === "landing_page" && (
               <div className="space-y-2">
@@ -397,7 +601,8 @@ export default function ManageQrPage() {
                   </p>
                 ) : (
                   <select
-                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30"
+                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-2.5 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30"
+                    style={{ colorScheme: "light" }}
                     value={selectedLandingId ?? ""}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -413,9 +618,11 @@ export default function ManageQrPage() {
                       }
                     }}
                   >
-                    <option value="">-- เลือกหน้าแลนดิ้งเพจ --</option>
+                    <option value="" style={{ color: "#0F172A", backgroundColor: "#FFFFFF" }}>
+                      -- เลือกหน้าแลนดิ้งเพจ --
+                    </option>
                     {landingPages.map((page) => (
-                      <option key={page.id} value={page.id}>
+                      <option key={page.id} value={page.id} style={{ color: "#0F172A", backgroundColor: "#FFFFFF" }}>
                         {page.title} {page.is_published ? "" : "(ยังไม่เผยแพร่)"}
                       </option>
                     ))}
@@ -442,7 +649,8 @@ export default function ManageQrPage() {
                   </p>
                 ) : (
                   <select
-                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30"
+                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-2.5 text-sm text-[#0F172A] focus:outline-none focus:ring-2 focus:ring-[#050579]/20 focus:border-[#050579]/30"
+                    style={{ colorScheme: "light" }}
                     value={selectedFormId ?? ""}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -455,9 +663,11 @@ export default function ManageQrPage() {
                       }
                     }}
                   >
-                    <option value="">-- เลือกฟอร์มที่ต้องการ --</option>
+                    <option value="" style={{ color: "#0F172A", backgroundColor: "#FFFFFF" }}>
+                      -- เลือกฟอร์มที่ต้องการ --
+                    </option>
                     {forms.map((f) => (
-                      <option key={f.id} value={f.id}>
+                      <option key={f.id} value={f.id} style={{ color: "#0F172A", backgroundColor: "#FFFFFF" }}>
                         {f.name} {f.is_active ? "" : "(ปิดการใช้งานอยู่)"}
                       </option>
                     ))}
@@ -554,12 +764,19 @@ export default function ManageQrPage() {
               </div>
             )}
 
-            <div className="pt-4">
+            <div className="pt-4 flex flex-wrap gap-3">
+              <button
+                type="button"
+                onClick={handleGeneratePreview}
+                className="inline-flex items-center gap-2 border border-[#050579] text-[#050579] hover:bg-[#050579]/5 px-6 py-2.5 rounded-2xl font-black text-sm uppercase tracking-[0.12em] transition-all"
+              >
+                ดูตัวอย่าง QR
+              </button>
               <button
                 type="button"
                 onClick={handleSaveQr}
                 disabled={saving}
-                className="inline-flex items-center gap-2 bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-60 text-white px-6 py-2.5 rounded-2xl font-black text-sm uppercase tracking-[0.12em] shadow-[0_18px_40px_-26px_rgba(249,115,22,0.55)] active:scale-95 transition-colors"
+                className="inline-flex items-center gap-2 bg-[#F97316] hover:bg-[#EA580C] disabled:opacity-60 text-white px-6 py-2.5 rounded-2xl font-black text-sm uppercase tracking-[0.12em] shadow-[0_18px_40_rgba(249,115,22,0.55)] active:scale-95 transition-colors"
               >
                 {saving ? <Loader2 className="animate-spin" size={16} /> : null}
                 บันทึก QR นี้
@@ -574,13 +791,19 @@ export default function ManageQrPage() {
 
             <div
               className="relative inline-flex items-center justify-center rounded-3xl p-4 shadow-2xl"
-              style={{ backgroundColor: form.backgroundColor || "#FFFFFF" }}
+              style={{ backgroundColor: previewConfig?.bgColor || "#FFFFFF" }}
             >
-              {finalUrl ? (
-                <QrCodeImage url={finalUrl} size={220} />
+              {previewConfig ? (
+                <QrCodeImage 
+                  url={previewConfig.url} 
+                  size={220} 
+                  fgColor={previewConfig.fgColor}
+                  bgColor={previewConfig.bgColor}
+                  logoDataUrl={previewConfig.logoDataUrl}
+                />
               ) : (
                 <div className="w-[220px] h-[220px] rounded-2xl border-2 border-dashed border-[#D9E1F2] flex items-center justify-center text-sm text-[#64748B] text-center px-6">
-                  วาง URL ปลายทางเพื่อดูตัวอย่าง QR ที่นี่
+                  กดปุ่ม “ดูตัวอย่าง QR” เพื่อตรวจสอบก่อนบันทึก
                 </div>
               )}
             </div>
@@ -609,7 +832,13 @@ export default function ManageQrPage() {
                   className="border border-[#D9E1F2] rounded-2xl p-4 flex gap-4 items-center bg-white"
                 >
                   <div className="hidden sm:block">
-                    <QrCodeImage url={qr.target_url} size={96} />
+                    <QrCodeImage 
+                      url={qr.target_url} 
+                      size={96} 
+                      fgColor={qr.fg_color}
+                      bgColor={qr.bg_color}
+                      logoDataUrl={qr.logo_data}
+                    />
                   </div>
                   <div className="flex-1 space-y-1">
                     <div className="flex items-center justify-between gap-2">
@@ -659,15 +888,14 @@ export default function ManageQrPage() {
                         <Copy size={10} />
                         คัดลอกลิงก์ SVG
                       </button>
-                      <a
-                        href={`/api/public/qr-codes/${qr.id}/download?inline=1&format=png`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border border-[#D9E1F2] text-xs text-[#475569] hover:border-[#050579]/40 hover:text-[#050579] transition-all"
+                      <button
+                        type="button"
+                        onClick={() => handleDownloadQrImage(qr)}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-xl border border-[#D9E1F2] text-xs text-[#475569] hover:border-[#050579]/40 hover:text-[#050579] transition-all bg-[#F6F8FF]"
                       >
                         <Download size={10} />
-                        เปิดดูภาพ QR
-                      </a>
+                        ดาวน์โหลดภาพ QR
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -675,7 +903,34 @@ export default function ManageQrPage() {
             </div>
           )}
         </section>
+
+        {/* Hidden Export Canvas */}
+        <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>
+          {exportConfig && (
+            <QrCodeImage
+              id="qr-export-canvas"
+              url={exportConfig.target_url}
+              size={1024} // High res export
+              fgColor={exportConfig.fg_color}
+              bgColor={exportConfig.bg_color}
+              logoDataUrl={exportConfig.logo_data}
+              useCanvas={true}
+            />
+          )}
+        </div>
       </main>
+      <style jsx global>{`
+        .qr-manage-page select {
+          color: #0f172a !important;
+          background-color: #f6f8ff !important;
+          -webkit-text-fill-color: #0f172a !important;
+        }
+        .qr-manage-page option {
+          color: #0f172a !important;
+          background-color: #ffffff !important;
+          -webkit-text-fill-color: #0f172a !important;
+        }
+      `}</style>
     </div>
   );
 }
