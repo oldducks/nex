@@ -1,0 +1,14 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "cloud.nexsolution.app",
+      "sha256_cert_fingerprints": [
+        "DC:36:FA:88:36:96:B1:EE:D2:07:36:9B:32:51:B6:B4:72:D8:AF:46:34:C9:06:92:46:CD:9B:AD:1F:8D:2B:5E"
+      ]
+    }
+  }
+]

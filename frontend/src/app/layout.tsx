@@ -23,6 +23,7 @@ export const metadata: Metadata = {
   title: "NEX Solution | Digital Business Card Platform",
   description:
     "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI ภายใต้แบรนด์ NEX Solution",
+  manifest: "/manifest.webmanifest",
   icons: {
     icon: "/nex_logo_nobg.png",
     shortcut: "/nex_logo_nobg.png",
@@ -39,6 +40,18 @@ const themeScript = `
 })();
 `;
 
+const serviceWorkerScript = `
+(function() {
+  if (typeof window === 'undefined') return;
+  if (!('serviceWorker' in navigator)) return;
+  window.addEventListener('load', function() {
+    navigator.serviceWorker.register('/sw.js').catch(function(error) {
+      console.warn('Service worker registration failed:', error);
+    });
+  });
+})();
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -48,6 +61,8 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
+        <meta name="theme-color" content="#050579" />
+        <script dangerouslySetInnerHTML={{ __html: serviceWorkerScript }} />
       </head>
       <body className={`${prompt.variable} ${montserrat.variable} antialiased min-h-screen relative bg-background text-foreground transition-colors duration-500`}>
         <ThemeProvider>
