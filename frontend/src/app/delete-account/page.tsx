@@ -79,7 +79,7 @@ export default function DeleteAccountPage() {
           </div>
 
           <div className="mt-12 pt-8 border-t border-slate-200 text-center text-sm text-slate-500">
-            &copy; {new Date().getFullYear()} dpattown.com. All rights reserved.
+            &copy; NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.
           </div>
         </div>
       </div>
