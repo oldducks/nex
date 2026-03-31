@@ -7,8 +7,10 @@
       "namespace": "android_app",
       "package_name": "cloud.nexsolution.app",
       "sha256_cert_fingerprints": [
-        "DC:36:FA:88:36:96:B1:EE:D2:07:36:9B:32:51:B6:B4:72:D8:AF:46:34:C9:06:92:46:CD:9B:AD:1F:8D:2B:5E"
-      ]
+  "DC:36:FA:88:36:96:B1:EE:D2:07:36:9B:32:51:B6:B4:72:D8:AF:46:34:C9:06:92:46:CD:9B:AD:1F:8D:2B:5E",
+  "DE:44:EC:32:55:C9:CE:9F:6B:7F:CB:47:CB:91:83:D2:4C:5B:17:40:2B:95:6F:F1:4F:D0:E2:59:B2:0D:4A:D4"
+]
+
     }
   }
 ]
