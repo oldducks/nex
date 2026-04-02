@@ -8,6 +8,7 @@ import {
   CheckCircle
 } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
+import { formatPhoneNumber } from '@/lib/phone-utils';
 
 interface Lead {
   id: number;
@@ -150,7 +151,7 @@ export default function LeadsPage() {
                         </div>
                         <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
                            <span className="flex items-center gap-2 font-medium text-[#475569] transition-colors hover:text-[#0F172A]"><Mail size={14} className="text-[#050579]/60" /> {lead.email}</span>
-                           <span className="flex items-center gap-2 font-medium text-[#475569] transition-colors hover:text-[#0F172A]"><Phone size={14} className="text-[#050579]/60" /> {lead.phone}</span>
+                           <span className="flex items-center gap-2 font-medium text-[#475569] transition-colors hover:text-[#0F172A]"><Phone size={14} className="text-[#050579]/60" /> {formatPhoneNumber(lead.phone)}</span>
                            {lead.occupation && (
                              <span className="flex items-center gap-2 rounded-lg bg-[#EEF2FF] px-3 py-1 font-bold text-[#050579]"><Briefcase size={14} /> {lead.occupation}</span>
                            )}

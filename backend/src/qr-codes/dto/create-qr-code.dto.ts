@@ -8,7 +8,7 @@ export class CreateQrCodeDto {
   name: string;
 
   @IsString()
-  @IsIn(['landing_page', 'form', 'external_url'])
+  @IsIn(['landing_page', 'form', 'external_url', 'profile', 'catalog', 'referral'])
   qr_type: string;
 
   // 对于 landing_page / form 可以选择性传入 target_id 以便后续追溯
@@ -26,5 +26,17 @@ export class CreateQrCodeDto {
   @IsString()
   @IsIn(['small', 'medium', 'large'])
   size?: string;
+
+  @IsOptional()
+  @IsString()
+  fg_color?: string;
+
+  @IsOptional()
+  @IsString()
+  bg_color?: string;
+
+  @IsOptional()
+  @IsString()
+  logo_data?: string;
 }
 

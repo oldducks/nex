@@ -11,17 +11,24 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
             clientSecret: configService.get('GOOGLE_CLIENT_SECRET') || '',
             callbackURL: `${configService.get('API_URL') || 'http://localhost:4000'}/auth/google/callback`,
             scope: ['email', 'profile'],
-            passReqToCallback: false,
+            passReqToCallback: true,
         });
     }
 
     async validate(
+        req: any,
         accessToken: string,
         refreshToken: string,
         profile: any,
         done: VerifyCallback,
     ): Promise<any> {
         const { id, name, emails, photos } = profile;
+        
+        // Get referral code from state parameter or session
+        const referralCode = req.query?.state || req.session?.state;
+        
+        console.log('Google OAuth callback - referralCode:', referralCode);
+        
         const user = {
             provider: 'google',
             providerId: id,
@@ -29,6 +36,7 @@ export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
             firstName: name?.givenName,
             lastName: name?.familyName,
             picture: photos?.[0]?.value,
+            referralCode, // Pass referral code to OAuth flow
         };
         done(null, user);
     }

@@ -1,46 +1,32 @@
-# Prompt for Antigravity: Push Latest Landing + Handover Update to GitHub
+# Prompt for Antigravity: Push UX Update (Home CTA + Public Profile Logo)
 
-Important: this workspace has **two separate Git repos**.
-- Repo A (main): `/root/nex namecard`
-- Repo B (landing): `/root/nex namecard/40-nex-landing-page-2`
+Repo:
+- `/root/nex namecard`
 
 Objective:
-- Push latest handover update from Repo A.
-- Push latest landing UX/conversion changes from Repo B.
+- Push latest UX updates for landing page CTA arrangement/color and public profile logo sizing
+- Include updated handover log
 
-## Step 1: Push Repo A (`/root/nex namecard`)
-Scope:
-- `AGENT_HANDOVER.md`
+## Scope (stage only these files)
+1. `AGENT_HANDOVER.md`
+2. `frontend/src/app/page.tsx`
+3. `frontend/src/app/[prefix]/[uid]/page.tsx`
 
-Tasks:
+## Tasks
 1. `cd /root/nex namecard`
-2. Check status for `AGENT_HANDOVER.md` only.
-3. Stage only that file.
-4. Commit message:
-   - `docs(handover): add 2026-03-03 landing improvement and deploy record`
-5. Push current branch to origin.
-
-## Step 2: Push Repo B (`/root/nex namecard/40-nex-landing-page-2`)
-Scope:
-- `src/components/LeadForm.tsx`
-- `src/components/sections/Hero.tsx`
-
-Tasks:
-1. `cd /root/nex namecard/40-nex-landing-page-2`
-2. Check status for the two files above.
-3. Stage only those two files.
-4. Commit message:
-   - `feat(landing): improve hero/form conversion UX and client validation`
-5. Push current branch to origin.
+2. Run `git status --porcelain=v1` and verify many unrelated files may exist.
+3. Stage only the 3 files in Scope above.
+4. Commit with message:
+   - `feat(ux): align home CTAs and increase public profile logo visibility`
+5. Push current branch to `origin`.
 
 ## Return format
-For each repo, report:
 - branch name
 - commit hash
 - pushed remote ref
-- files included in commit
+- exact files in commit
 
-Constraints:
-- Do not reset, stash, or revert unrelated modified files.
-- If push is rejected, run `git pull --rebase` then retry push.
-- If conflicts occur, stop and report conflicted files with paths.
+## Constraints
+- Do not reset/revert/stash unrelated files.
+- If push is rejected: run `git pull --rebase` then retry push.
+- If conflicts happen: stop and report conflicted file paths.

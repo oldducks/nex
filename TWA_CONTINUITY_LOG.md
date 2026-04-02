@@ -23,6 +23,7 @@ Mode: Implementation + Verification
 | DEC-PACKAGE-001 | 2026-03-31 | Final package name | Project Owner | Confirmed | `cloud.nexsolution.app` |
 | DEC-SIGN-001 | 2026-03-31 | Signing key strategy | Project Owner | Confirmed | Use Google Play App Signing |
 | DEC-UX-001 | 2026-03-31 | Mobile UX/UI polish timing | Project Owner | Confirmed | Major responsive/mobile polish will be executed after Play-launch readiness; current round prioritizes functional readiness |
+| DEC-PLAY-001 | 2026-03-31 | Google Play production access gating rule | Project Owner | Confirmed | New personal developer account must complete closed testing with at least 12 opted-in testers for 14 continuous days before production access request |
 
 ## 4) Workstreams & Status
 ### A. PWA Gap Closure
@@ -988,6 +989,25 @@ Mode: Implementation + Verification
 - Current interpretation:
   - This is an external operational blocker, not a product or engineering blocker.
 
+### 2026-03-31 (Play Verification Cleared + Internal Testing Active)
+- Google Play account status:
+  - Developer verification cleared sufficiently to proceed
+  - Internal testing release published
+  - Internal testing track is active
+- Internal testing result:
+  - Play-delivered build installed successfully
+  - Validation reported as passed for:
+    - login
+    - fullscreen verified mode
+    - `manage/profile`
+    - `manage/catalogs/[id]`
+    - `manage/landing-pages`
+    - `manage/qr`
+- Assessment:
+  - No blocker was reported in the first internal testing validation round.
+  - The previous external blocker is no longer the active constraint.
+  - Remaining work is now centered on final Play materials / Data Safety completion / broader rollout readiness.
+
 ### 2026-03-31 (Pause Point / Current Working Status)
 - Current project state:
   - Gate 0: `PASS`
@@ -996,23 +1016,107 @@ Mode: Implementation + Verification
   - Gate 3: `PASS`
   - Gate 4: `PASS`
   - Gate 5: `IN PROGRESS`
-  - Overall readiness: ~`92%`
-- Current blocker:
-  - Google Play Developer account verification is still pending on Google's side.
-  - Internal testing release is prepared, but cannot be published until account verification clears.
+  - Overall readiness: ~`96%`
+- Current status:
+  - Google Play Internal testing is active.
+  - First internal testing validation round passed on core flows.
+- Current release-path blocker:
+  - For this new personal Google Play developer account, production access now requires `Closed testing` with at least `12` testers staying opted in for `14` continuous days before the production access request can be submitted.
 - Work that is ready immediately once Google clears:
-  1. verify contact phone number
-  2. publish internal testing release
-  3. execute tester rollout
-  4. collect exit evidence and close Gate 5
+  1. finalize Play listing materials
+  2. finalize Data Safety answers
+  3. collect broader tester evidence if desired
+  4. close Gate 5 and prepare production go/no-go
 - Parallel work allowed while waiting:
   - mobile UX/UI refinement
-  - screenshot capture preparation
+  - screenshot capture / cleanup
   - final Data Safety confirmation with backend/legal
   - final Play Console content cleanup
 - Team interpretation:
   - engineering/TWA implementation is not the blocker now
-  - current wait state is operational/platform-side
+  - project is in release-preparation mode, not technical-blocker mode
+
+### 2026-03-31 (Google Play Closed Testing Requirement Confirmed)
+- Confirmed from current Google Play policy:
+  - `Closed testing` is required before production access for this account type.
+  - Minimum requirement: `12` testers
+  - Minimum duration: `14` continuous days with testers remaining opted in
+- Impact:
+  - `Internal testing` success is valuable evidence, but it does not unlock production by itself.
+  - Gate 5 cannot be closed until the closed-testing timing requirement is completed.
+- Next release-path actions:
+  1. publish the current stable build to `Closed testing`
+  2. keep at least 12 testers opted in continuously
+  3. track closed-test start date and target completion date
+  4. submit production access request after the 14-day requirement is satisfied
+
+### 2026-03-31 (Execution Continuation - Path 2 While Waiting Verification)
+- Selected continuation path:
+  - Path 2: Mobile UX/UI refinement + Play readiness preparation while waiting for Google account verification.
+- Completed in this round:
+  - Created Gate 5 execution runbook:
+    - `docs/TWA_GATE5_EXECUTION_RUNBOOK_2026-03-31.md`
+  - Re-confirmed release artifact availability in Bubblewrap workspace:
+    - `/root/twa-test/app-release-bundle.aab`
+    - `/root/twa-test/app-release-signed.apk`
+    - `/root/twa-test/twa-manifest.json`
+- Still blocked:
+  - Google Play Developer account identity verification pending (external blocker).
+  - Contact phone verification and Internal testing publish remain blocked until Google clears account verification.
+- Ready immediately after unblock:
+  1. verify contact phone number
+  2. upload AAB and publish internal testing release
+  3. run internal tester rollout and collect exit evidence
+  4. close Gate 5
+- Scope compliance note:
+  - No change to origin/package/signing strategy.
+  - No system rewrite and no scope expansion.
+
+### 2026-03-31 (Path 2 Deliverables - Screenshot + Data Safety Prep)
+- Completed in this round:
+  - Prepared Play screenshot production pack:
+    - `docs/TWA_PLAY_SCREENSHOT_PRODUCTION_PACK_2026-03-31.md`
+  - Prepared Data Safety confirmation matrix:
+    - `docs/TWA_DATA_SAFETY_CONFIRMATION_MATRIX_2026-03-31.md`
+- Intended use:
+  - reduce time-to-execution for Gate 5 once Google account verification is cleared.
+- Still blocked:
+  - Play Console publish actions remain blocked by pending Google identity/account verification.
+- Ready immediately after unblock:
+  1. capture/finalize screenshot files using production pack checklist
+  2. finalize Data Safety answers via confirmation matrix sign-off
+  3. publish internal testing release and collect evidence
+
+### 2026-03-31 (Path 2 Execution Start - Asset Workspace + Tracker)
+- Completed in this round:
+  - Created local Play asset workspace:
+    - `/root/twa-test/play-assets/screenshots/`
+    - `/root/twa-test/play-assets/metadata/`
+  - Created execution tracker:
+    - `docs/TWA_PLAY_ASSET_EXECUTION_TRACKER_2026-03-31.md`
+- Tracker purpose:
+  - track screenshot production status per required screen
+  - track Data Safety sign-off status per owner role
+- Current tracker status:
+  - Screenshot rows initialized as `Pending`
+  - Data Safety sign-off rows initialized as `Pending`
+- Still blocked:
+  - Play Console publish actions remain blocked by pending Google account verification.
+
+### 2026-03-31 (Path 2 Execution - Metadata Pack Ready)
+- Completed in this round:
+  - Added screenshot requirement CSV:
+    - `/root/twa-test/play-assets/metadata/screenshots_required.csv`
+  - Added Data Safety sign-off CSV:
+    - `/root/twa-test/play-assets/metadata/data_safety_signoff.csv`
+  - Added Android capture command guide:
+    - `/root/twa-test/play-assets/metadata/screenshot_capture_commands.txt`
+  - Added metadata README:
+    - `/root/twa-test/play-assets/metadata/README.md`
+- Operational impact:
+  - screenshot execution and sign-off tracking can now run with consistent file naming and status tracking.
+- Still blocked:
+  - actual Play upload/publication actions remain blocked by pending Google verification.
 
 ---
 

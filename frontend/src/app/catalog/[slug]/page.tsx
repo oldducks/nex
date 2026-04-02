@@ -1,21 +1,25 @@
 "use client";
 
-import { useEffect, useState } from 'react';
-import { useParams } from 'next/navigation';
+import React, { useEffect, useState } from 'react';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import {
   Globe, ShoppingCart, Facebook, MessageCircle,
   Download, ArrowLeft, ExternalLink, QrCode as QrIcon,
-  ChevronRight, Info, Package, BookOpen, Grid3X3, Share2, Twitter
+  ChevronLeft, ChevronRight, Info, Package, BookOpen, Grid3X3, Share2, Twitter, Search
 } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
-import Flipbook, { FlipbookProductPage } from '@/components/Flipbook';
+import dynamic from 'next/dynamic';
 import { getEmbedUrl } from '@/lib/videoUtils';
+
+const Flipbook = dynamic(() => import('@/components/Flipbook'), { ssr: false });
+import { FlipbookProductPage } from '@/components/FlipbookProductPage';
 
 const DEFAULT_REFERRAL_URL = 'https://nexsolution.cloud/manage/referrals';
 
 interface Product {
   id: number;
   name: string;
+  brand?: string;
   description: string;
   price: number;
   images_json: string[];
@@ -44,14 +48,20 @@ interface Catalog {
 }
 
 export default function PublicCatalog() {
+  const router = useRouter();
   const params = useParams();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const slug = params.slug as string;
+  const viewParam = searchParams.get('view');
+  const initialViewMode = viewParam === 'book' ? 'flipbook' : 'grid';
   const [catalog, setCatalog] = useState<Catalog | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
-  const [viewMode, setViewMode] = useState<'grid' | 'flipbook'>('grid');
+  const [viewMode, setViewMode] = useState<'grid' | 'flipbook'>(initialViewMode);
   const [showQrModal, setShowQrModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const nexPageVars = {
@@ -65,6 +75,24 @@ export default function PublicCatalog() {
   useEffect(() => {
     fetchCatalog();
   }, [slug]);
+
+  useEffect(() => {
+    const nextViewMode = searchParams.get('view') === 'book' ? 'flipbook' : 'grid';
+    setViewMode(nextViewMode);
+  }, [searchParams]);
+
+  const setCatalogViewMode = (mode: 'grid' | 'flipbook') => {
+    setViewMode(mode);
+    const nextParams = new URLSearchParams(searchParams.toString());
+    if (mode === 'flipbook') {
+      nextParams.set('view', 'book');
+    } else {
+      nextParams.delete('view');
+    }
+    const query = nextParams.toString();
+    const nextUrl = query ? `${pathname}?${query}` : pathname;
+    router.replace(nextUrl, { scroll: false });
+  };
 
   const fetchCatalog = async () => {
     try {
@@ -123,6 +151,12 @@ export default function PublicCatalog() {
 
   const theme = catalog.layout_config || {};
   const primary = theme.primary_color || '#050579';
+  const selectedProductIndex = selectedProduct
+    ? catalog.products.findIndex((item) => item.id === selectedProduct.id)
+    : -1;
+  const canGoPrevProduct = selectedProductIndex > 0;
+  const canGoNextProduct =
+    selectedProductIndex >= 0 && selectedProductIndex < catalog.products.length - 1;
 
   const styles = {
     '--primary': primary,
@@ -135,6 +169,7 @@ export default function PublicCatalog() {
       id: product.id,
       content: <FlipbookProductPage product={product} />
     }));
+
     const brandLogoUrl = catalog.layout_config?.brand_logo
       ? getImageUrl(catalog.layout_config.brand_logo)
       : '';
@@ -161,16 +196,18 @@ export default function PublicCatalog() {
     );
 
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
-    const shareUrl = `${SITE_URL}/catalog/${slug}`;
+    const shareUrl = `${SITE_URL}/catalog/${slug}?view=book`;
 
     return (
       <div style={styles}>
         <Flipbook
           pages={flipbookPages}
           coverPage={coverPage}
-          onExit={() => setViewMode('grid')}
-          shareUrl={shareUrl}
+          onExit={() => setCatalogViewMode('grid')}
+           shareUrl={shareUrl}
           shareTitle={`${catalog.title} - Digital Catalog`}
+          catalogName={catalog.title}
+          products={catalog.products}
         />
       </div>
     );
@@ -186,7 +223,7 @@ export default function PublicCatalog() {
             <h1 className="text-xl font-black tracking-tight uppercase text-[#050579]">{catalog.title}</h1>
             <div className="flex items-center gap-3">
               <button
-                onClick={() => setViewMode('flipbook')}
+                onClick={() => setCatalogViewMode('flipbook')}
                 className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl transition-all text-sm font-bold"
               >
                 <BookOpen size={18} />
@@ -263,9 +300,28 @@ export default function PublicCatalog() {
              </div>
           )}
 
+          {/* Search bar for grid view */}
+          <div className="mb-10 max-w-xl">
+            <div className="relative group">
+               <input
+                 type="text"
+                 placeholder="ค้นหาชื่อสินค้า..."
+                 value={searchQuery}
+                 onChange={(e) => setSearchQuery(e.target.value)}
+                 className="w-full bg-foreground/5 border-2 border-transparent focus:border-primary/30 focus:bg-white rounded-2xl px-12 py-4 transition-all outline-none"
+               />
+               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors" size={20} />
+            </div>
+          </div>
+
           {/* Product Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-            {catalog.products.map((product) => (
+            {catalog.products
+              .filter(p => 
+                p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+              )
+              .map((product) => (
               <div
                 key={product.id}
                 onClick={() => setSelectedProduct(product)}
@@ -273,24 +329,22 @@ export default function PublicCatalog() {
               >
                 {/* Image */}
                 <div className="aspect-[4/5] relative overflow-hidden">
-                  <a 
-                    href={product.interactive_links?.order_form || product.interactive_links?.website || DEFAULT_REFERRAL_URL} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="block w-full h-full"
-                  >
-                    <img
-                      src={getImageUrl(product.images_json?.[0])}
-                      alt={product.name}
-                      className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
-                    />
-                  </a>
+                  <img
+                    src={getImageUrl(product.images_json?.[0])}
+                    alt={product.name}
+                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                    decoding="async"
+                  />
                   <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60 group-hover:opacity-80 transition-opacity pointer-events-none"></div>
                 </div>
 
                 {/* Content Overlay/Bar */}
                 <div className="p-6 sm:p-8">
+                  {product.brand && (
+                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B] mb-2 line-clamp-1">
+                      แบรนด์: {product.brand}
+                    </p>
+                  )}
                   <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{product.name}</h3>
 
                   {/* Price Badge - Below title */}
@@ -324,7 +378,19 @@ export default function PublicCatalog() {
           <ProductModal 
             product={selectedProduct} 
             getImageUrl={getImageUrl}
-            onClose={() => setSelectedProduct(null)} 
+            onClose={() => setSelectedProduct(null)}
+            onPrev={
+              canGoPrevProduct
+                ? () => setSelectedProduct(catalog.products[selectedProductIndex - 1])
+                : undefined
+            }
+            onNext={
+              canGoNextProduct
+                ? () => setSelectedProduct(catalog.products[selectedProductIndex + 1])
+                : undefined
+            }
+            hasPrev={canGoPrevProduct}
+            hasNext={canGoNextProduct}
           />
         )}
 
@@ -486,10 +552,54 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
   );
 }
 
-function ProductModal({ product, onClose, getImageUrl }: { product: Product, onClose: () => void, getImageUrl: (url: string | undefined) => string }) {
+function ProductModal({
+  product,
+  onClose,
+  getImageUrl,
+  onPrev,
+  onNext,
+  hasPrev = false,
+  hasNext = false,
+}: {
+  product: Product;
+  onClose: () => void;
+  getImageUrl: (url: string | undefined) => string;
+  onPrev?: () => void;
+  onNext?: () => void;
+  hasPrev?: boolean;
+  hasNext?: boolean;
+}) {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+
+      <button
+        type="button"
+        onClick={onPrev}
+        disabled={!hasPrev}
+        aria-label="สินค้าก่อนหน้า"
+        className={`hidden md:flex absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full border items-center justify-center transition-all ${
+          hasPrev
+            ? 'bg-white/95 border-[#D9E1F2] text-[#334155] hover:text-[#050579] hover:bg-white shadow-[0_18px_40px_-26px_rgba(15,23,42,0.35)]'
+            : 'bg-white/50 border-[#E2E8F0] text-[#94A3B8] opacity-50 cursor-not-allowed'
+        }`}
+      >
+        <ChevronLeft size={34} />
+      </button>
+
+      <button
+        type="button"
+        onClick={onNext}
+        disabled={!hasNext}
+        aria-label="สินค้าถัดไป"
+        className={`hidden md:flex absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-20 w-16 h-16 rounded-full border items-center justify-center transition-all ${
+          hasNext
+            ? 'bg-white/95 border-[#D9E1F2] text-[#334155] hover:text-[#050579] hover:bg-white shadow-[0_18px_40px_-26px_rgba(15,23,42,0.35)]'
+            : 'bg-white/50 border-[#E2E8F0] text-[#94A3B8] opacity-50 cursor-not-allowed'
+        }`}
+      >
+        <ChevronRight size={34} />
+      </button>
       
       <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-4xl relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
         <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
@@ -500,25 +610,21 @@ function ProductModal({ product, onClose, getImageUrl }: { product: Product, onC
           {/* Gallery Sidebar/Image */}
           <div className="md:w-1/2 p-4 md:p-8">
             <div className="relative aspect-[4/5] rounded-[32px] overflow-hidden bg-black group">
-              <a 
-                href={product.interactive_links?.order_form || product.interactive_links?.website || DEFAULT_REFERRAL_URL} 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="block w-full h-full"
-              >
-                <img src={getImageUrl(product.images_json?.[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center">
+              <img src={getImageUrl(product.images_json?.[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+              <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
                     <div className="opacity-0 group-hover:opacity-100 bg-white/90 text-primary px-4 py-2 rounded-full font-bold text-sm shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all">
-                        คลิกเพื่อดูรายละเอียด/สั่งซื้อ
+                        รูปสินค้า
                     </div>
                 </div>
-              </a>
             </div>
           </div>
 
           {/* Info Section */}
           <div className="md:w-1/2 p-8 md:p-12 overflow-y-auto">
             <div className="mb-10">
+              {product.brand && (
+                <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B] mb-2">แบรนด์: {product.brand}</p>
+              )}
               <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter">{product.name}</h2>
               <div className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full font-bold text-lg mb-6">
                 ฿{product.price.toLocaleString()}

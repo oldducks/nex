@@ -53,6 +53,8 @@ interface DashboardUser {
     id: number;
     uid: string;
     email: string;
+    full_name?: string | null;
+    mobile?: string | null;
     role: 'super_admin' | 'group_admin' | 'user';
     group_id: number | null;
     is_active: boolean;
@@ -262,23 +264,39 @@ export default function SuperAdminDashboard() {
         setActionLoading(null);
     };
 
-    const getResolvedFeatureConfig = (config?: FeatureConfig): FeatureConfig => {
-        if (!config || Object.keys(config).length === 0) {
+    const getResolvedFeatureConfig = (user: DashboardUser): FeatureConfig => {
+        // Admins and Premium users always have all features enabled
+        if (user.role === 'super_admin' || user.role === 'group_admin' || user.subscription_tier === 'premium') {
             return DEFAULT_FEATURE_CONFIG;
         }
+
+        const config = user.feature_config;
+        if (!config || Object.keys(config).length === 0) {
+            // Default for Free users is only 'profile' enabled
+            return {
+                catalog: false,
+                leads: false,
+                namecard: false,
+                'landing-pages': false,
+                analytics: false,
+                profile: true,
+                referrals: false,
+            };
+        }
+
         return {
-            catalog: config.catalog ?? true,
-            leads: config.leads ?? true,
-            namecard: config.namecard ?? true,
-            'landing-pages': config['landing-pages'] ?? true,
-            analytics: config.analytics ?? true,
-            profile: config.profile ?? true,
-            referrals: config.referrals ?? true,
+            catalog: config.catalog ?? false,
+            leads: config.leads ?? false,
+            namecard: config.namecard ?? false,
+            'landing-pages': config['landing-pages'] ?? false,
+            analytics: config.analytics ?? false,
+            profile: config.profile ?? false,
+            referrals: config.referrals ?? false,
         };
     };
 
-    const countEnabledFeatures = (config?: FeatureConfig): number => {
-        const resolved = getResolvedFeatureConfig(config);
+    const countEnabledFeatures = (user: DashboardUser): number => {
+        const resolved = getResolvedFeatureConfig(user);
         return Object.values(resolved).filter(Boolean).length;
     };
 
@@ -316,6 +334,16 @@ export default function SuperAdminDashboard() {
             case 'group_admin': return <span className="px-2 py-1 text-xs font-bold bg-blue-500/20 text-blue-400 rounded-full">👥 Group Admin</span>;
             default: return <span className="px-2 py-1 text-xs font-bold bg-gray-500/20 text-gray-400 rounded-full">👤 User</span>;
         }
+    };
+
+    const splitName = (fullName?: string | null): { firstName: string; lastName: string } => {
+        const normalized = (fullName || '').trim().replace(/\s+/g, ' ');
+        if (!normalized) {
+            return { firstName: '-', lastName: '-' };
+        }
+        const [firstName, ...rest] = normalized.split(' ');
+        const lastName = rest.join(' ').trim();
+        return { firstName: firstName || '-', lastName: lastName || '-' };
     };
 
     // Loading state
@@ -457,12 +485,17 @@ export default function SuperAdminDashboard() {
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-white/5">
-                                {dashboardData?.users.map(user => (
+                                {dashboardData?.users.map(user => {
+                                    const nameParts = splitName(user.full_name);
+                                    return (
                                     <tr key={user.id} className={`hover:bg-white/5 ${!user.is_active ? 'opacity-50' : ''}`}>
                                         <td className="px-4 py-4">
                                             <div>
                                                 <p className="font-medium">{user.uid}</p>
+                                                <p className="text-xs text-gray-300">ชื่อ: {nameParts.firstName}</p>
+                                                <p className="text-xs text-gray-300">นามสกุล: {nameParts.lastName}</p>
                                                 <p className="text-xs text-gray-500">{user.email}</p>
+                                                <p className="text-xs text-gray-400">{user.mobile ? `โทร: ${user.mobile}` : 'โทร: -'}</p>
                                             </div>
                                         </td>
                                         <td className="px-4 py-4">{getRoleBadge(user.role)}</td>
@@ -494,13 +527,13 @@ export default function SuperAdminDashboard() {
                                             <button
                                                 onClick={() => setEditFeatures({
                                                     userId: user.id,
-                                                    config: getResolvedFeatureConfig(user.feature_config)
+                                                    config: getResolvedFeatureConfig(user)
                                                 })}
                                                 className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-400 hover:bg-indigo-500/30 transition-colors text-xs font-medium"
                                                 title="จัดการฟีเจอร์"
                                             >
                                                 <Settings2 size={12} />
-                                                {countEnabledFeatures(user.feature_config)}/7
+                                                {countEnabledFeatures(user)}/7
                                             </button>
                                         </td>
                                         <td className="px-4 py-4 text-center">
@@ -562,7 +595,8 @@ export default function SuperAdminDashboard() {
                                             </div>
                                         </td>
                                     </tr>
-                                ))}
+                                    );
+                                })}
                             </tbody>
                         </table>
                     </div>
@@ -604,9 +638,51 @@ export default function SuperAdminDashboard() {
                             <div className="text-center mb-6">
                                 <Calendar size={48} className="text-blue-400 mx-auto mb-4" />
                                 <h3 className="text-xl font-bold mb-2">แก้ไขวันหมดอายุ</h3>
-                                <p className="text-gray-400">เลือกวันหมดอายุใหม่หรือเว้นว่างเพื่อไม่จำกัด</p>
+                                <p className="text-gray-400 text-sm">เลือกวันหมดอายุใหม่ (รูปแบบ dd/mm/yyyy) หรือเว้นว่างเพื่อไม่จำกัด</p>
                             </div>
+                            
+                            {/* Quick Select Buttons */}
+                            <div className="grid grid-cols-2 gap-2 mb-6">
+                                <button 
+                                    onClick={() => {
+                                        const d = new Date();
+                                        d.setMonth(d.getMonth() + 1);
+                                        setEditExpiration({ ...editExpiration, date: d.toISOString().split('T')[0] });
+                                    }}
+                                    className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium transition-all"
+                                >
+                                    + 1 เดือน
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        const d = new Date();
+                                        d.setFullYear(d.getFullYear() + 1);
+                                        setEditExpiration({ ...editExpiration, date: d.toISOString().split('T')[0] });
+                                    }}
+                                    className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium transition-all"
+                                >
+                                    + 1 ปี
+                                </button>
+                                <button 
+                                    onClick={() => {
+                                        const d = new Date();
+                                        d.setFullYear(d.getFullYear() + 5);
+                                        setEditExpiration({ ...editExpiration, date: d.toISOString().split('T')[0] });
+                                    }}
+                                    className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium transition-all"
+                                >
+                                    + 5 ปี
+                                </button>
+                                <button 
+                                    onClick={() => setEditExpiration({ ...editExpiration, date: '' })}
+                                    className="px-3 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-medium transition-all"
+                                >
+                                    ไม่จำกัด
+                                </button>
+                            </div>
+
                             <div className="mb-6">
+                                <label className="block text-xs font-bold text-gray-500 uppercase tracking-widest mb-2 ml-1">เลือกวันที่เจาะจง</label>
                                 <input
                                     type="date"
                                     value={editExpiration.date}
@@ -614,6 +690,7 @@ export default function SuperAdminDashboard() {
                                     className="w-full bg-white/10 border border-white/20 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
                                 />
                             </div>
+
                             <div className="flex gap-3">
                                 <button
                                     onClick={() => setEditExpiration(null)}
@@ -622,19 +699,12 @@ export default function SuperAdminDashboard() {
                                     ยกเลิก
                                 </button>
                                 <button
-                                    onClick={() => updateExpiration(editExpiration.userId, null)}
-                                    disabled={actionLoading === editExpiration.userId}
-                                    className="flex-1 bg-gray-600 hover:bg-gray-700 py-3 rounded-xl font-medium"
-                                >
-                                    ไม่จำกัด
-                                </button>
-                                <button
                                     onClick={() => updateExpiration(editExpiration.userId, editExpiration.date || null)}
-                                    disabled={actionLoading === editExpiration.userId || !editExpiration.date}
-                                    className="flex-1 bg-blue-500 hover:bg-blue-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
+                                    disabled={actionLoading === editExpiration.userId}
+                                    className="flex-[2] bg-blue-500 hover:bg-blue-600 py-3 rounded-xl font-bold flex items-center justify-center gap-2 disabled:opacity-50"
                                 >
                                     {actionLoading === editExpiration.userId ? <Loader2 size={20} className="animate-spin" /> : <CheckCircle size={20} />}
-                                    บันทึก
+                                    บันทึกวันหมดอายุ
                                 </button>
                             </div>
                         </div>

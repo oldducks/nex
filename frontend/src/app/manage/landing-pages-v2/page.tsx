@@ -199,8 +199,8 @@ export default function LandingPagesListPage() {
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_32%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.34),transparent_40%)]" />
             </div>
 
-            <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/80 backdrop-blur-md">
-                <div className="relative mx-auto flex h-20 w-full max-w-md items-center px-4">
+            <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/85 backdrop-blur-md">
+                <div className="relative mx-auto flex h-24 w-full max-w-md items-center px-4 md:max-w-2xl">
                     <Link
                         href="/manage/control-center"
                         className="absolute left-6 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group"
@@ -211,16 +211,20 @@ export default function LandingPagesListPage() {
 
                     <div className="mx-auto flex min-w-0 flex-col items-center text-center">
                         <div className="mb-0.5 text-[11px] font-black uppercase leading-none tracking-[0.18em] text-[#94A3B8]">
-                            NEX Sale Page
+                            NEX SALE PAGE
                         </div>
-                        <div className="text-sm font-bold text-[#050579]">
-                            สถานะ : {currentPlanLabel}
+                        <div className="text-base font-black text-[#050579]">
+                            หน้าร้านออนไลน์ของคุณ
+                        </div>
+                        <div className="mt-2 inline-flex items-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-1 text-xs font-bold text-[#64748B]">
+                            <span className="mr-1.5 text-[#94A3B8]">แผนปัจจุบัน</span>
+                            <span className="text-[#050579]">{currentPlanLabel}</span>
                         </div>
                     </div>
                 </div>
             </nav>
 
-            <main className="relative z-10 mx-auto mt-6 w-full max-w-md px-4 pb-8">
+            <main className="relative z-10 mx-auto mt-6 w-full max-w-md px-4 pb-8 md:max-w-2xl">
                 <div className="mb-8 flex justify-center">
                     <button
                         onClick={() => {
@@ -238,8 +242,8 @@ export default function LandingPagesListPage() {
                 </div>
 
                 <section className="rounded-3xl border border-[#D9E1F2] bg-white p-4 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.16)]">
-                    <h2 className="text-sm font-bold text-[#050579]">หน้าร้านออนไลน์</h2>
-                    <div className="mt-3 space-y-3">
+                    <h2 className="text-xl font-black leading-tight text-[#050579]">หน้าร้านออนไลน์ของคุณ</h2>
+                    <div className="mt-4 space-y-4">
                         {pages.map((page) => {
                             const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/lp/${encodeURIComponent(page.slug)}`;
                             const expandedType = expandedPanel.pageId === page.id ? expandedPanel.type : null;
@@ -247,10 +251,10 @@ export default function LandingPagesListPage() {
                             const isShareExpanded = expandedType === 'share';
 
                             return (
-                                <div key={page.id} className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF]">
+                                <div key={page.id} className="overflow-hidden rounded-[28px] border border-[#C7D2E5] bg-[#F3F6FF] shadow-[0_18px_36px_-28px_rgba(15,23,42,0.14)]">
                                     <div className="px-4 py-4">
                                         <div className="flex items-start gap-3">
-                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-white text-[#16A34A]">
+                                            <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-[#D9E1F2] bg-white text-[#16A34A] shadow-[0_10px_24px_-20px_rgba(5,5,121,0.22)]">
                                                 <Layout size={22} strokeWidth={2.4} />
                                             </div>
 
@@ -271,10 +275,11 @@ export default function LandingPagesListPage() {
                                             </div>
                                         </div>
 
-                                        <div className="mt-4 grid gap-2 md:grid-cols-2">
+                                        <div className="mt-4 border-t border-[#DEE7F7] pt-4">
+                                            <div className="grid gap-2 md:grid-cols-2">
                                             <Link
                                                 href={`${editorBasePath}/${page.id}`}
-                                                className="flex items-center justify-between rounded-2xl border border-[#D9E1F2] bg-white px-3 py-3 text-[#0F172A] transition hover:border-[#C7D2E5]"
+                                                className="flex items-center justify-between rounded-2xl border border-[#D1DBEF] bg-white/92 px-3 py-3 text-[#0F172A] transition hover:border-[#B9C9E6]"
                                             >
                                                 <span className="text-sm font-semibold">จัดการร้าน</span>
                                                 <ChevronDown size={16} className="rotate-[-90deg] text-[#475569]" />
@@ -282,7 +287,7 @@ export default function LandingPagesListPage() {
                                             <Link
                                                 href={`/lp/${encodeURIComponent(page.slug)}`}
                                                 target="_blank"
-                                                className="flex items-center justify-between rounded-2xl border border-[#D9E1F2] bg-white px-3 py-3 text-[#0F172A] transition hover:border-[#C7D2E5]"
+                                                className="flex items-center justify-between rounded-2xl border border-[#D1DBEF] bg-white/92 px-3 py-3 text-[#0F172A] transition hover:border-[#B9C9E6]"
                                             >
                                                 <span className="flex items-center gap-2 text-sm font-semibold">
                                                     <ExternalLink size={16} className="text-[#050579]" />
@@ -290,9 +295,9 @@ export default function LandingPagesListPage() {
                                                 </span>
                                                 <ChevronDown size={16} className="rotate-[-90deg] text-[#475569]" />
                                             </Link>
-                                        </div>
+                                            </div>
 
-                                        <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_48px] gap-2">
+                                            <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_48px] gap-2">
                                             <button
                                                 type="button"
                                                 onClick={() =>
@@ -300,8 +305,8 @@ export default function LandingPagesListPage() {
                                                 }
                                                 className={`flex items-center justify-between rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
                                                     isQrExpanded
-                                                        ? 'border-[#C7D2E5] bg-white text-[#050579]'
-                                                        : 'border-[#D9E1F2] bg-[#F8FAFF] text-[#64748B] hover:border-[#C7D2E5]'
+                                                        ? 'border-[#BCCBE8] bg-white text-[#050579]'
+                                                        : 'border-[#D1DBEF] bg-[#EEF4FF] text-[#64748B] hover:border-[#BCCBE8]'
                                                 }`}
                                             >
                                                 <span className="flex items-center gap-2">
@@ -317,8 +322,8 @@ export default function LandingPagesListPage() {
                                                 }
                                                 className={`flex items-center justify-between rounded-2xl border px-3 py-3 text-sm font-semibold transition ${
                                                     isShareExpanded
-                                                        ? 'border-[#C7D2E5] bg-white text-[#050579]'
-                                                        : 'border-[#D9E1F2] bg-[#F8FAFF] text-[#64748B] hover:border-[#C7D2E5]'
+                                                        ? 'border-[#BCCBE8] bg-white text-[#050579]'
+                                                        : 'border-[#D1DBEF] bg-[#EEF4FF] text-[#64748B] hover:border-[#BCCBE8]'
                                                 }`}
                                             >
                                                 <span className="flex items-center gap-2">
@@ -329,16 +334,17 @@ export default function LandingPagesListPage() {
                                             </button>
                                             <button
                                                 onClick={() => setDeletingPage(page)}
-                                                className="flex items-center justify-center rounded-2xl border border-[#F6D5BF] bg-white text-red-500 transition hover:bg-red-50"
+                                                className="flex items-center justify-center rounded-2xl border border-[#F6D5BF] bg-white/92 text-red-500 transition hover:bg-red-50"
                                             >
                                                 <Trash2 size={16} />
                                             </button>
+                                            </div>
                                         </div>
                                     </div>
 
                                     {isQrExpanded && (
-                                        <div className="border-t border-[#D9E1F2] bg-white px-4 py-4">
-                                            <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-4 text-center">
+                                        <div className="border-t border-[#DEE7F7] bg-[#EDF4FF] px-4 py-4">
+                                            <div className="rounded-2xl border border-[#D1DBEF] bg-[#F7FAFF] p-4 text-center">
                                                 <div className="mx-auto mb-3 w-fit rounded-2xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
                                                     <QrCodeImage url={shareUrl} size={150} />
                                                 </div>
@@ -348,8 +354,8 @@ export default function LandingPagesListPage() {
                                     )}
 
                                     {isShareExpanded && (
-                                        <div className="border-t border-[#D9E1F2] bg-white px-4 py-4">
-                                            <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3">
+                                        <div className="border-t border-[#DEE7F7] bg-[#EDF4FF] px-4 py-4">
+                                            <div className="rounded-2xl border border-[#D1DBEF] bg-[#F7FAFF] px-4 py-3">
                                                 <div className="mb-2 flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">
                                                     <Share2 size={14} />
                                                     <span>แชร์และข้อมูลเพิ่มเติม</span>

@@ -1,5 +1,6 @@
 import React from 'react';
 import Image from 'next/image';
+import PreviewVideo from './PreviewVideo';
 
 const storyboardImages = Array.from({ length: 18 }, (_, index) => {
   const frameNumber = index + 1;
@@ -30,6 +31,16 @@ export default function WhatIsNexPreviewPage() {
                   className="h-auto w-full lg:h-dvh lg:w-auto lg:max-w-full"
                 />
               </section>
+              {image.order === 1 && (
+                <section className="relative overflow-hidden pt-2 lg:flex lg:min-h-dvh lg:items-center lg:justify-center">
+                  <div className="w-full overflow-hidden bg-black lg:w-auto">
+                    <PreviewVideo
+                      src="/what-is-nex-preview/preview-video-v2.mp4"
+                      className="block h-auto w-full lg:h-dvh lg:w-auto lg:max-w-full"
+                    />
+                  </div>
+                </section>
+              )}
               {REGISTER_BUTTON_AFTER.has(image.order) && (
                 <section className="px-4 py-5">
                   <a

@@ -1,4 +1,4 @@
-import { Controller, Post, Body, UseGuards, Request, UnauthorizedException, Get, Res, Query } from '@nestjs/common';
+import { Controller, Post, Body, UseGuards, Request, UnauthorizedException, Get, Res, Query, BadRequestException } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import type { Response } from 'express';
 import { ConfigService } from '@nestjs/config';
@@ -49,9 +49,14 @@ export class AuthController {
 
     @Post('login')
     async login(@Body() loginDto: LoginDto, @Res({ passthrough: true }) res: Response) {
-        const user = await this.authService.validateUser(loginDto.email, loginDto.password);
+        const identifier = loginDto.identifier || loginDto.email || loginDto.phone;
+        if (!identifier) {
+            throw new BadRequestException('กรุณากรอกอีเมลหรือเบอร์โทรศัพท์');
+        }
+
+        const user = await this.authService.validateUser(identifier, loginDto.password);
         if (!user) {
-            throw new UnauthorizedException('Invalid email or password');
+            throw new UnauthorizedException('Invalid credentials');
         }
         const result = await this.authService.login(user);
         this.setAuthCookies(res, result);
@@ -60,7 +65,17 @@ export class AuthController {
 
     @Post('register')
     async register(@Body() registerDto: RegisterDto, @Res({ passthrough: true }) res: Response) {
-        const result = await this.authService.register(registerDto.email, registerDto.password, registerDto.referralCode);
+        if (!registerDto.email && !registerDto.phoneNumber) {
+            throw new BadRequestException('กรุณากรอกอีเมลหรือเบอร์โทรศัพท์อย่างใดอย่างหนึ่ง');
+        }
+
+        const result = await this.authService.register(
+            registerDto.email, 
+            registerDto.phoneNumber,
+            registerDto.password, 
+            registerDto.fullName,
+            registerDto.referralCode
+        );
         this.setAuthCookies(res, result);
         return result;
     }
@@ -102,7 +117,13 @@ export class AuthController {
     // Google OAuth
     @Get('google')
     @UseGuards(AuthGuard('google'))
-    async googleAuth() {
+    async googleAuth(@Request() req, @Query('ref') referralCode?: string) {
+        console.log('Google OAuth start - referralCode from query:', referralCode);
+        // Pass referral code as state parameter
+        if (referralCode) {
+            console.log('Setting referral code in session:', referralCode);
+            req.session.state = referralCode;
+        }
         // Initiates the Google OAuth flow
     }
 
@@ -113,6 +134,17 @@ export class AuthController {
         if (user) {
             try {
                 await this.referralsService.getOrCreateReferralCode(user.id);
+                
+                // Process referral if code exists
+                const referralCode = req.session?.state || req.user?.referralCode;
+                if (referralCode) {
+                    try {
+                        await this.referralsService.processReferral(user.id, referralCode, 0);
+                        console.log('Referral processed successfully for user:', user.id, 'with code:', referralCode);
+                    } catch (error) {
+                        console.error('Failed to process referral:', error);
+                    }
+                }
             } catch (error) {
                 console.error('Failed to generate referral code for Google OAuth user:', error);
             }

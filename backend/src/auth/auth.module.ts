@@ -1,4 +1,4 @@
-import { Module, forwardRef } from '@nestjs/common';
+import { Module, forwardRef, MiddlewareConsumer, NestModule } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { PassportModule } from '@nestjs/passport';
 import { ConfigModule, ConfigService } from '@nestjs/config';
@@ -10,6 +10,7 @@ import { GoogleStrategy } from './strategies/google.strategy';
 import { FacebookStrategy } from './strategies/facebook.strategy';
 import { LineAuthService } from './strategies/line.strategy';
 import { ReferralsModule } from '../referrals/referrals.module';
+import { ReferralMiddleware } from './referral.middleware';
 
 // Conditionally provide OAuth strategies only if credentials exist
 const googleProvider = {
@@ -57,8 +58,15 @@ const facebookProvider = {
     googleProvider,
     facebookProvider,
     LineAuthService,
+    ReferralMiddleware,
   ],
   controllers: [AuthController],
   exports: [AuthService],
 })
-export class AuthModule { }
+export class AuthModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    consumer
+      .apply(ReferralMiddleware)
+      .forRoutes('auth');
+  }
+}

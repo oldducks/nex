@@ -9,6 +9,170 @@
 
 ---
 
+### 2026-04-01: Manage UI Consolidation + Control2 Primary Route + Upgrade Plan Flow
+**Goal**: ปรับระบบหน้า `/manage/*` ให้ไปในทิศทางเดียวกับธีม Control Center, แก้ปัญหา offline fallback, เพิ่มหน้าอัปเกรดแพ็กเกจ และตั้งให้ `/manage/control` ใช้งานหน้าเดียวกับ `control2` โดยคง URL เดิม
+
+**What changed**:
+1. **Manage theme alignment (multi-page pass)**:
+   - ทำแบคอัพรายหน้าใน scope ที่กำหนดไว้ก่อนแก้ (`*.backup-2026-04-01-theme-pass`)
+   - เพิ่ม `manage` layout wrapper ด้วย class ธีมกลาง และปรับ global manage theme ให้หน้า `/manage/*` คุม palette เดียวกัน
+   - เก็บจุดโทนแตกต่างเด่น (เช่นบางส่วนใน `referrals`, `ai`, `learning`) ให้กลับเข้าธีมหลัก
+
+2. **Control2 mobile icon style restored**:
+   - หน้า `frontend/src/app/manage/control2/page.tsx` เปลี่ยนกลับเป็นเมนูแนวไอคอนแบบแอพมือถือ
+   - คงโทนสีปัจจุบัน และคง logic feature lock เดิม
+   - เพิ่มเมนู `อัปเกรดแพ็กเกจ` ชี้ไปหน้าอัปเกรดใหม่ และปรับ label `ข้อมูลจากแบบฟอร์ม` ให้บรรทัดเดียว
+
+3. **Offline issue fix (\"You're offline\")**:
+   - สาเหตุจาก service worker offline fallback (`offline.html`) ดัก navigation
+   - ปิด fallback ใน `frontend/public/sw.js`
+   - เพิ่มฝั่ง layout ให้ unregister service workers เดิม + ล้าง cache กลุ่ม `nex-offline*` ตอนโหลดหน้า
+
+4. **Upgrade plan page created**:
+   - เพิ่มหน้าใหม่ `frontend/src/app/manage/upgrade-plan/page.tsx`
+   - เนื้อหาหน้า: สถานะ Free Plan, ราคา Premium 1,500 บาท, วิธีชำระผ่าน ธ.กรุงศรีอยุธยา (650-150-4213, บจก. คราม อินเทลลิเจนท์ เอไอ), และส่งสลิปไป LINE `@001khlbm`
+   - เพิ่ม QR Code สำหรับ LINE OA (`https://line.me/R/ti/p/%40001khlbm`)
+   - ปรับเมนู `Upgrade Plan` ใน `control-center` ให้ชี้ `/manage/upgrade-plan`
+
+5. **Control route kept with original URL**:
+   - เพิ่ม route ใหม่ `frontend/src/app/manage/control/page.tsx`
+   - route นี้ re-export หน้า `control2` โดยตรง เพื่อให้ URL เดิม `/manage/control` ใช้งานหน้า `control2` ได้
+
+6. **Backup artifacts (selected latest)**:
+   - `frontend/src/app/manage/control2/page.tsx.backup-2026-04-01-control-main-alias`
+   - `frontend/src/app/manage/control2/page.tsx.backup-2026-04-01-upgrade-menu`
+   - `frontend/src/app/manage/control2/page.tsx.backup-2026-04-01-leads-nowrap`
+   - `frontend/src/app/manage/control-center/page.tsx.backup-2026-04-01-upgrade-menu`
+   - `frontend/src/app/manage/control-center/page.tsx.backup-2026-04-01-upgrade-route`
+   - `AGENT_HANDOVER.md.backup-2026-04-01-control-main-alias`
+
+7. **Deploy status**:
+   - รัน build/deploy หลายรอบด้วย `docker compose up -d --build web` (บางรอบรวม `api`)
+   - ตรวจ route build map พบทั้ง `/manage/control2`, `/manage/control`, `/manage/upgrade-plan` อยู่ใน output ล่าสุด
+   - container ล่าสุด `namecard_web` และ `namecard_api` ขึ้นสถานะ `Up`
+
+**Files updated (main recent slice)**:
+- `frontend/src/app/manage/layout.tsx`
+- `frontend/src/app/globals.css`
+- `frontend/src/app/manage/control2/page.tsx`
+- `frontend/src/app/manage/control-center/page.tsx`
+- `frontend/src/app/manage/upgrade-plan/page.tsx`
+- `frontend/src/app/manage/control/page.tsx`
+- `frontend/src/app/layout.tsx`
+- `frontend/public/sw.js`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-04-01*
+
+---
+
+### 2026-03-25: Landing Page Image Upload + Thai Slug Fallback + Next Work (Control Center IA)
+**Goal**: ปิด pain point สำคัญของระบบ Landing Page โดยเพิ่มการอัปโหลดรูปตรงใน editor และแก้ปัญหา slug กลายเป็น `-----` เมื่อผู้ใช้ตั้งชื่อแคมเปญเป็นภาษาไทย พร้อมสรุปงานค้างถัดไปสำหรับหน้า Control Center
+
+**What changed**:
+1. **Landing Page Image Upload (Editor UX)**:
+   - เพิ่ม flow อัปโหลดรูปในหน้า `Landing Page Editor` โดยกดเลือกไฟล์ได้ตรงจากบล็อกรูปภาพ ไม่ต้องวาง URL อย่างเดียว
+   - ใช้ API อัปโหลดเดิม `/uploads/image` และ polling `/uploads/job/:id`
+   - หลังอัปโหลดเสร็จ ระบบจะเติม URL กลับเข้า block ให้อัตโนมัติ
+   - คงช่อง `URL รูปภาพ` ไว้เป็น fallback และเพิ่มช่อง `ลิงก์เมื่อกดรูปภาพ (ไม่บังคับ)`
+
+2. **Thai Title -> Safe Slug Fallback**:
+   - พบสาเหตุว่า modal สร้าง Landing Page ใช้ regex ที่รองรับเฉพาะ `a-z0-9` ทำให้ชื่อไทยถูกแทนเป็น `-----`
+   - ปรับ frontend ให้ sanitize slug แบบสะอาดขึ้น: รวมขีดซ้ำ, ตัดขีดหัว/ท้าย
+   - ถ้า sanitize แล้ว slug ว่าง เช่นกรณีชื่อไทยล้วน ระบบจะสร้าง fallback อัตโนมัติรูปแบบ `lp-YYYYMMDD-xxxx`
+   - ปรับ backend ให้ normalize slug ซ้ำอีกชั้น เพื่อกัน request ที่หลุดจากหน้าอื่นหรือค่าที่ไม่ถูกต้อง
+
+3. **Build / Deploy Status**:
+   - build ผ่านทั้ง `frontend` และ `backend`
+   - deploy แล้วด้วย `docker compose -f docker-compose.yml up -d --build web api`
+   - ตรวจสอบ container `namecard_web` และ `namecard_api` ขึ้นปกติ
+
+4. **Open Analysis: Control Center Information Density**:
+   - ตรวจหน้า `/manage/control-center` แล้วพบว่า feature cards, quick links, share assets, stats, upgrade card และ mobile quick menu ถูกรวมในหน้าเดียว ทำให้ความหนาแน่นสูง
+   - แนวทางที่แนะนำสำหรับรอบถัดไป: `Quick Actions + All Tools` และจัด `Primary tools` แยกจาก `Secondary tools`
+   - ฟีเจอร์ที่น่าจะอยู่ในกลุ่มหลัก: `Nex Standard`, `Nex Page`, `Nex Leads`, `Nex Book`
+
+**Files updated**:
+- `frontend/src/app/manage/landing-pages/[id]/page.tsx`
+- `frontend/src/app/manage/landing-pages/page.tsx`
+- `backend/src/landing-pages/landing-pages.service.ts`
+- `AGENT_HANDOVER.md`
+
+**Recommended next step**:
+- Refactor หน้า `frontend/src/app/manage/control-center/page.tsx`
+- ลดข้อมูลซ้ำระหว่าง header actions / status cards / bottom quick menu
+- จัดหมวดเครื่องมือเป็น `Quick Actions`, `Primary Tools`, `More Tools`
+
+*Updated by Codex on 2026-03-25*
+
+---
+
+### 2026-03-24: Control Center Rebranding & Feature Expansion (NEX Branded Services)
+**Goal**: ยกระดับภาพลักษณ์แบรนด์ NEX โดยการปรับชื่อฟีเจอร์ให้เป็นระบบเดียวกัน (NEX Branded) และขยายขีดความสามารถด้วยฟีเจอร์ใหม่สำหรับธุรกิจและการเรียนรู้
+
+**What changed**:
+1. **Feature Rebranding (NEX Branded)**:
+   - ปรับชื่อฟีเจอร์เดิมให้มีระบบชื่อแบรนด์นำหน้า เช่น `นามบัตรดิจิทัล (Nex Standard)`, `แคตตาล็อกสินค้า (Nex Book)`, `เซลล์เพจ (Nex Page)`, `ดีไซน์ (Nex Art)` และอื่น ๆ
+   - ปรับปรุง `FEATURE_LIST` ใน `Control Center` ให้ใช้ชื่อทางการและ Tone ที่สอดคล้องกัน
+
+2. **Feature Cloning & Expansion**:
+   - **Nex id**: โคลนระบบนามบัตรดิจิทัลหลักมาเป็น `นามบัตรดิจิทัล ธุรกิจ (Nex id)` เพื่อรองรับกลุ่มลูกค้าองค์กร
+   - **Nex Center**: เพิ่ม `ศูนย์การเรียนรู้ (Nex Center)` สำหรับจัดเก็บคู่มือและบทความสอนการใช้งาน
+   - **Nex AI**: เพิ่ม `Nex AI` เป็นช่องทางสำหรับอนาคตในการใช้ AI Agent ช่วยทำการตลาด
+   - **Nex stat**: ปรับชื่อสถิติเป็น `สถิติและการวิเคราะห์ (Nex stat)`
+   - **Nex Team**: ปรับชื่อระบบแนะนำสมาชิกเป็น `ระบบแนะนำสมาชิก (Nex Team)`
+
+3. **Premium Upgrade Modal Update**:
+   - สรุปมูลค่าฟีเจอร์ทั้งหมดรวม ฿63,800 และเสนอโปรโมชันปลดล็อกทุกอย่างในราคา ฿1,500
+   - ปรับ UI ให้เป็น Single-Offer Card เพื่อลดการตัดสินใจที่ซับซ้อนของผู้ใช้
+
+**Files updated**:
+- `frontend/src/app/manage/control-center/page.tsx`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-24*
+
+---
+
+### 2026-03-24: Referral URL Fallback & Advanced QR Management (Custom Styles + Preview)
+**Goal**: เพิ่มระบบ Referral Fallback อัตโนมัติสำหรับสื่อทุกชนิด และยกระดับระบบจัดการ QR ให้รองรับการปรับแต่งสี/โลโก้ พร้อมระบบพรีวิว
+
+**What changed**:
+1. **Referral URL Fallback (Global Logic)**:
+   - สื่อทุกชนิด (รูปภาพ, วิดีโอ, ปุ่ม) ในโมดูล **Catalog** และ **Landing Page** จะถูกแนบลิงก์ไปยังหน้าแนะนำสมาชิก (`https://nexsolution.cloud/manage/referrals`) อัตโนมัติหากไม่ได้ระบุลิงก์ส่วนตัว
+   - ปรับปรุง `LandingPageClient.tsx`, `Flipbook.tsx` และ `PublicCatalog/page.tsx` ให้ครอบสื่อด้วย `<a>` tag พร้อมตรรกะ fallback นี้
+
+2. **Advanced QR Management System**:
+   - เปลี่ยนจาก API ภายนอกมาใช้ `qrcode.react` (client-side generation) เพื่อความเสถียรและความเป็นส่วนตัว
+   - รองรับการปรับแต่ง **Foreground Color**, **Background Color** และการ **อัปโหลดโลโก้** (Center Logo)
+   - เพิ่มระบบ **Manual Preview** (ปุ่ม "ดูตัวอย่าง QR") เพื่อให้ผู้ใช้ตรวจสอบลาย QR และสีก่อนกดบันทึกจริง
+   - อัปเดต Backend (`qr_codes` entity, DTOs, Service) ให้รองรับการเก็บค่าสีและโลโก้ลงฐานข้อมูล
+
+3. **UI/UX Cleanup**:
+   - ลบโลโก้ที่ซ้ำซ้อนในหน้าสมัครสมาชิก (`/register`)
+   - ลบส่วน "ระดับค่าคอมมิชชัน" (Commission Levels) ในหน้าแนะนำสมาชิกตามความต้องการล่าสุด
+
+4. **DevOps & Maintenance**:
+   - ทำความสะอาด Disk Space บนเซิร์ฟเวอร์ (คืนพื้นที่กว่า 200GB จากการลบ logs/temp ชิ้นส่วนที่ไม่ได้ใช้)
+   - Deploy ทั้ง Backend และ Frontend ผ่าน `docker compose up -d --build api web`
+
+**Files updated**:
+- `frontend/src/app/lp/[slug]/LandingPageClient.tsx`
+- `frontend/src/app/catalog/[slug]/page.tsx`
+- `frontend/src/components/Flipbook.tsx`
+- `frontend/src/components/QrCode.tsx`
+- `frontend/src/app/manage/qr/page.tsx`
+- `frontend/src/app/manage/referrals/page.tsx`
+- `frontend/src/app/register/page.tsx`
+- `backend/src/qr-codes/entities/qr-code.entity.ts`
+- `backend/src/qr-codes/dto/create-qr-code.dto.ts`
+- `backend/src/qr-codes/qr-codes.service.ts`
+- `AGENT_HANDOVER.md`
+
+*Updated by Codex on 2026-03-24*
+
+---
+
 ### 2026-03-23: UX Sprint - Preview Routing + Storyboard CTA Injection (`/what-is-nex-preview`, `/nex-digital-asset-partner-preview`)
 **Goal**: ปิดงานหน้า preview ตาม feedback ล่าสุด โดยเพิ่มเส้นทางหน้าใหม่, ปรับ spacing ระหว่างภาพ, แทรกปุ่มสมัครตามเลขภาพ, และเชื่อมปุ่มจากหน้าแรกให้ไปหน้า preview ที่ถูกต้อง
 
@@ -1964,3 +2128,50 @@ During investigation of a report that `manage/control-center` opened at a mid-pa
   - `ENABLE_PROFILE_EDITOR_TABS` (`true` = แท็บ, `false` = long-form เดิม)
 
 *Updated by Codex on 2026-03-19*
+
+---
+
+### 2026-03-26: Enterprise MOS preview rollout + homepage enterprise link switch
+
+**Goal**: เปิดหน้า enterprise เวอร์ชันใหม่ที่วาง NEX-MOS แบบแยกจาก NEX Solution อย่างชัดเจน โดยไม่กระทบหน้าเดิมระหว่าง review และสลับทางเข้าหน้าแรกไปหาเวอร์ชันใหม่
+
+**What changed**:
+
+1. **Add standalone preview page**
+   - สร้าง route ใหม่: `/enterprise-mos-preview`
+   - ไฟล์: `frontend/src/app/enterprise-mos-preview/page.tsx`
+   - โครงหน้าใหม่ตามที่ตกลงกับผู้ใช้:
+     - Hero ยังคงแกน NEX Solution + ปุ่มรองไป NEX-MOS
+     - Mid-page section แนะนำ NEX-MOS (3 conversion bullets)
+     - Product Suite เพิ่มการ์ด `NEX-MOS` แบบ highlight
+     - Bottom CTA แยก 2 ทาง (NEX Solution / NEX-MOS)
+
+2. **Switch homepage enterprise button target**
+   - เปลี่ยน quick action `โซลูชันสำหรับองค์กร` จาก `https://nexsolution.cloud/enterprise`
+     เป็น `https://nexsolution.cloud/enterprise-mos-preview`
+   - ไฟล์: `frontend/src/app/page.tsx`
+
+3. **Make old enterprise URL safely forward to new page**
+   - เปลี่ยน `frontend/src/app/enterprise/page.tsx` ให้ redirect ไป `/enterprise-mos-preview`
+   - ใช้ `redirect("/enterprise-mos-preview")` จาก `next/navigation`
+   - ผลคือ: ผู้ใช้ที่กดลิงก์เก่าหรือมี bookmark `/enterprise` จะไปหน้าใหม่อัตโนมัติ
+
+4. **Validation and production deploy**
+   - lint ผ่านสำหรับไฟล์ที่แก้
+   - build ผ่าน
+   - deploy ด้วย `docker compose -f docker-compose.yml up -d --build web`
+   - ตรวจหลัง deploy:
+     - `https://nexsolution.cloud` มีลิงก์ปุ่ม enterprise เป็น `/enterprise-mos-preview`
+     - `https://nexsolution.cloud/enterprise` ตอบ `307` และปลายทางเป็น `/enterprise-mos-preview`
+     - containers `namecard_web` และ `namecard_api` อยู่สถานะ `Up`
+
+**Files updated in this iteration**:
+- `frontend/src/app/enterprise-mos-preview/page.tsx`
+- `frontend/src/app/page.tsx`
+- `frontend/src/app/enterprise/page.tsx`
+- `AGENT_HANDOVER.md`
+
+**Ops note**:
+- หากผู้ใช้ยังเห็นลิงก์เดิมใน browser บางเครื่อง มักมาจาก local tab cache; แต่ฝั่ง server ตอนนี้บังคับ redirect จาก `/enterprise` ไป `/enterprise-mos-preview` แล้ว
+
+*Updated by Codex on 2026-03-26*

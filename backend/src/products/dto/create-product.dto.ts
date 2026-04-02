@@ -11,6 +11,10 @@ export class CreateProductDto {
 
     @IsString()
     @IsOptional()
+    brand?: string;
+
+    @IsString()
+    @IsOptional()
     description?: string;
 
     @IsNumber()

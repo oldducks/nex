@@ -16,6 +16,9 @@ export class Product {
     @Column({ length: 100 })
     name: string;
 
+    @Column({ length: 100, nullable: true })
+    brand?: string;
+
     @Column({ nullable: true })
     description: string;
 

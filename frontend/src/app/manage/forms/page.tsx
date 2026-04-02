@@ -14,6 +14,7 @@ import {
   Loader2,
 } from "lucide-react";
 import Link from "next/link";
+import { Toast, type ToastType } from "@/components/Toast";
 
 interface FormFieldConfig {
   id: string;
@@ -43,6 +44,16 @@ export default function FormsManagePage() {
   const [creating, setCreating] = useState(false);
   const [createName, setCreateName] = useState("");
   const [createDescription, setCreateDescription] = useState("");
+  const [deletingForm, setDeletingForm] = useState<FormItem | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+    isVisible: boolean;
+  }>({ message: "", type: "info", isVisible: false });
+
+  const showToast = (message: string, type: ToastType = "info") => {
+    setToast({ message, type, isVisible: true });
+  };
 
   useEffect(() => {
     if (!token) {
@@ -132,16 +143,17 @@ export default function FormsManagePage() {
       });
 
       if (!res.ok) {
-        alert("สร้างฟอร์มไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+        showToast("สร้างฟอร์มไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", "error");
         return;
       }
 
       setCreateName("");
       setCreateDescription("");
       await loadForms();
+      showToast("สร้างฟอร์มสำเร็จ", "success");
     } catch (e) {
       console.error(e);
-      alert("เกิดข้อผิดพลาดระหว่างสร้างฟอร์ม");
+      showToast("เกิดข้อผิดพลาดระหว่างสร้างฟอร์ม", "error");
     } finally {
       setCreating(false);
     }
@@ -157,20 +169,22 @@ export default function FormsManagePage() {
         },
         body: JSON.stringify({ is_active: !form.is_active }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        showToast("อัปเดตสถานะฟอร์มไม่สำเร็จ", "error");
+        return;
+      }
       await loadForms();
+      showToast(
+        form.is_active ? "ปิดการใช้งานฟอร์มแล้ว" : "เปิดใช้งานฟอร์มแล้ว",
+        "success",
+      );
     } catch (e) {
       console.error(e);
+      showToast("อัปเดตสถานะฟอร์มไม่สำเร็จ", "error");
     }
   };
 
   const deleteForm = async (form: FormItem) => {
-    if (
-      !confirm(
-        `คุณแน่ใจหรือไม่ว่าต้องการลบฟอร์ม "${form.name}"?\nหากมีหน้า Landing Page ที่เลือกฟอร์มนี้อยู่ ควรเปลี่ยนไปใช้ฟอร์มอื่นก่อน`,
-      )
-    )
-      return;
     try {
       const res = await fetch(`${API_URL}/forms/${form.id}`, {
         method: "DELETE",
@@ -178,10 +192,16 @@ export default function FormsManagePage() {
           Authorization: `Bearer ${token}`,
         },
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        showToast("ลบฟอร์มไม่สำเร็จ กรุณาลองใหม่", "error");
+        return;
+      }
+      setDeletingForm(null);
       await loadForms();
+      showToast("ลบฟอร์มสำเร็จ", "success");
     } catch (e) {
       console.error(e);
+      showToast("ลบฟอร์มไม่สำเร็จ กรุณาลองใหม่", "error");
     }
   };
 
@@ -364,7 +384,7 @@ export default function FormsManagePage() {
                         )}
                       </button>
                       <button
-                        onClick={() => deleteForm(form)}
+                        onClick={() => setDeletingForm(form)}
                         className="p-2 rounded-xl border border-foreground/10 text-foreground/30 hover:text-red-400 hover:border-red-500/40 hover:bg-red-500/5 transition-all"
                       >
                         <Trash2 size={16} />
@@ -401,7 +421,44 @@ export default function FormsManagePage() {
           )}
         </section>
       </main>
+      {deletingForm && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-md" onClick={() => setDeletingForm(null)} />
+          <div className="relative z-10 w-full max-w-md rounded-[32px] border border-red-500/20 bg-background p-8 shadow-2xl">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-red-500/20 bg-red-500/10 text-red-400">
+              <Trash2 size={24} />
+            </div>
+            <h2 className="mb-2 text-2xl font-black tracking-tight text-foreground">ยืนยันการลบฟอร์ม</h2>
+            <p className="mb-2 text-sm leading-relaxed text-foreground/60">คุณกำลังจะลบฟอร์มนี้:</p>
+            <p className="mb-4 break-words font-bold text-foreground">{deletingForm.name}</p>
+            <p className="mb-8 text-sm font-medium text-red-400">
+              หากมีหน้า Landing Page ที่เลือกฟอร์มนี้อยู่ ควรเปลี่ยนไปใช้ฟอร์มอื่นก่อน
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setDeletingForm(null)}
+                className="flex-1 rounded-2xl border border-foreground/10 px-5 py-3 text-sm font-black text-foreground/60 transition-colors hover:bg-foreground/5"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={() => deleteForm(deletingForm)}
+                className="flex-1 rounded-2xl bg-red-500 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-red-600"
+              >
+                ยืนยันลบ
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 }
-

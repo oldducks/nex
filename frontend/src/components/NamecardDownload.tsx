@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { Download, Loader2 } from 'lucide-react';
+import { formatPhoneNumber } from '../lib/phone-utils';
 
 interface NamecardDownloadProps {
     nameMain: string;
@@ -119,7 +120,7 @@ export function NamecardDownloadButton({
         // Contact Info
         ctx.font = '20px Arial, sans-serif';
         ctx.fillStyle = template === 'classic' ? '#333333' : 'rgba(255,255,255,0.9)';
-        if (phone) { ctx.fillText(`📱 ${phone}`, 50, textY, textMaxWidth); textY += 35; }
+        if (phone) { ctx.fillText(`📱 ${formatPhoneNumber(phone)}`, 50, textY, textMaxWidth); textY += 35; }
         if (email) { ctx.fillText(`✉️ ${email}`, 50, textY, textMaxWidth); textY += 35; }
         if (website) { ctx.fillText(`🌐 ${website}`, 50, textY, textMaxWidth); }
 

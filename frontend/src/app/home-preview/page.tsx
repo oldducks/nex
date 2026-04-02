@@ -134,7 +134,7 @@ export default function HomePreviewPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [loginError, setLoginError] = useState("");
-  const [loginData, setLoginData] = useState({ email: "", password: "" });
+  const [loginData, setLoginData] = useState({ identifier: "", password: "" });
 
   const apiUrl = process.env.NEXT_PUBLIC_API_URL || "/api";
 
@@ -163,7 +163,7 @@ export default function HomePreviewPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify(loginData),
+        body: JSON.stringify({ identifier: loginData.identifier, password: loginData.password }),
       });
 
       const data = await res.json();
@@ -561,12 +561,12 @@ export default function HomePreviewPage() {
 
             <form onSubmit={handleLoginSubmit} className="space-y-3">
               <input
-                type="email"
+                type="text"
                 required
-                value={loginData.email}
-                onChange={(e) => setLoginData((prev) => ({ ...prev, email: e.target.value }))}
+                value={loginData.identifier}
+                onChange={(e) => setLoginData((prev) => ({ ...prev, identifier: e.target.value }))}
                 className="w-full rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-[var(--text-primary)] placeholder:text-[#94A3B8] focus:border-[var(--brand)] focus:outline-none focus:ring-4 focus:ring-[var(--surface-alt)]"
-                placeholder="อีเมล"
+                placeholder="อีเมลหรือเบอร์โทรศัพท์"
               />
               <div className="relative">
                 <input

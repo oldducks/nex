@@ -39,11 +39,20 @@ Status legend:
 - Gate 3: **PASS**
 - Gate 4: **PASS**
 - Gate 5: **IN PROGRESS**
-- Overall readiness: **~92%**
+- Overall readiness: **~96%**
 - Technical foundation readiness: **~90%+**
-- External blocker:
-  - Google Play Developer account verification is still pending.
-  - Identity verification must complete before contact phone verification and release publication can proceed.
+- Google Play status:
+  - Developer account verification cleared
+  - Internal testing track is active
+  - Play-delivered test build installed and validated
+  - Production access still depends on Google Play `Closed testing` requirement for this account type: at least `12` opted-in testers for `14` continuous days before production access request
+- Current execution mode:
+  - Path 2 (while waiting verification): active
+  - Gate 5 execution runbook prepared at `docs/TWA_GATE5_EXECUTION_RUNBOOK_2026-03-31.md`
+  - Screenshot production pack prepared at `docs/TWA_PLAY_SCREENSHOT_PRODUCTION_PACK_2026-03-31.md`
+  - Data Safety confirmation matrix prepared at `docs/TWA_DATA_SAFETY_CONFIRMATION_MATRIX_2026-03-31.md`
+  - Asset execution tracker prepared at `docs/TWA_PLAY_ASSET_EXECUTION_TRACKER_2026-03-31.md`
+  - Metadata pack prepared at `/root/twa-test/play-assets/metadata/` (`screenshots_required.csv`, `data_safety_signoff.csv`, `screenshot_capture_commands.txt`)
 - Production Check:
   - `https://nexsolution.cloud/manifest.webmanifest` -> `200`
   - `https://nexsolution.cloud/sw.js` -> `200`
@@ -235,14 +244,14 @@ Gate 4 Build Snapshot:
 
 ## Gate 5: Release Readiness (Internal -> Production)
 ### Must-have
-- [ ] `IN PROGRESS` Internal test exit criteria met
-  - Evidence: internal testing execution model, exit criteria, tester pool, and severity policy documented; actual rollout is currently blocked by pending Google Play developer account verification
+- [x] `PASS` Internal test exit criteria met
+  - Evidence: Google Play Internal testing track is active and reported user validation passed for login, fullscreen verified mode, `manage/profile`, `manage/catalogs/[id]`, `manage/landing-pages`, and `manage/qr`
   - Acceptance: No open High-severity release blockers
 - [ ] `IN PROGRESS` Play Console release materials ready (listing, policy links, privacy/data safety)
-  - Evidence: required material set is now defined: title/subtitle, short description, full description, screenshots, app icon/feature graphic if required, privacy policy URL `/privacy`, and Data safety response set; asset production still pending
+  - Evidence: required material set is defined and execution pack is prepared (`docs/TWA_GATE5_EXECUTION_RUNBOOK_2026-03-31.md`, `docs/TWA_PLAY_SCREENSHOT_PRODUCTION_PACK_2026-03-31.md`, `docs/TWA_DATA_SAFETY_CONFIRMATION_MATRIX_2026-03-31.md`, `docs/TWA_PLAY_ASSET_EXECUTION_TRACKER_2026-03-31.md`); local asset workspace initialized at `/root/twa-test/play-assets/` with metadata pack in `/root/twa-test/play-assets/metadata/`; final upload depends on Play account verification clearance
   - Acceptance: Required store assets complete
 - [ ] `IN PROGRESS` Rollout strategy approved (`staged rollout` with stop thresholds)
-  - Evidence: staged rollout, stop thresholds, and rollback trigger are now documented in continuity log
+  - Evidence: staged rollout, stop thresholds, rollback trigger, and closed-testing path (`Internal -> Closed -> 5% -> 20% -> 100%`) are now documented in continuity log
   - Acceptance: Clear % rollout plan and rollback trigger
 - [ ] `IN PROGRESS` Monitoring and incident owner assigned
   - Evidence: temporary owner model now defined in continuity log (`Project Owner` release owner, `Tech Lead` triage owner, shared issue intake channel/log)
@@ -259,9 +268,14 @@ Gate 5 Release Prep Snapshot:
 - Privacy policy route: `/privacy`
 - App bundle available: `~/twa-test/app-release-bundle.aab`
 - Proposed rollout: `Internal -> Closed -> 5% -> 20% -> 100%`
-- External blocker:
-  - Google Play account identity verification pending
-  - contact phone verification cannot complete until Google clears prior verification steps
+- Google Play production-access requirement:
+  - account type requires `Closed testing`
+  - minimum `12` testers
+  - minimum `14` continuous days opted in
+- Internal testing result:
+  - release published to Google Play Internal testing
+  - test build installed from Play
+  - core validation passed
 - Temporary owner model:
   - Release owner: `Project Owner`
   - Technical / incident triage owner: `Tech Lead`
@@ -337,12 +351,10 @@ Final Review Draft:
   - verified TWA mode already passed on Android
   - core user-facing flows passed Android walkthrough
 - Conditions still required before final production `GO`:
+  - Closed testing minimum requirement completed (`12` testers / `14` continuous days)
   - Play listing materials uploaded
   - Data safety completed
-  - Internal testing executed
   - No open `High` severity blocker
-- External operational blocker before internal rollout:
-  - Google Play Developer account verification must complete first
 - Explicit non-blockers at this stage:
   - mobile responsive polish tracked under `DEC-UX-001`
   - non-blocking visual refinement
@@ -357,9 +369,9 @@ Final Review Draft:
 | Gate 2 | Pass | 4 | 0 | Project Owner / Tech Lead | 2026-03-31 |
 | Gate 3 | Pass | 6 | 0 | Project Owner / Tech Lead | 2026-03-31 |
 | Gate 4 | Pass | 4 | 0 | Project Owner / Tech Lead | 2026-03-31 |
-| Gate 5 | In Progress | 0 | 0 | Project Owner / Tech Lead | 2026-03-31 |
+| Gate 5 | In Progress | 1 | 0 | Project Owner / Tech Lead | 2026-03-31 |
 
 Current pause-point note:
-- Technical readiness is sufficient to proceed to Google Play `Internal testing`.
-- Current blocker is external: pending Google Play Developer account verification.
-- UX/UI mobile refinement may continue in parallel while waiting for account approval.
+- Google Play `Internal testing` is now active and first validation passed.
+- Remaining work is mainly Google Play `Closed testing` duration requirement, Play materials, Data safety, and final production readiness.
+- UX/UI mobile refinement may continue in parallel before broader rollout.

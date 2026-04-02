@@ -12,7 +12,7 @@ function LoginContent() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [showPassword, setShowPassword] = useState(false);
-    const [formData, setFormData] = useState({ email: '', password: '' });
+    const [formData, setFormData] = useState({ identifier: '', password: '' });
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -58,7 +58,7 @@ function LoginContent() {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 credentials: 'include',
-                body: JSON.stringify(formData),
+                body: JSON.stringify({ identifier: formData.identifier, password: formData.password }),
             });
 
             const data = await res.json();
@@ -99,41 +99,43 @@ function LoginContent() {
     };
 
     return (
-        <div className={`${isEmbed ? 'min-h-0 p-3 bg-transparent' : 'min-h-screen p-6'} text-[#f6f2ea] flex flex-col items-center justify-center relative overflow-hidden bg-[#030818] transition-colors duration-500`}>
+        <div className={`${isEmbed ? 'min-h-0 bg-transparent p-3' : 'min-h-screen px-6 py-10'} relative flex flex-col items-center justify-center overflow-hidden bg-[#EEF0FF] text-[#0F172A] transition-colors duration-500`}>
             {!isEmbed && (
                 <>
                     <div className="pointer-events-none absolute inset-0">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,214,142,0.24),transparent_38%),radial-gradient(circle_at_86%_16%,rgba(122,88,255,0.22),transparent_40%),radial-gradient(circle_at_50%_95%,rgba(246,187,95,0.14),transparent_44%)]" />
-                        <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(3,8,24,0.98)_0%,rgba(9,17,42,0.95)_45%,rgba(6,12,32,0.98)_100%)]" />
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_18%,rgba(249,115,22,0.16),transparent_32%),radial-gradient(circle_at_88%_14%,rgba(5,5,121,0.12),transparent_36%),radial-gradient(circle_at_50%_100%,rgba(148,163,184,0.14),transparent_42%)]" />
+                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(238,240,255,0.96)_0%,rgba(244,247,255,0.98)_46%,rgba(238,240,255,1)_100%)]" />
                     </div>
-                    <div className="pointer-events-none absolute -left-24 top-24 h-72 w-72 rounded-full bg-amber-300/15 blur-[90px]" />
-                    <div className="pointer-events-none absolute -right-24 top-40 h-72 w-72 rounded-full bg-violet-300/20 blur-[95px]" />
+                    <div className="pointer-events-none absolute -left-24 top-16 h-72 w-72 rounded-full bg-[#F97316]/12 blur-[95px]" />
+                    <div className="pointer-events-none absolute -right-24 top-28 h-80 w-80 rounded-full bg-[#050579]/10 blur-[110px]" />
                 </>
             )}
 
-            <div className={`w-full max-w-md rounded-[32px] border border-amber-100/30 bg-[linear-gradient(180deg,rgba(24,14,36,0.97)_0%,rgba(15,10,28,0.97)_100%)] p-8 relative z-10 shadow-[0_30px_90px_rgba(0,0,0,0.68)] ${isEmbed ? 'my-2' : ''}`}>
+            <div className={`relative z-10 w-full max-w-md overflow-hidden rounded-[32px] border border-[#D9E1F2] bg-white/95 p-8 shadow-[0_24px_60px_-36px_rgba(5,5,121,0.35)] backdrop-blur-sm ${isEmbed ? 'my-2' : ''}`}>
+                <div className="pointer-events-none absolute right-0 top-0 h-44 w-44 translate-x-10 -translate-y-10 rounded-full bg-[#EEF2FF] blur-3xl" />
                 {!isEmbed && (
                     <button
                         type="button"
                         onClick={handleClose}
                         aria-label="ปิดหน้าล็อกอิน"
                         title="ปิด"
-                        className="absolute top-4 right-4 h-9 w-9 rounded-full border border-amber-100/25 bg-white/5 hover:bg-white/10 text-amber-100/70 hover:text-amber-50 transition-colors flex items-center justify-center"
+                        className="absolute right-4 top-4 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:bg-white hover:text-[#050579]"
                     >
                         <X size={18} />
                     </button>
                 )}
 
-                <div className="text-center mb-8">
-                    <div className="inline-block p-3 rounded-2xl border border-amber-100/25 bg-amber-100/10 text-amber-200 mb-4">
+                <div className="relative mb-8 text-center">
+                    <div className="mb-4 inline-flex rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] p-3 text-[#050579] shadow-[0_18px_40px_-32px_rgba(5,5,121,0.4)]">
                         <Lock size={32} />
                     </div>
-                    <h1 className="text-3xl font-black mb-2 tracking-tight">ยินดีต้อนรับกลับมา</h1>
-                    <p className="text-[#f3e8d2]/75">เข้าสู่ระบบเพื่อจัดการนามบัตรดิจิทัลของคุณ</p>
+                    <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#475569]">NEX Control</p>
+                    <h1 className="mb-2 mt-2 text-3xl font-black tracking-tight text-[#050579]">ยินดีต้อนรับกลับมา</h1>
+                    <p className="text-sm leading-relaxed text-[#475569]">เข้าสู่ระบบเพื่อจัดการนามบัตรดิจิทัลและเครื่องมือในระบบ NEX</p>
                 </div>
 
                 {error && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-2xl text-red-500 text-sm text-center font-medium animate-in fade-in slide-in-from-top-1 flex items-center justify-center gap-2">
+                    <div className="mb-6 flex items-center justify-center gap-2 rounded-2xl border border-[#F3C3C3] bg-[#FEF2F2] p-4 text-center text-sm font-medium text-[#B91C1C] animate-in fade-in slide-in-from-top-1">
                         <AlertCircle size={18} />
                         {error}
                     </div>
@@ -143,7 +145,7 @@ function LoginContent() {
                 <div className="space-y-3 mb-6">
                     <button
                         onClick={() => handleSocialLogin('google')}
-                        className="w-full py-3 px-4 bg-white/5 hover:bg-white/10 border border-amber-100/20 rounded-2xl font-medium text-[#f6ead2] flex items-center justify-center gap-3 transition-colors"
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3 font-semibold text-[#0F172A] transition-colors hover:border-[#C7D2E5] hover:bg-white"
                     >
                         <svg className="w-5 h-5" viewBox="0 0 24 24">
                             <path fill="#EA4335" d="M5.27 9.76A7.08 7.08 0 0 1 12 5.09c1.69 0 3.22.59 4.42 1.56l3.54-3.54C17.75 1.19 15.06 0 12 0 7.27 0 3.2 2.7 1.24 6.65l4.03 3.11Z" />
@@ -167,7 +169,7 @@ function LoginContent() {
 
                     <button
                         onClick={() => handleSocialLogin('line')}
-                        className="w-full py-3 px-4 bg-[#00B900]/10 hover:bg-[#00B900]/20 border border-[#00B900]/20 rounded-2xl font-medium flex items-center justify-center gap-3 transition-colors text-[#00B900]"
+                        className="flex w-full items-center justify-center gap-3 rounded-2xl border border-[#BCE3C0] bg-[#F3FFF4] px-4 py-3 font-semibold text-[#15803D] transition-colors hover:bg-[#E9FBEA]"
                     >
                         <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
                             <path d="M19.365 9.863c.349 0 .63.285.63.631 0 .345-.281.63-.63.63H17.61v1.125h1.755c.349 0 .63.283.63.63 0 .344-.281.629-.63.629h-2.386c-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63h2.386c.349 0 .63.285.63.63 0 .349-.281.63-.63.63H17.61v1.125h1.755zm-3.855 3.016c0 .27-.174.51-.432.596-.064.021-.133.031-.199.031-.211 0-.391-.09-.51-.25l-2.443-3.317v2.94c0 .344-.279.629-.631.629-.346 0-.626-.285-.626-.629V8.108c0-.27.173-.51.43-.595.06-.023.136-.033.194-.033.195 0 .375.104.495.254ล2.462 3.33V8.108c0-.345.282-.63.63-.63.345 0 .63.285.63.63v4.771zm-5.741 0c0 .344-.282.629-.631.629-.345 0-.627-.285-.627-.629V8.108c0-.345.282-.63.63-.63.346 0 .628.285.628.63v4.771zm-2.466.629H4.917c-.345 0-.63-.285-.63-.629V8.108c0-.345.285-.63.63-.63.348 0 .63.285.63.63v4.141h1.756c.348 0 .629.283.629.63 0 .344-.282.629-.629.629M24 10.314C24 4.943 18.615.572 12 .572S0 4.943 0 10.314c0 4.811 4.27 8.842 10.035 9.608.391.082.923.258 1.058.59.12.301.079.766.038 1.08l-.164 1.02c-.045.301-.24 1.186 1.049.645 1.291-.539 6.916-4.078 9.436-6.975C23.176 14.393 24 12.458 24 10.314" />
@@ -178,37 +180,37 @@ function LoginContent() {
 
                 <div className="relative my-6">
                     <div className="absolute inset-0 flex items-center">
-                        <div className="w-full border-t border-amber-100/20"></div>
+                        <div className="w-full border-t border-[#D9E1F2]"></div>
                     </div>
                     <div className="relative flex justify-center text-sm">
-                        <span className="px-4 bg-background text-foreground/40">หรือ</span>
+                        <span className="bg-white px-4 text-[#94A3B8]">หรือ</span>
                     </div>
                 </div>
 
                 <form onSubmit={handleLogin} className="space-y-5">
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest ml-1">อีเมล</label>
+                        <label className="ml-1 text-xs font-black uppercase tracking-[0.16em] text-[#64748B]">อีเมลหรือเบอร์โทรศัพท์</label>
                         <div className="relative group">
-                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors" size={18} />
+                            <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] transition-colors group-focus-within:text-[#050579]" size={18} />
                             <input
-                                type="email"
+                                type="text"
                                 required
-                                className="w-full bg-foreground/5 border border-amber-100/20 rounded-2xl py-3.5 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-foreground/20"
-                                placeholder="name@example.com"
-                                value={formData.email}
-                                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                                className="w-full rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] py-3.5 pl-12 pr-4 text-[#0F172A] placeholder:text-[#94A3B8] transition-all focus:outline-none focus:ring-2 focus:ring-[#050579]/15 focus:border-[#BFD0EA]"
+                                placeholder="name@example.com หรือ 0812345678"
+                                value={formData.identifier}
+                                onChange={(e) => setFormData({ ...formData, identifier: e.target.value })}
                             />
                         </div>
                     </div>
 
                     <div className="space-y-2">
-                        <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest ml-1">รหัสผ่าน</label>
+                        <label className="ml-1 text-xs font-black uppercase tracking-[0.16em] text-[#64748B]">รหัสผ่าน</label>
                         <div className="relative group">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors" size={18} />
+                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] transition-colors group-focus-within:text-[#050579]" size={18} />
                             <input
                                 type={showPassword ? "text" : "password"}
                                 required
-                                className="w-full bg-foreground/5 border border-amber-100/20 rounded-2xl py-3.5 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-foreground/20"
+                                className="w-full rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] py-3.5 pl-12 pr-12 text-[#0F172A] placeholder:text-[#94A3B8] transition-all focus:outline-none focus:ring-2 focus:ring-[#050579]/15 focus:border-[#BFD0EA]"
                                 placeholder="••••••••"
                                 value={formData.password}
                                 onChange={(e) => setFormData({ ...formData, password: e.target.value })}
@@ -216,7 +218,7 @@ function LoginContent() {
                             <button
                                 type="button"
                                 onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-foreground/30 hover:text-foreground transition-colors"
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-[#94A3B8] transition-colors hover:text-[#050579]"
                             >
                                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                             </button>
@@ -226,28 +228,28 @@ function LoginContent() {
                     <button
                         type="submit"
                         disabled={loading}
-                        className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-4 rounded-2xl shadow-lg shadow-primary/20 hover:shadow-primary/40 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#F97316] py-4 font-black text-white shadow-[0_18px_36px_-24px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
                     >
-                        {loading ? 'กำลังเข้าสู่ระบบ...' : <>เข้าสู่ระบบ <ArrowRight size={20} /></>}
+                        {loading ? <><Loader2 size={18} className="animate-spin" /> กำลังเข้าสู่ระบบ...</> : <>เข้าสู่ระบบ <ArrowRight size={20} /></>}
                     </button>
                 </form>
 
                 <div className="mt-6 text-center space-y-3">
-                    <Link href="/forgot-password" className="text-primary hover:text-primary/80 text-sm font-medium transition-colors inline-block">
+                    <Link href="/forgot-password" className="inline-block text-sm font-bold text-[#050579] transition-colors hover:text-[#1D4ED8]">
                         ลืมรหัสผ่านใช่หรือไม่?
                     </Link>
-                    <div className="h-px bg-glass-border w-1/2 mx-auto" />
-                    <p className="text-foreground/40 text-sm">
+                    <div className="mx-auto h-px w-1/2 bg-[#D9E1F2]" />
+                    <p className="text-sm text-[#64748B]">
                         ยังไม่มีบัญชี?{' '}
-                        <Link href="/register" className="text-primary hover:text-primary/80 font-bold transition-colors">
-                            สมัครสมาชิก
+                        <Link href="/register" className="font-black text-[#F97316] transition-colors hover:text-[#EA580C]">
+                            ทดลองใช้ระบบฟรี
                         </Link>
                     </p>
                 </div>
             </div>
 
             {!isEmbed && (
-                <footer className="mt-12 text-center text-xs leading-6 text-foreground/20">
+                <footer className="mt-10 text-center text-xs leading-6 text-[#94A3B8]">
                     © {new Date().getFullYear()} NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.
                 </footer>
             )}
@@ -258,8 +260,8 @@ function LoginContent() {
 export default function LoginPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen flex items-center justify-center">
-                <Loader2 className="animate-spin text-primary" size={32} />
+            <div className="flex min-h-screen items-center justify-center bg-[#EEF0FF]">
+                <Loader2 className="animate-spin text-[#050579]" size={32} />
             </div>
         }>
             <LoginContent />

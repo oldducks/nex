@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import Cookies from 'js-cookie';
 import {
@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
 import { VideoUpload } from '@/components/VideoUpload';
 import ProductImageUpload from '@/components/ProductImageUpload';
+import { Toast, type ToastType } from '@/components/Toast';
 import { Video } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
 
@@ -24,14 +25,28 @@ interface VideoConfig {
     enabled: boolean;
 }
 
+interface InteractiveLinks {
+    website?: string;
+    order_form?: string;
+    facebook?: string;
+}
+
+interface CatalogLayoutConfig {
+    primary_color?: string;
+    font_family?: string;
+    template_id?: string;
+    stickers?: string[];
+}
+
 interface Product {
     id: number;
     name: string;
+    brand?: string;
     description: string;
     price: string;
     order: number;
     images_json: string[];
-    interactive_links?: any;
+    interactive_links?: InteractiveLinks;
 }
 
 interface Catalog {
@@ -39,8 +54,8 @@ interface Catalog {
     title: string;
     description: string;
     custom_slug?: string;
-    layout_config?: any;
-    interactive_links?: any;
+    layout_config?: CatalogLayoutConfig;
+    interactive_links?: InteractiveLinks;
     pdf_url?: string;
     video_config?: VideoConfig;
 }
@@ -59,15 +74,24 @@ export default function CatalogDetail() {
     const [saving, setSaving] = useState(false);
     const [showQrModal, setShowQrModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
+    const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+    const [importingCsv, setImportingCsv] = useState(false);
+    const [imageLoadErrorIds, setImageLoadErrorIds] = useState<Record<number, boolean>>({});
+    const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
+        message: '',
+        type: 'info',
+        isVisible: false,
+    });
+    const csvInputRef = useRef<HTMLInputElement | null>(null);
     
     const [newProduct, setNewProduct] = useState({
-        name: '', description: '', price: '', images: [] as string[],
+        name: '', brand: '', description: '', price: '', images: [] as string[],
         website: '', order_form: '', facebook: ''
     });
 
     const [editingProduct, setEditingProduct] = useState<Product | null>(null);
     const [editProduct, setEditProduct] = useState({
-        name: '', description: '', price: '', images: [] as string[],
+        name: '', brand: '', description: '', price: '', images: [] as string[],
         website: '', order_form: '', facebook: ''
     });
     
@@ -82,6 +106,10 @@ export default function CatalogDetail() {
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const token = Cookies.get('token');
+
+    const showToast = (message: string, type: ToastType = 'info') => {
+        setToast({ message, type, isVisible: true });
+    };
 
     useEffect(() => {
         if (!token) {
@@ -118,6 +146,7 @@ export default function CatalogDetail() {
             }
             if (prodRes.ok) {
                 setProducts(await prodRes.json());
+                setImageLoadErrorIds({});
             }
         } catch (error) {
             console.error(error);
@@ -144,6 +173,32 @@ export default function CatalogDetail() {
         }
         if (url.startsWith('/uploads')) return `${API_URL}${url}`;
         return url;
+    };
+
+    const formatPrice = (priceValue: string | number | null | undefined) => {
+        const numericPrice = typeof priceValue === 'number'
+            ? priceValue
+            : Number.parseFloat(`${priceValue ?? ''}`);
+        if (!Number.isFinite(numericPrice)) return '-';
+
+        const hasDecimal = numericPrice % 1 !== 0;
+        return numericPrice.toLocaleString('th-TH', {
+            minimumFractionDigits: hasDecimal ? 2 : 0,
+            maximumFractionDigits: 2
+        });
+    };
+
+    const getShortDescription = (description: string | null | undefined) => {
+        const normalized = (description || '').trim();
+        return normalized || 'ไม่มีรายละเอียดสินค้า';
+    };
+
+    const getDisplayOrder = (product: Product, index: number) => {
+        const numericOrder = Number(product.order);
+        if (Number.isFinite(numericOrder) && numericOrder > 0) {
+            return Math.floor(numericOrder);
+        }
+        return index + 1;
     };
 
     const saveSettings = async () => {
@@ -190,6 +245,7 @@ export default function CatalogDetail() {
             const payload = {
                 catalog_id: parseInt(id),
                 name: newProduct.name,
+                brand: newProduct.brand || undefined,
                 description: newProduct.description,
                 price: parseFloat(newProduct.price) || 0,
                 images_json: newProduct.images,
@@ -212,7 +268,7 @@ export default function CatalogDetail() {
             if (res.ok) {
                 setShowProductModal(false);
                 setNewProduct({
-                    name: '', description: '', price: '', images: [],
+                    name: '', brand: '', description: '', price: '', images: [],
                     website: '', order_form: '', facebook: ''
                 });
                 fetchData();
@@ -226,6 +282,7 @@ export default function CatalogDetail() {
         setEditingProduct(product);
         setEditProduct({
             name: product.name,
+            brand: product.brand || '',
             description: product.description || '',
             price: product.price?.toString() || '',
             images: product.images_json || [],
@@ -238,7 +295,7 @@ export default function CatalogDetail() {
     const closeEditModal = () => {
         setEditingProduct(null);
         setEditProduct({
-            name: '', description: '', price: '', images: [],
+            name: '', brand: '', description: '', price: '', images: [],
             website: '', order_form: '', facebook: ''
         });
     };
@@ -250,6 +307,7 @@ export default function CatalogDetail() {
         try {
             const payload = {
                 name: editProduct.name,
+                brand: editProduct.brand || undefined,
                 description: editProduct.description,
                 price: parseFloat(editProduct.price) || 0,
                 images_json: editProduct.images,
@@ -279,15 +337,55 @@ export default function CatalogDetail() {
     };
 
     const deleteProduct = async (productId: number) => {
-        if (!confirm('ยืนยันหน้าการลบสินค้าชิ้นนี้?')) return;
         try {
             await fetch(`${API_URL}/products/${productId}`, {
                 method: 'DELETE',
                 headers: { Authorization: `Bearer ${token}` }
             });
+            setDeletingProduct(null);
             fetchData();
         } catch (error) {
             console.error(error);
+            showToast('ลบสินค้าไม่สำเร็จ กรุณาลองใหม่', 'error');
+        }
+    };
+
+    const openCsvPicker = () => {
+        csvInputRef.current?.click();
+    };
+
+    const importCsv = async (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setImportingCsv(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('catalog_id', id);
+
+            const res = await fetch(`${API_URL}/products/import-csv`, {
+                method: 'POST',
+                headers: { Authorization: `Bearer ${token}` },
+                body: formData
+            });
+
+            const result = await res.json().catch(() => ({}));
+            if (!res.ok) {
+                const message = Array.isArray(result?.message)
+                    ? result.message.join(', ')
+                    : (result?.message || 'ไม่สามารถนำเข้า CSV ได้');
+                throw new Error(message);
+            }
+
+            showToast(`นำเข้าสินค้าสำเร็จ ${result.imported || 0} รายการ${result.skipped ? ` (ข้าม ${result.skipped} แถว)` : ''}`, 'success');
+            fetchData();
+        } catch (error) {
+            const message = error instanceof Error ? error.message : 'ไม่สามารถนำเข้า CSV ได้';
+            showToast(message, 'error');
+        } finally {
+            setImportingCsv(false);
+            event.target.value = '';
         }
     };
 
@@ -298,7 +396,7 @@ export default function CatalogDetail() {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert('ระบบได้รับคำสั่งสร้างไฟล์ PDF แล้ว... กรุณารอสักครู่ (ประมาณ 30-60 วินาที) ลิงก์ดาวน์โหลดจะปรากฏขึ้นเมื่อไฟล์สร้างเสร็จ');
+            showToast('ระบบได้รับคำสั่งสร้างไฟล์ PDF แล้ว กรุณารอสักครู่ ลิงก์ดาวน์โหลดจะปรากฏเมื่อไฟล์สร้างเสร็จ', 'info');
             // Poll for updates every 5 seconds for a bit
             const interval = setInterval(async () => {
                const res = await fetch(`${API_URL}/catalogs/user/${id}`, { headers: { Authorization: `Bearer ${token}` } });
@@ -314,6 +412,7 @@ export default function CatalogDetail() {
             setTimeout(() => { clearInterval(interval); setGenerating(false); }, 60000);
         } catch (error) {
             setGenerating(false);
+            showToast('เริ่มสร้าง PDF ไม่สำเร็จ กรุณาลองใหม่', 'error');
         }
     };
 
@@ -325,16 +424,8 @@ export default function CatalogDetail() {
     );
 
     const publicUrl = `${SITE_URL}/catalog/${catalog?.custom_slug || catalog?.id}`;
-    const nexPageVars = {
-        '--background': '#EEF0FF',
-        '--foreground': '#0F172A',
-        '--primary': '#050579',
-        '--glass-border': 'rgba(15,23,42,0.08)',
-        '--card-bg': '#FFFFFF',
-    } as React.CSSProperties;
-
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500" style={nexPageVars}>
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
             <ManageTopBar
                 backHref="/manage"
                 subtitle="CATALOG MANAGER"
@@ -363,7 +454,7 @@ export default function CatalogDetail() {
 
             <main className="max-w-6xl mx-auto px-6 py-12">
                 {/* Stats & Tools Bar */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
                     <div className="bg-card-bg border border-glass-border p-8 rounded-[32px] flex items-center gap-6 glass-card shadow-2xl">
                         <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
                             <Layers size={28} />
@@ -387,20 +478,24 @@ export default function CatalogDetail() {
                         <div className="flex items-center gap-2">
                             <button 
                                 onClick={() => setShowQrModal(true)}
-                                className="w-10 h-10 hover:bg-foreground/5 rounded-xl text-foreground/20 hover:text-foreground transition-all flex items-center justify-center bg-foreground/[0.02]"
+                                className="w-10 h-10 rounded-xl text-[#64748B] hover:text-primary hover:bg-primary/10 border border-[#E2E8F0] transition-all flex items-center justify-center bg-[#F8FAFC]"
                                 title="QR Code"
                             >
                                 <QrIcon size={16} />
                             </button>
                             <button 
                                 onClick={() => setShowShareModal(true)}
-                                className="w-10 h-10 hover:bg-foreground/5 rounded-xl text-foreground/20 hover:text-foreground transition-all flex items-center justify-center bg-foreground/[0.02]"
+                                className="w-10 h-10 rounded-xl text-[#64748B] hover:text-primary hover:bg-primary/10 border border-[#E2E8F0] transition-all flex items-center justify-center bg-[#F8FAFC]"
                                 title="Share"
                             >
                                 <Share2 size={16} />
                             </button>
-                            <div className="w-14 h-14 bg-white rounded-xl p-1.5 shadow-2xl group-hover:scale-110 transition-transform duration-500">
-                                <QrCodeImage url={publicUrl} size={50} />
+                            <div className="w-16 h-16 bg-white rounded-xl p-2 border border-[#E2E8F0] shadow-sm flex items-center justify-center overflow-hidden">
+                                <QrCodeImage
+                                    url={publicUrl}
+                                    size={48}
+                                    className="p-0 border-0 rounded-none shadow-none drop-shadow-none hover:scale-100"
+                                />
                             </div>
                         </div>
                     </div>
@@ -412,12 +507,29 @@ export default function CatalogDetail() {
                         <h2 className="text-4xl font-black tracking-tighter text-[#050579]">สินค้าในเล่ม</h2>
                         <p className="text-[#334155] text-lg font-semibold">จัดการรายการ Multimedia และปุ่ม Interactive สำหรับสินค้าแต่ละชิ้น</p>
                     </div>
-                    <button
-                        onClick={() => setShowProductModal(true)}
-                        className="bg-[#F97316] hover:bg-[#EA580C] text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-colors active:scale-95 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] uppercase tracking-[0.12em] text-xs"
-                    >
-                        <Plus size={20} /> เพิ่มสินค้าใหม่
-                    </button>
+                    <div className="flex flex-wrap items-center gap-3">
+                        <input
+                            ref={csvInputRef}
+                            type="file"
+                            accept=".csv,text/csv"
+                            className="hidden"
+                            onChange={importCsv}
+                        />
+                        <button
+                            onClick={openCsvPicker}
+                            disabled={importingCsv}
+                            className="border border-[#D9E1F2] bg-white hover:bg-[#F8FAFC] text-[#334155] px-6 py-4 rounded-2xl font-black flex items-center gap-3 transition-colors uppercase tracking-[0.12em] text-xs disabled:opacity-60"
+                        >
+                            <FileJson size={18} className={importingCsv ? 'animate-pulse' : ''} />
+                            {importingCsv ? 'กำลังนำเข้า...' : 'Import CSV'}
+                        </button>
+                        <button
+                            onClick={() => setShowProductModal(true)}
+                            className="bg-[#F97316] hover:bg-[#EA580C] text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-colors active:scale-95 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] uppercase tracking-[0.12em] text-xs"
+                        >
+                            <Plus size={20} /> เพิ่มสินค้าใหม่
+                        </button>
+                    </div>
                 </div>
 
                 {/* Products List */}
@@ -439,46 +551,81 @@ export default function CatalogDetail() {
                     </div>
                 ) : (
                     <div className="grid grid-cols-1 gap-6">
-                        {products.map(product => (
-                            <div key={product.id} className="group bg-card-bg border border-foreground/5 p-6 rounded-[32px] hover:border-primary/20 hover:bg-foreground/[0.02] transition-all flex items-center gap-8 glass-card">
-                                <div className="text-foreground/10 cursor-grab group-hover:text-primary transition-colors active:cursor-grabbing">
+                        {products.map((product, index) => (
+                            <div key={product.id} className="group flex items-stretch gap-3 md:gap-5">
+                                <div className="hidden md:flex flex-col items-center justify-center min-w-[64px] rounded-[24px] bg-white/80 border border-[#D9E1F2] shadow-sm px-2">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-[#64748B]">No.</span>
+                                    <span className="text-2xl leading-none font-black text-[#050579] mt-1">
+                                        {getDisplayOrder(product, index)}
+                                    </span>
+                                </div>
+
+                                <div className="bg-card-bg border border-foreground/5 p-6 rounded-[32px] hover:border-primary/20 hover:bg-foreground/[0.02] transition-all flex flex-col md:flex-row md:items-center gap-6 md:gap-8 glass-card flex-1">
+                                <div className="text-foreground/10 cursor-grab group-hover:text-primary transition-colors active:cursor-grabbing hidden md:block">
                                     <GripVertical size={24} />
                                 </div>
                                 <div className="w-24 h-24 bg-background rounded-[24px] flex items-center justify-center overflow-hidden border border-foreground/5 shadow-inner">
-                                    {product.images_json?.[0] ? (
-                                        <img src={getImageUrl(product.images_json[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" />
+                                    {product.images_json?.[0] && !imageLoadErrorIds[product.id] ? (
+                                        <img
+                                            src={getImageUrl(product.images_json[0])}
+                                            alt={product.name}
+                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
+                                            onError={() => setImageLoadErrorIds((prev) => ({ ...prev, [product.id]: true }))}
+                                        />
                                     ) : (
                                         <ImageIcon size={40} className="text-foreground/5" />
                                     )}
                                 </div>
-                                <div className="flex-grow">
-                                    <h3 className="font-black text-2xl mb-2 group-hover:text-primary transition-colors tracking-tight">{product.name}</h3>
-                                    <div className="flex flex-wrap gap-6 text-[10px] font-black uppercase tracking-widest">
-                                        <span className="text-primary bg-primary/5 px-3 py-1 rounded-lg border border-primary/10">฿{parseFloat(product.price).toLocaleString()}</span>
-                                        {product.interactive_links?.order_form && (
-                                            <span className="flex items-center gap-2 text-[#16A34A] bg-[#16A34A]/5 px-3 py-1 rounded-lg border border-[#16A34A]/15"><ShoppingCart size={14} /> Order Mode Enabled</span>
-                                        )}
-                                        {product.interactive_links?.website && (
-                                            <span className="flex items-center gap-2 text-primary bg-primary/5 px-3 py-1 rounded-lg border border-primary/15"><Globe size={14} /> Web Link Active</span>
-                                        )}
+                                <div className="flex-grow min-w-0">
+                                    <div className="flex flex-col gap-3">
+                                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
+                                            <div className="min-w-0">
+                                                {product.brand && (
+                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B] mb-1 line-clamp-1">
+                                                        แบรนด์: {product.brand}
+                                                    </p>
+                                                )}
+                                                <h3 className="font-black text-2xl leading-tight mb-1 group-hover:text-primary transition-colors tracking-tight line-clamp-1">{product.name}</h3>
+                                                <p className="text-sm text-[#475569] font-medium leading-relaxed line-clamp-2 max-w-2xl">
+                                                    {getShortDescription(product.description)}
+                                                </p>
+                                            </div>
+                                            <div className="shrink-0 rounded-2xl border border-[#C7D2FE] bg-[#EEF2FF] px-4 py-3 min-w-[150px]">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#475569]">ราคา</p>
+                                                <p className="text-3xl font-black text-[#050579] leading-none mt-1">฿{formatPrice(product.price)}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
+                                            {product.interactive_links?.order_form && (
+                                                <span className="flex items-center gap-2 text-[#16A34A] bg-[#16A34A]/5 px-3 py-1 rounded-lg border border-[#16A34A]/15"><ShoppingCart size={14} /> Order Link</span>
+                                            )}
+                                            {product.interactive_links?.website && (
+                                                <span className="flex items-center gap-2 text-primary bg-primary/5 px-3 py-1 rounded-lg border border-primary/15"><Globe size={14} /> Web Link Active</span>
+                                            )}
+                                            {product.interactive_links?.facebook && (
+                                                <span className="flex items-center gap-2 text-[#1D4ED8] bg-[#1D4ED8]/5 px-3 py-1 rounded-lg border border-[#1D4ED8]/15"><Facebook size={14} /> Social Link</span>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                                 
-                                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-all">
+                                <div className="flex items-center gap-2 self-end md:self-center">
                                     <button
                                         onClick={() => openEditModal(product)}
-                                        className="w-12 h-12 flex items-center justify-center text-foreground/20 hover:text-primary hover:bg-primary/10 rounded-2xl transition-all bg-foreground/[0.02]"
+                                        className="w-12 h-12 flex items-center justify-center text-[#050579] hover:text-white hover:bg-[#050579] rounded-2xl transition-all bg-[#EEF0FF] border border-[#CBD5E1] shadow-sm"
                                         title="แก้ไขสินค้า"
                                     >
                                         <Pencil size={20} />
                                     </button>
                                     <button
-                                        onClick={() => deleteProduct(product.id)}
-                                        className="w-12 h-12 flex items-center justify-center text-foreground/20 hover:text-red-500 hover:bg-red-500/10 rounded-2xl transition-all bg-foreground/[0.02]"
+                                        onClick={() => setDeletingProduct(product)}
+                                        className="w-12 h-12 flex items-center justify-center text-[#DC2626] hover:text-white hover:bg-[#DC2626] rounded-2xl transition-all bg-[#FEF2F2] border border-[#FECACA] shadow-sm"
                                         title="ลบสินค้า"
                                     >
                                         <Trash2 size={20} />
                                     </button>
+                                </div>
                                 </div>
                             </div>
                         ))}
@@ -551,6 +698,15 @@ export default function CatalogDetail() {
                                             placeholder="Ex. Rolex Submariner..."
                                             value={newProduct.name}
                                             onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แบรนด์ (ไม่บังคับ)</label>
+                                        <input
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold text-base"
+                                            placeholder="Ex. Samsung, Apple, Xiaomi..."
+                                            value={newProduct.brand}
+                                            onChange={e => setNewProduct({ ...newProduct, brand: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-3">
@@ -655,6 +811,15 @@ export default function CatalogDetail() {
                                             placeholder="Ex. Rolex Submariner..."
                                             value={editProduct.name}
                                             onChange={e => setEditProduct({ ...editProduct, name: e.target.value })}
+                                        />
+                                    </div>
+                                    <div className="space-y-3">
+                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แบรนด์ (ไม่บังคับ)</label>
+                                        <input
+                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold text-base"
+                                            placeholder="Ex. Samsung, Apple, Xiaomi..."
+                                            value={editProduct.brand}
+                                            onChange={e => setEditProduct({ ...editProduct, brand: e.target.value })}
                                         />
                                     </div>
                                     <div className="space-y-3">
@@ -890,8 +1055,48 @@ export default function CatalogDetail() {
                     url={publicUrl}
                     title={catalog?.title || 'Catalog'}
                     onClose={() => setShowShareModal(false)}
+                    onCopySuccess={() => showToast('คัดลอกลิงก์แล้ว!', 'success')}
+                    onCopyError={() => showToast('คัดลอกลิงก์ไม่สำเร็จ', 'error')}
                 />
             )}
+
+            {deletingProduct && (
+                <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+                    <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl" onClick={() => setDeletingProduct(null)} />
+                    <div className="relative z-10 w-full max-w-md rounded-[32px] border border-[#FECACA] bg-white p-8 shadow-2xl">
+                        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]">
+                            <Trash2 size={24} />
+                        </div>
+                        <h2 className="mb-2 text-2xl font-black text-[#991B1B]">ยืนยันการลบสินค้า</h2>
+                        <p className="mb-2 text-sm leading-relaxed text-[#7F1D1D]">คุณกำลังจะลบสินค้านี้:</p>
+                        <p className="mb-6 break-words font-bold text-[#0F172A]">{deletingProduct.name}</p>
+                        <p className="mb-8 text-sm font-semibold text-[#B91C1C]">การลบนี้ไม่สามารถย้อนกลับได้</p>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setDeletingProduct(null)}
+                                className="flex-1 rounded-2xl border border-[#D9E1F2] px-5 py-3 text-sm font-black text-[#64748B] transition-colors hover:bg-[#F8FAFF]"
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => deleteProduct(deletingProduct.id)}
+                                className="flex-1 rounded-2xl bg-[#DC2626] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#B91C1C]"
+                            >
+                                ยืนยันลบ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
+            />
 
             <style jsx global>{`
                 .custom-scrollbar::-webkit-scrollbar {
@@ -946,7 +1151,19 @@ function QrCodeModal({ url, title, onClose }: { url: string, title: string, onCl
   );
 }
 
-function ShareModal({ url, title, onClose }: { url: string, title: string, onClose: () => void }) {
+function ShareModal({
+  url,
+  title,
+  onClose,
+  onCopySuccess,
+  onCopyError,
+}: {
+  url: string,
+  title: string,
+  onClose: () => void,
+  onCopySuccess: () => void,
+  onCopyError: () => void,
+}) {
   const shareText = `ดูแคตตาล็อก ${title} สินค้าน่าสนใจมากมาย!`;
 
   const shareLinks = [
@@ -973,9 +1190,10 @@ function ShareModal({ url, title, onClose }: { url: string, title: string, onClo
   const copyToClipboard = async () => {
     try {
       await navigator.clipboard.writeText(url);
-      alert('คัดลอกลิงก์แล้ว!');
+      onCopySuccess();
     } catch (err) {
       console.error('Failed to copy:', err);
+      onCopyError();
     }
   };
 

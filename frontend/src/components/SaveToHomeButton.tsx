@@ -32,9 +32,9 @@ export function SaveToHomeButton({ uid, profileName, profilePicUrl }: SaveToHome
         <>
             <button
                 onClick={openInstructions}
-                className="w-full bg-zinc-900/80 hover:bg-zinc-800 backdrop-blur-md text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all border border-zinc-700/50 shadow-xl hover:shadow-2xl active:scale-[0.98]"
+                className="w-full bg-gradient-to-r from-cyan-500 to-sky-600 hover:from-cyan-400 hover:to-sky-500 backdrop-blur-md text-white font-black py-4 px-6 rounded-2xl flex items-center justify-center gap-3 transition-all border border-cyan-300/40 shadow-[0_14px_36px_-18px_rgba(6,182,212,0.9)] hover:shadow-[0_20px_42px_-20px_rgba(14,165,233,0.95)] active:scale-[0.98]"
             >
-                <Smartphone size={24} className="text-zinc-300" />
+                <Smartphone size={24} className="text-cyan-50" />
                 เพิ่มไอคอนที่หน้าจอโฮม
             </button>
 

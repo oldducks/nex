@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Send, CheckCircle2, ChevronDown, MessageSquare, EyeOff, Loader2 } from 'lucide-react';
 import Cookies from 'js-cookie';
+import { Toast, type ToastType } from './Toast';
 
 interface LeadFormProps {
   targetUid: string;
@@ -20,6 +21,16 @@ export function LeadForm({ targetUid }: LeadFormProps) {
     message: '',
   });
   const [status, setStatus] = useState<'idle' | 'submitting' | 'success' | 'error'>('idle');
+  const [confirmHideOpen, setConfirmHideOpen] = useState(false);
+  const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
+    message: '',
+    type: 'info',
+    isVisible: false,
+  });
+
+  const showToast = (message: string, type: ToastType = 'info') => {
+    setToast({ message, type, isVisible: true });
+  };
 
   useEffect(() => {
     const myUid = Cookies.get('uid');
@@ -31,7 +42,10 @@ export function LeadForm({ targetUid }: LeadFormProps) {
 
   const handleHideForm = async (e: React.MouseEvent) => {
     e.stopPropagation(); // Prevent accordion toggle
-    if (!confirm('คุณต้องการซ่อนฟอร์มนี้จากหน้าโปรไฟล์ใช่หรือไม่?\n(คุณสามารถเปิดใหม่ได้ที่เมนู "แก้ไขนามบัตร")')) return;
+    setConfirmHideOpen(true);
+  };
+
+  const confirmHideForm = async () => {
 
     setIsHiding(true);
     try {
@@ -64,13 +78,14 @@ export function LeadForm({ targetUid }: LeadFormProps) {
       });
 
       if (updateRes.ok) {
+        setConfirmHideOpen(false);
         window.location.reload();
       } else {
         throw new Error('Failed to update profile');
       }
     } catch (err) {
       console.error(err);
-      alert('เกิดข้อผิดพลาดในการซ่อนฟอร์ม โปรดลองใหม่อีกครั้ง');
+      showToast('เกิดข้อผิดพลาดในการซ่อนฟอร์ม โปรดลองใหม่อีกครั้ง', 'error');
       setIsHiding(false);
     }
   };
@@ -251,6 +266,43 @@ export function LeadForm({ targetUid }: LeadFormProps) {
           </p>
         </form>
       </div>
+      {confirmHideOpen && (
+        <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/50 backdrop-blur-md" onClick={() => setConfirmHideOpen(false)} />
+          <div className="relative z-10 w-full max-w-md rounded-[32px] border border-white/20 bg-[#111827] p-8 shadow-2xl">
+            <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-500/10 text-red-400">
+              <EyeOff size={24} />
+            </div>
+            <h2 className="mb-2 text-2xl font-black tracking-tight text-white">ซ่อนฟอร์มนี้จากหน้าโปรไฟล์?</h2>
+            <p className="mb-8 text-sm leading-relaxed text-white/70">
+              คุณสามารถเปิดใหม่ได้ภายหลังที่เมนู &quot;แก้ไขนามบัตร&quot;
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setConfirmHideOpen(false)}
+                className="flex-1 rounded-2xl border border-white/15 px-5 py-3 text-sm font-black text-white/70 transition-colors hover:bg-white/5"
+              >
+                ยกเลิก
+              </button>
+              <button
+                type="button"
+                onClick={confirmHideForm}
+                disabled={isHiding}
+                className="flex-1 rounded-2xl bg-red-500 px-5 py-3 text-sm font-black text-white transition-colors hover:bg-red-600 disabled:opacity-60"
+              >
+                {isHiding ? 'กำลังซ่อน...' : 'ยืนยันซ่อน'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <Toast
+        message={toast.message}
+        type={toast.type}
+        isVisible={toast.isVisible}
+        onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
+      />
     </div>
   );
 }

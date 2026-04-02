@@ -1,3 +1,19 @@
+> STATUS NOTE
+>
+> เอกสารนี้ใช้เป็น **concept / business blueprint / product background**  
+> ไม่ใช่ active visual implementation standard ของเว็บไซต์โดยตรง
+>
+> สำหรับงานออกแบบและพัฒนา UI จริง ให้ยึด:
+> - `NEX_BRAND_GUIDELINE_V2.md`
+> - `NEX_COLOR_SYSTEM_V2.md`
+> - `NEX_UX_UI_STANDARD_V2.md`
+> - `NEX_TAILWIND_TOKENS_V2.md`
+>
+> หมายเหตุสำคัญ:
+> - ส่วนที่เกี่ยวกับ brand visual identity ในเอกสารนี้เป็นแนวคิดเชิงประวัติ/แนวทางก่อนหน้า
+> - หากมีเนื้อหาเรื่องสีหรือ visual direction ขัดกับมาตรฐานปัจจุบัน ให้ยึดเอกสาร active ด้านบนเสมอ
+
+
 ยอดเยี่ยมครับ แนวคิดนี้ถูกทางมาก - **เอาโปรเจคเดิม iSolution (7 ปีก่อน) มายกเครื่องใหม่เป็น "NEX Solution"** โดยใช้ AI + เครื่องมือกราฟิกยุคใหม่ จะทำให้ "ของเดิมที่ไอเดียดีอยู่แล้ว" กลับมาแข็งแรงกว่าเดิมมาก
 
 ผมสรุปให้เป็น **Blueprint โปรเจค NEX Solution (ฉบับตั้งต้น)** เพื่อใช้เป็นภาพรวมก่อนทำ Landing Page โดยอ้างอิงจากไฟล์พรีเซนเทชันเดิมที่คุณแนบมา
@@ -428,6 +444,11 @@ NEX Solution ช่วยให้ SME:
 ---
 
 # 14) Brand Visual Identity (NEX Solution) - Updated 2026-03-05
+
+> HISTORICAL / NON-ACTIVE VISUAL CONCEPT
+>
+> ส่วนนี้ **ไม่ใช่ active brand implementation standard** สำหรับเว็บไซต์ปัจจุบัน
+> หากต้องทำ UI, landing page, dashboard, component, หรือ front-end implementation ให้ยึด `NEX_COLOR_SYSTEM_V2.md` และเอกสารมาตรฐาน active ชุดล่าสุดแทน
 
 เพื่อให้แบรนด์ NEX Solution มีความ Premium และทันโลกในระดับสากล โดยอ้างอิงจากโลโก้ใหม่:
 

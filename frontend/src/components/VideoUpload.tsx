@@ -3,6 +3,7 @@
 import { useState, useRef } from 'react';
 import { Upload, X, Play, Link2, Settings, Loader2, ExternalLink } from 'lucide-react';
 import Cookies from 'js-cookie';
+import { Toast, type ToastType } from './Toast';
 
 interface VideoConfig {
     url: string;
@@ -22,11 +23,52 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [showSettings, setShowSettings] = useState(false);
+    const [inputMode, setInputMode] = useState<'upload' | 'url'>('upload');
+    const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
+        message: '',
+        type: 'info',
+        isVisible: false,
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
+
+    const showToast = (message: string, type: ToastType = 'info') => {
+        setToast({ message, type, isVisible: true });
+    };
     
     console.log('VideoUpload token:', token ? 'exists' : 'missing');
+
+    const handleUrlSubmit = () => {
+        const urlInput = document.getElementById('video-url-input') as HTMLInputElement;
+        const url = urlInput?.value?.trim();
+        
+        if (!url) {
+            showToast('กรุณาใส่ URL วิดีโอ', 'error');
+            return;
+        }
+
+        // Basic URL validation
+        try {
+            new URL(url);
+        } catch {
+            showToast('กรุณาใส่ URL ที่ถูกต้อง (เช่น https://example.com/video.mp4)', 'error');
+            return;
+        }
+
+        onChange({
+            url: url,
+            autoplay: value?.autoplay ?? false,
+            link_url: value?.link_url ?? '',
+            link_enabled: value?.link_enabled ?? false,
+            enabled: true
+        });
+        
+        if (urlInput) {
+            urlInput.value = '';
+        }
+        showToast('เพิ่มวิดีโอจากลิงก์สำเร็จ', 'success');
+    };
 
     const pollJobStatus = async (jobId: string) => {
         const interval = setInterval(async () => {
@@ -51,7 +93,7 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                 } else if (status.state === 'failed') {
                     clearInterval(interval);
                     setUploading(false);
-                    alert(`ประมวลผลวิดีโอไม่สำเร็จ: ${status.failedReason || 'Unknown error'}`);
+                    showToast(`ประมวลผลวิดีโอไม่สำเร็จ: ${status.failedReason || 'Unknown error'}`, 'error');
                 } else {
                     setProgress(status.progress || 0);
                 }
@@ -68,13 +110,13 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
         // Validate file type
         const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
         if (!allowedTypes.includes(file.type)) {
-            alert('กรุณาเลือกไฟล์วิดีโอ (mp4, webm, ogg, mov)');
+            showToast('กรุณาเลือกไฟล์วิดีโอ (mp4, webm, ogg, mov)', 'error');
             return;
         }
 
         // Validate file size (200MB)
         if (file.size > 200 * 1024 * 1024) {
-            alert('ไฟล์วิดีโอต้องมีขนาดไม่เกิน 200MB');
+            showToast('ไฟล์วิดีโอต้องมีขนาดไม่เกิน 200MB', 'error');
             return;
         }
 
@@ -115,10 +157,12 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                     link_enabled: value?.link_enabled ?? false,
                     enabled: true
                 });
+                showToast('อัปโหลดวิดีโอสำเร็จ', 'success');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
             console.error('Upload error:', error);
-            alert(`อัพโหลดวิดีโอไม่สำเร็จ: ${error.message || 'กรุณาลองใหม่'}`);
+            const message = error instanceof Error ? error.message : 'กรุณาลองใหม่';
+            showToast(`อัพโหลดวิดีโอไม่สำเร็จ: ${message}`, 'error');
             setUploading(false);
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -151,36 +195,102 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
         <div className={`space-y-4 ${className}`}>
             {/* Upload Area */}
             {!value?.url ? (
-                <div
-                    onClick={() => !uploading && fileInputRef.current?.click()}
-                    className={`border-[3px] border-dashed border-primary/50 bg-primary/5 rounded-2xl p-10 text-center transition-all ${uploading ? 'cursor-default opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/10 hover:-translate-y-1 hover:shadow-xl'}`}
-                >
-                    {uploading ? (
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="relative w-20 h-20">
-                                <Loader2 className="animate-spin text-primary absolute inset-0" size={80} />
-                                <div className="absolute inset-0 flex items-center justify-center text-xs font-black">
-                                    {progress}%
+                <div className="space-y-4">
+                    {/* Mode Toggle */}
+                    <div className="flex bg-foreground/5 rounded-xl p-1">
+                        <button
+                            onClick={() => setInputMode('upload')}
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                                inputMode === 'upload' 
+                                    ? 'bg-primary text-white' 
+                                    : 'text-foreground/60 hover:text-foreground'
+                            }`}
+                        >
+                            <Upload size={16} className="inline mr-2" />
+                            อัปโหลดไฟล์
+                        </button>
+                        <button
+                            onClick={() => setInputMode('url')}
+                            className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                                inputMode === 'url' 
+                                    ? 'bg-primary text-white' 
+                                    : 'text-foreground/60 hover:text-foreground'
+                            }`}
+                        >
+                            <Link2 size={16} className="inline mr-2" />
+                            ใส่ลิงก์
+                        </button>
+                    </div>
+
+                    {/* Upload Mode */}
+                    {inputMode === 'upload' ? (
+                        <div
+                            onClick={() => !uploading && fileInputRef.current?.click()}
+                            className={`border-[3px] border-dashed border-primary/50 bg-primary/5 rounded-2xl p-10 text-center transition-all ${uploading ? 'cursor-default opacity-80' : 'cursor-pointer hover:border-primary hover:bg-primary/10 hover:-translate-y-1 hover:shadow-xl'}`}
+                        >
+                            {uploading ? (
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="relative w-20 h-20">
+                                        <Loader2 className="animate-spin text-primary absolute inset-0" size={80} />
+                                        <div className="absolute inset-0 flex items-center justify-center text-xs font-black">
+                                            {progress}%
+                                        </div>
+                                    </div>
+                                    <div className="w-full max-w-[250px] bg-foreground/10 h-2 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-primary transition-all duration-300"
+                                            style={{ width: `${progress}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-xs font-black uppercase tracking-widest text-primary italic font-mono">
+                                        กำลังอัพโหลดและบีบอัดวิดีโอ...
+                                    </p>
                                 </div>
-                            </div>
-                            <div className="w-full max-w-[250px] bg-foreground/10 h-2 rounded-full overflow-hidden">
-                                <div 
-                                    className="h-full bg-primary transition-all duration-300"
-                                    style={{ width: `${progress}%` }}
-                                />
-                            </div>
-                            <p className="text-xs font-black uppercase tracking-widest text-primary italic font-mono">
-                                กำลังอัพโหลดและบีบอัดวิดีโอ...
-                            </p>
+                            ) : (
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                                        <Upload className="text-white" size={36} />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-lg font-black text-primary uppercase tracking-wider">คลิกที่นี่เพื่ออัพโหลดวิดีโอ</h3>
+                                        <p className="text-sm text-foreground/60 mt-2 font-medium">รองรับ MP4, WebM, OGG (สูงสุด 200MB)</p>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center gap-4">
-                            <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
-                                <Upload className="text-white" size={36} />
-                            </div>
-                            <div>
-                                <h3 className="text-lg font-black text-primary uppercase tracking-wider">คลิกที่นี่เพื่ออัพโหลดวิดีโอ</h3>
-                                <p className="text-sm text-foreground/60 mt-2 font-medium">รองรับ MP4, WebM, OGG (สูงสุด 200MB)</p>
+                        /* URL Mode */
+                        <div className="space-y-4">
+                            <div className="border-2 border-dashed border-primary/50 bg-primary/5 rounded-2xl p-8">
+                                <div className="flex flex-col items-center gap-4">
+                                    <div className="w-20 h-20 rounded-full bg-primary flex items-center justify-center shadow-lg shadow-primary/30">
+                                        <Link2 className="text-white" size={36} />
+                                    </div>
+                                    <div className="w-full space-y-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-foreground/70 mb-2">
+                                                ใส่ URL วิดีโอ
+                                            </label>
+                                            <input
+                                                id="video-url-input"
+                                                type="url"
+                                                placeholder="https://example.com/video.mp4"
+                                                className="w-full bg-background border border-foreground/20 rounded-xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all"
+                                                onKeyPress={(e) => e.key === 'Enter' && handleUrlSubmit()}
+                                            />
+                                        </div>
+                                        <button
+                                            onClick={handleUrlSubmit}
+                                            className="w-full bg-primary text-white py-3 rounded-xl font-medium hover:bg-primary/90 transition-colors"
+                                        >
+                                            <Play size={16} className="inline mr-2" />
+                                            เพิ่มวิดีโอ
+                                        </button>
+                                    </div>
+                                    <p className="text-xs text-foreground/50 mt-2">
+                                        รองรับวิดีโอจาก YouTube, Vimeo, หรือ URL ตรงๆ
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}
@@ -305,6 +415,12 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                 accept="video/mp4,video/webm,video/ogg,video/quicktime"
                 onChange={handleFileSelect}
                 className="hidden"
+            />
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
             />
         </div>
     );

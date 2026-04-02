@@ -1,57 +1,63 @@
-'use client';
+import { QRCodeSVG, QRCodeCanvas } from 'qrcode.react';
 
 interface QrCodeProps {
     url: string;
     size?: number;
     className?: string;
+    fgColor?: string;
+    bgColor?: string;
+    logoDataUrl?: string;
+    level?: 'L' | 'M' | 'Q' | 'H'; // Error correction level
+    id?: string;
+    useCanvas?: boolean;
 }
 
-// QR code component using Google Charts API
-export function QrCodeImage({ url, size = 200, className = '' }: QrCodeProps) {
-    // Encode URL properly
-    const encodedUrl = encodeURIComponent(url);
-    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedUrl}&format=png&margin=0`;
+// Advanced QR code component using qrcode.react for best support of colors and logos
+export function QrCodeImage({ 
+    url, 
+    size = 200, 
+    className = '', 
+    fgColor = '#000000', 
+    bgColor = '#FFFFFF', 
+    logoDataUrl,
+    level = 'H', // Higher level is better when using logos
+    id,
+    useCanvas = false
+}: QrCodeProps) {
+    if (!url) return null;
+
+    const commonProps = {
+        value: url,
+        size: size,
+        fgColor: fgColor,
+        bgColor: bgColor,
+        level: level,
+        includeMargin: false,
+        imageSettings: logoDataUrl ? {
+            src: logoDataUrl,
+            x: undefined,
+            y: undefined,
+            height: size * 0.25,
+            width: size * 0.25,
+            excavate: true,
+        } : undefined,
+        style: { display: 'block' }
+    };
 
     return (
-        <div className={`inline-block bg-white p-2 rounded-2xl shadow-xl drop-shadow-md border border-foreground/5 hover:scale-105 transition-transform duration-300 ${className}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-                src={qrUrl}
-                alt="QR Code"
-                width={size}
-                height={size}
-                style={{ display: 'block' }}
-            />
+        <div className={`inline-block p-4 rounded-2xl shadow-xl drop-shadow-md border border-foreground/5 hover:scale-105 transition-transform duration-300 ${className}`} style={{ backgroundColor: bgColor }}>
+            {useCanvas ? (
+                <QRCodeCanvas id={id} {...commonProps} />
+            ) : (
+                <QRCodeSVG id={id} {...commonProps} />
+            )}
         </div>
     );
 }
 
-// Alternative with fallback
-export function QrCodeWithFallback({ url, size = 200, className = '' }: QrCodeProps) {
-    const encodedUrl = encodeURIComponent(url);
-
-    // Primary: qrserver.com (free, no API key needed)
-    const primaryUrl = `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodedUrl}&format=png&margin=0`;
-
-    // Fallback: Google Charts (being deprecated but still works)
-    const fallbackUrl = `https://chart.googleapis.com/chart?cht=qr&chs=${size}x${size}&chl=${encodedUrl}&chld=M|0`;
-
-    return (
-        <div className={`inline-block bg-white p-2 rounded-2xl shadow-xl drop-shadow-md border border-foreground/5 hover:scale-105 transition-transform duration-300 ${className}`}>
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-                src={primaryUrl}
-                alt="QR Code"
-                width={size}
-                height={size}
-                style={{ display: 'block' }}
-                onError={(e) => {
-                    // Fallback to Google Charts if primary fails
-                    (e.target as HTMLImageElement).src = fallbackUrl;
-                }}
-            />
-        </div>
-    );
+// Keep QrCodeWithFallback as an alternative (though now less needed)
+export function QrCodeWithFallback(props: QrCodeProps) {
+    return <QrCodeImage {...props} />;
 }
 
 // Alias exports

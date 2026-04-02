@@ -135,6 +135,25 @@ NEX ต้องให้ความรู้สึกดังนี้:
 - ไม่ใช้หลายคอลัมน์โดยไม่จำเป็น
 - บนมือถือควรเรียงเป็น stacked actions เป็นหลัก
 
+## 7.1 Footer and Company Identity Standard
+
+ใช้กับหน้า public หลักที่มี footer หรือ closing line โดยเฉพาะ home gateway, login และหน้าสาธารณะที่เป็นทางเข้าแบรนด์
+
+หลักการ:
+- footer ต้องเรียบ สั้น และไม่แย่งความเด่นจาก CTA หลัก
+- ใช้เป็น closing identity ของแบรนด์ ไม่ใช่พื้นที่ใส่ข้อความขาย
+- สามารถอยู่ในรูปแบบ single-line หรือ wrapped line ได้ตามพื้นที่หน้าจอ
+- บนมือถือให้ยอม wrap ได้ แต่ต้องยังอ่านต่อเนื่องและไม่แตกเป็นหลายบล็อก
+
+ข้อความมาตรฐานที่แนะนำ:
+- `© NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.`
+
+ข้อกำหนดการใช้งาน:
+- ถ้าหน้าเป็น public brand-facing page และมี footer ให้ใช้ข้อความมาตรฐานเดียวกัน
+- ถ้าพื้นที่จำกัดมาก สามารถย่อเหลือ `© NEX Solution. All rights reserved.` ได้เฉพาะกรณีที่ต้องการ minimal footer จริง ๆ และมีเหตุผลด้าน layout
+- หลีกเลี่ยงการใช้ข้อความ footer คนละเวอร์ชันระหว่างหน้า home, login, privacy และหน้า public อื่น
+- ถ้าจะเปลี่ยนชื่อบริษัทหรือ legal naming ให้แก้เป็น policy กลางก่อน แล้วค่อยอัปเดตทุกหน้าให้ตรงกัน
+
 ## 7. Color Usage Standard
 
 อิงจากมาตรฐานสีล่าสุดของ NEX:

@@ -38,6 +38,17 @@ export class AuthService {
 
         // Create new user
         user = await this.usersService.createOAuthUser(data);
+        
+        // Process referral if code provided
+        if (data.referralCode) {
+            try {
+                await this.referralsService.processReferral(user.id, data.referralCode, 0);
+                console.log('Referral processed for OAuth user:', user.id, 'with code:', data.referralCode);
+            } catch (error) {
+                console.error('Failed to process OAuth referral:', error);
+            }
+        }
+        
         return user;
     }
 
@@ -51,15 +62,30 @@ export class AuthService {
     }
 
     // Self-registration
-    async register(email: string, password: string, referralCode?: string) {
-        // Check if email already exists
-        const existing = await this.usersService.findOneByEmail(email);
-        if (existing) {
-            throw new ConflictException('อีเมลนี้ถูกใช้งานแล้ว');
+    async register(email: string | undefined, phoneNumber: string | undefined, password: string, fullName?: string, referralCode?: string) {
+        const normalizedEmail = email?.trim().toLowerCase();
+        const normalizedPhone = phoneNumber?.trim();
+
+        if (!normalizedEmail && !normalizedPhone) {
+            throw new BadRequestException('กรุณากรอกอีเมลหรือเบอร์โทรศัพท์อย่างใดอย่างหนึ่ง');
+        }
+
+        if (normalizedEmail) {
+            const existingEmail = await this.usersService.findOneByEmail(normalizedEmail);
+            if (existingEmail) {
+                throw new ConflictException('อีเมลนี้ถูกใช้งานแล้ว');
+            }
+        }
+
+        if (normalizedPhone) {
+            const existingPhone = await this.usersService.findOneByPhone(normalizedPhone);
+            if (existingPhone) {
+                throw new ConflictException('เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว');
+            }
         }
 
         // Create user
-        const user = await this.usersService.createSelfRegisteredUser(email, password, referralCode);
+        const user = await this.usersService.createSelfRegisteredUser(normalizedEmail, password, fullName, normalizedPhone, referralCode);
 
         // Always ensure new user has their own referral code for sharing
         try {
@@ -83,8 +109,8 @@ export class AuthService {
         return this.login(user);
     }
 
-    async validateUser(email: string, pass: string): Promise<any> {
-        const user = await this.usersService.findOneByEmail(email);
+    async validateUser(identifier: string, pass: string): Promise<any> {
+        const user = await this.usersService.findOneByEmailOrPhone(identifier);
         if (user && user.password_hash && (await bcrypt.compare(pass, user.password_hash))) {
             const { password_hash, ...result } = user;
             return result;
@@ -176,4 +202,3 @@ export class AuthService {
         return { message: 'Password changed successfully' };
     }
 }
-

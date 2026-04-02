@@ -11,6 +11,49 @@ export class LandingPagesService {
         private repository: Repository<LandingPage>,
     ) {}
 
+    private sanitizeSlug(value: string): string {
+        return value
+            .trim()
+            .replace(/[^a-zA-Z0-9ก-๙\u0E00-\u0E7F]+/gu, '-')
+            .replace(/^-+|-+$/g, '')
+            .replace(/-{2,}/g, '-')
+            .toLowerCase();
+    }
+
+    private generateFallbackSlug(): string {
+        const now = new Date();
+        const datePart = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+        const randomPart = Math.random().toString(36).slice(2, 8);
+        return `lp-${datePart}-${randomPart}`;
+    }
+
+    private async makeUniqueSlug(slug: string, excludeId?: number): Promise<string> {
+        let proposedSlug = slug;
+        let finalSlug = proposedSlug;
+        let counter = 1;
+        
+        while (true) {
+            const query = this.repository.createQueryBuilder('page')
+                .where('page.slug = :slug', { slug: finalSlug });
+            
+            if (excludeId) {
+                query.andWhere('page.id != :id', { id: excludeId });
+            }
+            
+            const existing = await query.getOne();
+            if (!existing) return finalSlug;
+            
+            // If already ends with -N, increment N
+            finalSlug = `${proposedSlug}-${counter}`;
+            counter++;
+            
+            if (counter > 100) {
+              // Extra safety factor if many collisions
+              return `${proposedSlug}-${Math.random().toString(36).slice(2, 7)}`;
+            }
+        }
+    }
+
     async create(userId: number, dto: CreateLandingPageDto) {
         // Check landing page limit (max 10 per user)
         const existingCount = await this.repository.count({ where: { user_id: userId } });
@@ -18,12 +61,16 @@ export class LandingPagesService {
             throw new ConflictException('คุณสร้าง Landing Page ครบ 10 หน้าแล้ว ไม่สามารถสร้างเพิ่มได้');
         }
 
-        const existing = await this.repository.findOne({ where: { slug: dto.slug } });
-        if (existing) throw new ConflictException('Slug already exists');
+        const normalizedSlug = this.sanitizeSlug(dto.slug || '');
+        const baseSlug = normalizedSlug || this.generateFallbackSlug();
+        
+        // Ensure uniqueness
+        const uniqueSlug = await this.makeUniqueSlug(baseSlug);
 
         const page = this.repository.create({
             user_id: userId,
             ...dto,
+            slug: uniqueSlug,
         });
         return this.repository.save(page);
     }
@@ -42,8 +89,9 @@ export class LandingPagesService {
     }
 
     async findBySlug(slug: string) {
+        const decodedSlug = decodeURIComponent(slug);
         const page = await this.repository.findOne({
-            where: { slug, is_published: true },
+            where: { slug: decodedSlug, is_published: true },
             relations: ['user'],
         });
         if (!page) throw new NotFoundException('Landing Page not found');
@@ -54,8 +102,9 @@ export class LandingPagesService {
         const page = await this.findOne(id, userId);
         
         if (dto.slug && dto.slug !== page.slug) {
-            const existing = await this.repository.findOne({ where: { slug: dto.slug } });
-            if (existing) throw new ConflictException('Slug already exists');
+            const normalizedSlug = this.sanitizeSlug(dto.slug);
+            const baseSlug = normalizedSlug || this.generateFallbackSlug();
+            dto.slug = await this.makeUniqueSlug(baseSlug, id);
         }
 
         // Check image and video limits (max 10 each per landing page)

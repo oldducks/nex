@@ -2,7 +2,8 @@
 
 import React, { useState, useRef, useCallback, forwardRef } from 'react';
 import HTMLFlipBook from 'react-pageflip';
-import { ChevronLeft, ChevronRight, Home, Grid3X3, ExternalLink, ShoppingCart, Copy, Check } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Grid3X3, ShoppingCart, Copy, Check, QrCode, X, Search } from 'lucide-react';
+import { QrCodeImage } from '@/components/QrCode';
 
 interface FlipbookPage {
     id: number;
@@ -16,6 +17,8 @@ interface FlipbookProps {
     onExit?: () => void;
     shareUrl?: string;
     shareTitle?: string;
+    catalogName?: string;
+    products?: any[]; // To enable search by product name
 }
 
 // Social Media Icons as SVG components
@@ -59,7 +62,11 @@ const WhatsAppIcon = () => (
 const Page = forwardRef<HTMLDivElement, { children: React.ReactNode; number?: number }>(
     ({ children, number }, ref) => {
         return (
-            <div ref={ref} className="page bg-[#faf8f5] shadow-lg overflow-hidden">
+            <div ref={ref} className="page bg-[#faf8f5] shadow-lg overflow-hidden relative" style={{ willChange: 'transform' }}>
+                {/* Spine Shadow Effect */}
+                <div className="absolute inset-y-0 left-0 w-8 bg-gradient-to-r from-black/10 to-transparent z-10 pointer-events-none" />
+                <div className="absolute inset-y-0 right-0 w-4 bg-gradient-to-l from-black/5 to-transparent z-10 pointer-events-none" />
+                
                 <div className="page-content w-full h-full">
                     {children}
                 </div>
@@ -74,11 +81,27 @@ const Page = forwardRef<HTMLDivElement, { children: React.ReactNode; number?: nu
 );
 Page.displayName = 'Page';
 
-export default function Flipbook({ pages, coverPage, onPageChange, onExit, shareUrl, shareTitle }: FlipbookProps) {
+export default function Flipbook({ pages, coverPage, onPageChange, onExit, shareUrl, shareTitle, catalogName, products }: FlipbookProps) {
     const [currentPage, setCurrentPage] = useState(0);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [showSearch, setShowSearch] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [isMobile, setIsMobile] = useState(false);
+    const [mounted, setMounted] = useState(false);
+    const [showQrModal, setShowQrModal] = useState(false);
     const bookRef = useRef<any>(null);
     const audioRef = useRef<HTMLAudioElement | null>(null);
+
+    // Initial and resize check for mobile
+    React.useEffect(() => {
+        setMounted(true);
+        const checkMobile = () => {
+            setIsMobile(window.innerWidth < 768);
+        };
+        checkMobile();
+        window.addEventListener('resize', checkMobile);
+        return () => window.removeEventListener('resize', checkMobile);
+    }, []);
 
     // Get current page URL for sharing
     const currentShareUrl = shareUrl || (typeof window !== 'undefined' ? window.location.href : '');
@@ -153,108 +176,196 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
         bookRef.current?.pageFlip()?.flip(pageNum);
     };
 
+    const handleSearch = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!searchQuery.trim()) return;
+
+        // 1. Search by page number
+        const pageNum = parseInt(searchQuery);
+        if (!isNaN(pageNum) && pageNum >= 0 && pageNum < totalPages) {
+            goToPage(pageNum);
+            setShowSearch(false);
+            setSearchQuery('');
+            return;
+        }
+
+        // 2. Search by product name
+        if (products) {
+            const index = products.findIndex(p => 
+                p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+            );
+            if (index !== -1) {
+                // index + 1 because of cover page
+                goToPage(index + 1);
+                setShowSearch(false);
+                setSearchQuery('');
+                return;
+            }
+        }
+    };
+
     return (
         <div className="fixed inset-0 z-50 bg-gradient-to-br from-[#1a1a1a] via-[#0f0f0f] to-[#1a1a1a] flex flex-col">
             {/* Top Bar */}
-            <div className="h-16 flex items-center justify-between px-6 bg-black/50 backdrop-blur-xl border-b border-white/5">
-                <button
-                    onClick={onExit}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors text-sm font-medium"
-                >
-                    <Grid3X3 size={18} />
-                    <span className="hidden sm:inline">Grid View</span>
-                </button>
+            <div className={`flex items-center justify-between bg-black/50 border-b border-white/5 ${isMobile ? 'h-12 px-3' : 'h-16 px-6 backdrop-blur-xl'}`}>
+                <div className="flex items-center gap-1.5 sm:gap-2">
+                    <button
+                        onClick={onExit}
+                        className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl transition-colors font-semibold shadow-sm ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm gap-2'}`}
+                    >
+                        <Grid3X3 size={isMobile ? 14 : 18} />
+                        <span className="hidden sm:inline">มุมมองกริด</span>
+                    </button>
 
-                <div className="flex items-center gap-2 text-sm text-white/60">
+                    {/* Search Trigger */}
+                    <button
+                        onClick={() => setShowSearch(!showSearch)}
+                        className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl transition-colors font-semibold shadow-sm ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm gap-2'} ${showSearch ? 'bg-primary border-primary' : ''}`}
+                    >
+                        <Search size={isMobile ? 14 : 18} />
+                        <span className="hidden sm:inline">ค้นหา</span>
+                    </button>
+                </div>
+
+                {/* Desktop Search Bar (shown when showSearch is true) */}
+                {showSearch && (
+                    <div className={`absolute top-[4.5rem] left-1/2 -translate-x-1/2 z-[60] w-[90%] max-w-md animate-in slide-in-from-top-4 ${isMobile ? 'top-[3.5rem]' : ''}`}>
+                        <form onSubmit={handleSearch} className="relative group">
+                            <input
+                                autoFocus
+                                type="text"
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                placeholder="ค้นหาชื่อสินค้า หรือเลขหน้า..."
+                                className="w-full bg-[#111827] text-white border-2 border-primary/50 focus:border-primary px-5 py-3 rounded-2xl shadow-2xl transition-all focus:outline-none placeholder:text-white/30"
+                            />
+                            <button 
+                                type="submit"
+                                className="absolute right-2 top-1/2 -translate-y-1/2 bg-primary p-2 rounded-xl"
+                            >
+                                <Search size={18} className="text-white" />
+                            </button>
+                        </form>
+                    </div>
+                )}
+
+                <div className={`flex items-center gap-2 text-white/60 ${isMobile ? 'text-xs' : 'text-sm'}`}>
                     <span className="font-bold text-white">{Math.floor(currentPage / 2) + 1}</span>
                     <span>/</span>
                     <span>{Math.ceil(totalPages / 2)}</span>
                 </div>
 
-                <button
-                    onClick={() => goToPage(0)}
-                    className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 rounded-xl transition-colors text-sm font-medium"
-                >
-                    <Home size={18} />
-                    <span className="hidden sm:inline">Cover</span>
-                </button>
+                <div className="flex items-center gap-1.5">
+                    <button
+                        onClick={() => setShowQrModal(true)}
+                        className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl transition-colors font-semibold shadow-sm ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm gap-2'}`}
+                        title="QR Code"
+                    >
+                        <QrCode size={isMobile ? 14 : 18} />
+                        <span className="hidden sm:inline">QR Code</span>
+                    </button>
+
+                    <button
+                        onClick={copyLink}
+                        className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl transition-colors font-semibold shadow-sm ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm gap-2'}`}
+                        title="คัดลอกลิงก์ Book View"
+                    >
+                        {copied ? <Check size={isMobile ? 14 : 18} /> : <Copy size={isMobile ? 14 : 18} />}
+                        <span className="hidden sm:inline">{copied ? 'คัดลอกแล้ว' : 'แชร์ลิงก์'}</span>
+                    </button>
+
+                    <button
+                        onClick={() => goToPage(0)}
+                        className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl transition-colors font-semibold shadow-sm ${isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm gap-2'}`}
+                    >
+                        <Home size={isMobile ? 14 : 18} />
+                        <span className="hidden sm:inline">หน้าปก</span>
+                    </button>
+                </div>
             </div>
 
             {/* Book Container */}
-            <div className="flex-1 flex items-center justify-center p-4 md:p-8 overflow-hidden">
+            <div className={`flex-1 flex items-center justify-center overflow-hidden ${isMobile ? 'px-2 py-2' : 'p-8'}`}>
                 <div className="relative w-full max-w-5xl">
                     {/* Book Shadow */}
                     <div className="absolute inset-x-0 -bottom-4 h-16 bg-black/60 blur-2xl rounded-full scale-90" />
 
-                    {/* HTMLFlipBook */}
-                    <HTMLFlipBook
-                        ref={bookRef}
-                        width={550}
-                        height={733}
-                        size="stretch"
-                        minWidth={315}
-                        maxWidth={1000}
-                        minHeight={400}
-                        maxHeight={1533}
-                        maxShadowOpacity={0.5}
-                        showCover={true}
-                        mobileScrollSupport={true}
-                        onFlip={onFlip}
-                        className="flipbook-container mx-auto"
-                        style={{}}
-                        startPage={0}
-                        drawShadow={true}
-                        flippingTime={600}
-                        usePortrait={true}
-                        startZIndex={0}
-                        autoSize={true}
-                        clickEventForward={true}
-                        useMouseEvents={true}
-                        swipeDistance={30}
-                        showPageCorners={true}
-                        disableFlipByClick={false}
-                    >
-                        {/* Cover Page */}
-                        <Page>
-                            <div className="w-full h-full">
-                                {coverPage || <DefaultCover />}
-                            </div>
-                        </Page>
-
-                        {/* Content Pages */}
-                        {pages.map((page, index) => (
-                            <Page key={page.id} number={index + 1}>
-                                {page.content}
-                            </Page>
-                        ))}
-
-                        {/* Back Cover */}
-                        <Page>
-                            <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
-                                <div className="text-center text-white/60">
-                                    <p className="text-lg font-medium mb-2">Thank you!</p>
-                                    <p className="text-sm">ขอบคุณที่เข้าชมแคตตาล็อก</p>
+                    {/* HTMLFlipBook - Render only when mounted to avoid hydration issues */}
+                    {mounted ? (
+                        <HTMLFlipBook
+                            ref={bookRef}
+                            width={isMobile ? 300 : 550}
+                            height={isMobile ? 450 : 733}
+                            size="stretch"
+                            minWidth={isMobile ? 300 : 280}
+                            maxWidth={isMobile ? 400 : 1000}
+                            minHeight={isMobile ? 400 : 300}
+                            maxHeight={isMobile ? 650 : 1533}
+                            maxShadowOpacity={isMobile ? 0.25 : 0.8}
+                            showCover={true}
+                            mobileScrollSupport={true}
+                            onFlip={onFlip}
+                            className="flipbook-container mx-auto"
+                            style={{}}
+                            startPage={0}
+                            drawShadow={!isMobile}
+                            flippingTime={isMobile ? 380 : 800}
+                            usePortrait={isMobile}
+                            startZIndex={0}
+                            autoSize={true}
+                            clickEventForward={true}
+                            useMouseEvents={true}
+                            swipeDistance={isMobile ? 15 : 30}
+                            showPageCorners={!isMobile}
+                            disableFlipByClick={false}
+                        >
+                            {/* Cover Page */}
+                            <Page>
+                                <div className="w-full h-full">
+                                    {coverPage || <DefaultCover />}
                                 </div>
-                            </div>
-                        </Page>
-                    </HTMLFlipBook>
+                            </Page>
+    
+                            {/* Content Pages */}
+                            {pages.map((page, index) => (
+                                <Page key={page.id} number={index + 1}>
+                                    {page.content}
+                                </Page>
+                            ))}
+    
+                            {/* Back Cover */}
+                            <Page>
+                                <div className="w-full h-full bg-gradient-to-br from-gray-800 to-gray-900 flex items-center justify-center">
+                                    <div className="text-center text-white/60">
+                                        <p className="text-lg font-medium mb-2">Thank you!</p>
+                                        <p className="text-sm">ขอบคุณที่เข้าชมแคตตาล็อก</p>
+                                    </div>
+                                </div>
+                            </Page>
+                        </HTMLFlipBook>
+                    ) : (
+                        <div className="mx-auto flex items-center justify-center p-20">
+                            <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    )}
                 </div>
             </div>
 
             {/* Bottom Navigation */}
-            <div className="h-24 flex flex-col items-center justify-center gap-2 px-6 bg-black/50 backdrop-blur-xl border-t border-white/5">
+            <div className={`flex flex-col items-center justify-center gap-1.5 px-4 bg-black/50 border-t border-white/5 ${isMobile ? 'py-2' : 'h-24 px-6 gap-2 backdrop-blur-xl'}`}>
                 {/* Navigation Controls */}
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                     <button
                         onClick={goPrev}
                         disabled={currentPage === 0}
-                        className="w-10 h-10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-all"
+                        className={`bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-8 h-8' : 'w-10 h-10'}`}
                     >
-                        <ChevronLeft size={20} />
+                        <ChevronLeft size={isMobile ? 16 : 20} />
                     </button>
 
                     {/* Page Dots */}
-                    <div className="flex items-center gap-1.5 px-2 overflow-x-auto max-w-[40vw]">
+                    <div className="flex items-center gap-1.5 px-2 overflow-x-auto max-w-[60vw] scrollbar-hide py-1">
                         {Array.from({ length: Math.ceil(totalPages / 2) + 1 }).map((_, i) => (
                             <button
                                 key={i}
@@ -271,9 +382,9 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
                     <button
                         onClick={goNext}
                         disabled={currentPage >= totalPages}
-                        className="w-10 h-10 bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-all"
+                        className={`bg-white/5 hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-8 h-8' : 'w-10 h-10'}`}
                     >
-                        <ChevronRight size={20} />
+                        <ChevronRight size={isMobile ? 16 : 20} />
                     </button>
                 </div>
 
@@ -283,7 +394,7 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
 
                     <button
                         onClick={shareToFacebook}
-                        className="w-9 h-9 bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white rounded-full flex items-center justify-center transition-all"
+                        className={`bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-7 h-7' : 'w-9 h-9'}`}
                         title="แชร์ไป Facebook"
                     >
                         <FacebookIcon />
@@ -291,7 +402,7 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
 
                     <button
                         onClick={shareToMessenger}
-                        className="w-9 h-9 bg-[#0099FF]/20 hover:bg-[#0099FF] text-[#0099FF] hover:text-white rounded-full flex items-center justify-center transition-all"
+                        className={`bg-[#0099FF]/20 hover:bg-[#0099FF] text-[#0099FF] hover:text-white rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-7 h-7' : 'w-9 h-9'}`}
                         title="แชร์ไป Messenger"
                     >
                         <MessengerIcon />
@@ -299,7 +410,7 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
 
                     <button
                         onClick={shareToInstagram}
-                        className="w-9 h-9 bg-[#E4405F]/20 hover:bg-gradient-to-br hover:from-[#833AB4] hover:via-[#E4405F] hover:to-[#FCAF45] text-[#E4405F] hover:text-white rounded-full flex items-center justify-center transition-all"
+                        className={`bg-[#E4405F]/20 hover:bg-gradient-to-br hover:from-[#833AB4] hover:via-[#E4405F] hover:to-[#FCAF45] text-[#E4405F] hover:text-white rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-7 h-7' : 'w-9 h-9'}`}
                         title="แชร์ไป Instagram"
                     >
                         <InstagramIcon />
@@ -307,7 +418,7 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
 
                     <button
                         onClick={shareToLine}
-                        className="w-9 h-9 bg-[#00B900]/20 hover:bg-[#00B900] text-[#00B900] hover:text-white rounded-full flex items-center justify-center transition-all"
+                        className={`bg-[#00B900]/20 hover:bg-[#00B900] text-[#00B900] hover:text-white rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-7 h-7' : 'w-9 h-9'}`}
                         title="แชร์ไป Line"
                     >
                         <LineIcon />
@@ -315,7 +426,7 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
 
                     <button
                         onClick={shareToTikTok}
-                        className="w-9 h-9 bg-white/10 hover:bg-black text-white/70 hover:text-white rounded-full flex items-center justify-center transition-all"
+                        className={`bg-white/10 hover:bg-black text-white/70 hover:text-white rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-7 h-7' : 'w-9 h-9'}`}
                         title="แชร์ไป TikTok"
                     >
                         <TikTokIcon />
@@ -323,24 +434,24 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
 
                     <button
                         onClick={shareToWhatsApp}
-                        className="w-9 h-9 bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white rounded-full flex items-center justify-center transition-all"
+                        className={`bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-7 h-7' : 'w-9 h-9'}`}
                         title="แชร์ไป WhatsApp"
                     >
                         <WhatsAppIcon />
                     </button>
 
-                    <div className="w-px h-6 bg-white/10 mx-1" />
+                    <div className="w-px h-5 bg-white/10 mx-0.5" />
 
                     <button
                         onClick={copyLink}
-                        className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                        className={`rounded-full flex items-center justify-center transition-all ${isMobile ? 'w-7 h-7' : 'w-9 h-9'} ${
                             copied
                                 ? 'bg-green-500 text-white'
                                 : 'bg-white/10 hover:bg-white/20 text-white/70 hover:text-white'
                         }`}
                         title="คัดลอกลิงก์"
                     >
-                        {copied ? <Check size={18} /> : <Copy size={18} />}
+                        {copied ? <Check size={isMobile ? 14 : 18} /> : <Copy size={isMobile ? 14 : 18} />}
                     </button>
                 </div>
             </div>
@@ -355,22 +466,49 @@ export default function Flipbook({ pages, coverPage, onPageChange, onExit, share
                     margin: 0 auto;
                 }
                 .page {
-                    background: linear-gradient(to right, #faf8f5 0%, #f5f3ef 100%);
+                    background: #faf8f5;
                 }
                 .page-content {
                     position: relative;
                 }
-                /* Page texture overlay */
-                .page::before {
-                    content: '';
-                    position: absolute;
-                    inset: 0;
-                    background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmFmOGY1Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDVMNSAwWk02IDRMNCA2Wk0tMSAxTDEgLTFaIiBzdHJva2U9IiNlOGU2ZTIiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=');
-                    opacity: 0.3;
-                    pointer-events: none;
-                    z-index: 1;
+                /* Page texture overlay - only on larger screens for stability */
+                @media (min-width: 768px) {
+                    .page::before {
+                        content: '';
+                        position: absolute;
+                        inset: 0;
+                        background-image: url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI1IiBoZWlnaHQ9IjUiPgo8cmVjdCB3aWR0aD0iNSIgaGVpZ2h0PSI1IiBmaWxsPSIjZmFmOGY1Ij48L3JlY3Q+CjxwYXRoIGQ9Ik0wIDVMNSAwWk02IDRMNCA2Wk0tMSAxTDEgLTFaIiBzdHJva2U9IiNlOGU2ZTIiIHN0cm9rZS13aWR0aD0iMSI+PC9wYXRoPgo8L3N2Zz4=');
+                        opacity: 0.3;
+                        pointer-events: none;
+                        z-index: 1;
+                    }
                 }
             `}</style>
+
+            {showQrModal && (
+                <div className="fixed inset-0 z-[70] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+                    <div className="w-full max-w-sm rounded-3xl border border-white/20 bg-[#111827] text-white shadow-2xl p-5 relative">
+                        <button
+                            type="button"
+                            onClick={() => setShowQrModal(false)}
+                            className="absolute top-3 right-3 p-2 rounded-xl bg-white/10 hover:bg-white/20 transition-colors"
+                            aria-label="Close QR modal"
+                        >
+                            <X size={18} />
+                        </button>
+                        <h3 className="text-lg font-black tracking-tight mb-1">QR Code Catalog</h3>
+                        <p className="text-sm text-white/70 mb-4">สแกนเพื่อเปิด Book View หน้านี้</p>
+                        {catalogName && (
+                            <p className="text-xs text-white/70 mb-4">
+                                แคตตาล็อก: <span className="font-semibold text-white">{catalogName}</span>
+                            </p>
+                        )}
+                        <div className="rounded-2xl bg-white p-4 flex justify-center">
+                            <QrCodeImage url={currentShareUrl} size={220} />
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }
@@ -380,102 +518,7 @@ function DefaultCover() {
         <div className="w-full h-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center p-8">
             <div className="text-center text-white">
                 <div className="text-4xl md:text-6xl font-black tracking-tighter mb-4">CATALOG</div>
-                <div className="text-lg opacity-80">Digital Collection</div>
             </div>
-        </div>
-    );
-}
-
-// Product Page Component for Flipbook with Clickable Image
-export function FlipbookProductPage({ product }: { product: any }) {
-    const linkUrl = product.interactive_links?.order_form || product.interactive_links?.website;
-    const hasLink = !!linkUrl;
-
-    const getImageUrl = (url: string | undefined) => {
-        if (!url) return 'https://via.placeholder.com/400x500';
-        const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
-        const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
-        if (url.startsWith('http')) {
-            if (url.includes('localhost:') && SITE_URL.includes('https://nexsolution.cloud')) {
-                try {
-                    const parsedUrl = new URL(url);
-                    if (parsedUrl.pathname.startsWith('/uploads')) {
-                        return `${API_URL}${parsedUrl.pathname}`;
-                    }
-                } catch (e) {}
-            }
-            return url;
-        }
-        if (url.startsWith('/uploads')) return `${API_URL}${url}`;
-        return url;
-    };
-
-    return (
-        <div className="w-full h-full bg-[#faf8f5] text-gray-900 p-4 md:p-6 flex flex-col relative z-10">
-            {/* Product Image - Clickable if has link */}
-            <div className="flex-1 relative rounded-xl overflow-hidden bg-white shadow-lg mb-3 group min-h-0">
-                {hasLink ? (
-                    <a
-                        href={linkUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block w-full h-full relative"
-                    >
-                        <img
-                            src={getImageUrl(product.images_json?.[0])}
-                            alt={product.name}
-                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                        {/* Hover overlay */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-all duration-300 flex items-center justify-center">
-                            <div className="opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-4 group-hover:translate-y-0">
-                                <div className="bg-white rounded-full px-4 py-2 flex items-center gap-2 shadow-xl text-sm">
-                                    <ShoppingCart size={16} className="text-primary" />
-                                    <span className="font-bold text-gray-900">สั่งซื้อเลย</span>
-                                    <ExternalLink size={14} className="text-gray-500" />
-                                </div>
-                            </div>
-                        </div>
-                        {/* Click indicator */}
-                        <div className="absolute top-2 right-2 w-6 h-6 bg-white/90 rounded-full flex items-center justify-center shadow-lg opacity-0 group-hover:opacity-100 transition-opacity">
-                            <ExternalLink size={12} className="text-primary" />
-                        </div>
-                    </a>
-                ) : (
-                    <img
-                        src={getImageUrl(product.images_json?.[0])}
-                        alt={product.name}
-                        className="w-full h-full object-cover"
-                    />
-                )}
-            </div>
-
-            {/* Product Info */}
-            <div className="space-y-1">
-                <h3 className="text-base md:text-lg font-bold text-gray-900 line-clamp-1">{product.name}</h3>
-
-                {/* Price Badge - Below title */}
-                <div className="inline-block px-3 py-1 bg-primary text-white font-bold rounded-full shadow-lg text-sm">
-                    ฿{product.price?.toLocaleString()}
-                </div>
-
-                <p className="text-gray-600 text-xs leading-relaxed line-clamp-2">
-                    {product.description}
-                </p>
-            </div>
-
-            {/* Quick Action Button */}
-            {hasLink && (
-                <a
-                    href={linkUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="mt-2 w-full py-2 bg-primary hover:bg-primary/90 text-white text-center rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-                >
-                    <ShoppingCart size={14} />
-                    {product.interactive_links?.order_form ? 'สั่งซื้อสินค้า' : 'ดูรายละเอียด'}
-                </a>
-            )}
         </div>
     );
 }

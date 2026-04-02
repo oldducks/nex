@@ -35,6 +35,16 @@ export class QRCode {
   @Column({ type: 'text' })
   qr_data: string;
 
+  // Custom colors and logo
+  @Column({ length: 20, default: '#000000' })
+  fg_color: string;
+
+  @Column({ length: 20, default: '#FFFFFF' })
+  bg_color: string;
+
+  @Column({ type: 'text', nullable: true })
+  logo_data?: string;
+
   // ขนาด (small / medium / large)
   @Column({ length: 20, default: 'medium' })
   size: string;

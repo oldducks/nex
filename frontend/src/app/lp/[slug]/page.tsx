@@ -54,7 +54,21 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     const seo = page.seo_metadata || {};
     const title = seo.title || page.title;
     const description = seo.description || page.description;
-    const ogImage = seo.og_image || '';
+    let ogImage = seo.og_image || '';
+
+    // Use first image block if OG image is not manually specified
+    if (!ogImage && page.content_blocks && Array.isArray(page.content_blocks)) {
+        const imageBlock = page.content_blocks.find(block => block.type === 'image' && block.content?.url);
+        if (imageBlock) {
+            ogImage = imageBlock.content.url;
+        }
+    }
+
+    // Ensure OG Image is absolute
+    if (ogImage && ogImage.startsWith('/')) {
+        ogImage = `${SITE_URL}${ogImage}`;
+    }
+
     const canonical = `${SITE_URL}/lp/${slug}`;
 
     return {

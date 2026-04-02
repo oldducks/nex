@@ -52,14 +52,6 @@ interface LandingPage {
   seo_metadata: any;
 }
 
-const sanitizeSlug = (value: string): string =>
-  value
-    .trim()
-    .replace(/[^a-zA-Z0-9ก-๙\u0E00-\u0E7F]+/gu, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-")
-    .toLowerCase();
-
 const resolveUploadedImageUrl = async (jobId: string, token?: string): Promise<string> => {
   const maxAttempts = 40;
 
@@ -824,17 +816,6 @@ export default function LandingPageEditorV2() {
               placeholder="ชื่อหน้า"
               className="h-12 w-full rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 text-base font-bold text-[#050579] outline-none"
             />
-            <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">ลิงก์ร้าน</div>
-              <div className="mt-1 flex items-center gap-1 text-sm font-semibold text-[#64748B]">
-                <span className="shrink-0 text-[#94A3B8]">/lp/</span>
-                <input
-                  value={page.slug}
-                  onChange={(e) => setPage({ ...page, slug: sanitizeSlug(e.target.value) })}
-                  className="min-w-0 flex-1 bg-transparent font-bold text-[#050579] outline-none"
-                />
-              </div>
-            </div>
             <textarea
               value={page.description || ""}
               onChange={(e) => setPage({ ...page, description: e.target.value })}

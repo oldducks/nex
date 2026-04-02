@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { User, FeatureConfig, DEFAULT_FEATURE_CONFIG_ALL_ENABLED, DEFAULT_FEATURE_CONFIG_LOCKED } from './entities/user.entity';
+import { User, FeatureConfig, DEFAULT_FEATURE_CONFIG_ALL_ENABLED, DEFAULT_FEATURE_CONFIG_LOCKED, UserRole } from './entities/user.entity';
+import { Profile } from '../profiles/entities/profile.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateFeatureConfigDto } from './dto/update-feature-config.dto';
@@ -16,6 +17,7 @@ export interface OAuthUserData {
   firstName?: string;
   lastName?: string;
   picture?: string;
+  referralCode?: string;
 }
 
 @Injectable()
@@ -23,6 +25,8 @@ export class UsersService {
   constructor(
     @InjectRepository(User)
     private usersRepository: Repository<User>,
+    @InjectRepository(Profile)
+    private profilesRepository: Repository<Profile>,
   ) { }
 
   async create(createUserDto: CreateUserDto) {
@@ -44,6 +48,52 @@ export class UsersService {
 
   findOneByEmail(email: string) {
     return this.usersRepository.findOneBy({ email });
+  }
+
+  private normalizePhone(phone: string): string {
+    return phone.replace(/\D/g, '');
+  }
+
+  private getPhoneCandidates(phone: string): string[] {
+    const normalized = this.normalizePhone(phone);
+    if (!normalized) return [];
+
+    const candidates = new Set<string>([normalized]);
+
+    if (normalized.startsWith('66') && normalized.length >= 11) {
+      candidates.add(`0${normalized.slice(2)}`);
+    }
+
+    if (normalized.startsWith('0') && normalized.length >= 9) {
+      candidates.add(`66${normalized.slice(1)}`);
+    }
+
+    return Array.from(candidates);
+  }
+
+  async findOneByPhone(phone: string) {
+    const candidates = this.getPhoneCandidates(phone);
+    if (candidates.length === 0) return null;
+
+    return this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoinAndSelect('user.profile', 'profile')
+      .where(`regexp_replace(coalesce(profile.mobile, ''), '\\D', '', 'g') IN (:...candidates)`, { candidates })
+      .getOne();
+  }
+
+  async findOneByEmailOrPhone(identifier: string) {
+    const trimmed = identifier.trim();
+    if (!trimmed) return null;
+
+    if (trimmed.includes('@')) {
+      return this.findOneByEmail(trimmed.toLowerCase());
+    }
+
+    const byPhone = await this.findOneByPhone(trimmed);
+    if (byPhone) return byPhone;
+
+    return this.findOneByEmail(trimmed.toLowerCase());
   }
 
   async findOneByUid(uid: string) {
@@ -118,10 +168,36 @@ export class UsersService {
   }
 
   async findAllWithDetails() {
-    return this.usersRepository.find({
-      select: ['id', 'uid', 'email', 'role', 'group_id', 'is_active', 'expiration_date', 'created_at'],
-      order: { created_at: 'DESC' }
-    });
+    const users = await this.usersRepository
+      .createQueryBuilder('user')
+      .leftJoin('user.profile', 'profile')
+      .select([
+        'user.id',
+        'user.uid',
+        'user.email',
+        'user.role',
+        'user.group_id',
+        'user.is_active',
+        'user.expiration_date',
+        'user.created_at',
+        'user.subscription_tier',
+        'user.feature_config',
+        'profile.mobile',
+        'profile.full_name',
+        'profile.names_i18n',
+      ])
+      .orderBy('user.created_at', 'DESC')
+      .getMany();
+
+    return users.map((user) => ({
+      ...user,
+      mobile: user.profile?.mobile || null,
+      full_name:
+        user.profile?.names_i18n?.find((item: any) => item?.lang === 'th' && item?.value?.trim())?.value?.trim() ||
+        user.profile?.names_i18n?.find((item: any) => item?.value?.trim())?.value?.trim() ||
+        user.profile?.full_name ||
+        null,
+    }));
   }
 
   async setExpiration(id: number, expirationDate: Date | null) {
@@ -180,7 +256,13 @@ export class UsersService {
 
   async getFeatureConfig(userId: number): Promise<FeatureConfig> {
     const user = await this.findOne(userId);
-    if (!user) return DEFAULT_FEATURE_CONFIG_ALL_ENABLED;
+    if (!user) return DEFAULT_FEATURE_CONFIG_LOCKED;
+    
+    // Admins and Premium users always have all features enabled
+    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.GROUP_ADMIN || user.subscription_tier === 'premium') {
+      return DEFAULT_FEATURE_CONFIG_ALL_ENABLED;
+    }
+
     return this.getResolvedFeatureConfig(user.feature_config);
   }
 
@@ -190,7 +272,7 @@ export class UsersService {
     // or use LOCKED config for new ones.
     // Note: In a real system, we might want to check when the user was created.
     if (!config || Object.keys(config).length === 0) {
-      return DEFAULT_FEATURE_CONFIG_ALL_ENABLED;
+      return DEFAULT_FEATURE_CONFIG_LOCKED;
     }
 
     // Fill in any missing keys, defaulting to false if not found (since it's now explicit)
@@ -230,6 +312,7 @@ export class UsersService {
       is_active: true,
       must_change_password: false, // OAuth users don't need to change password
       feature_config: DEFAULT_FEATURE_CONFIG_LOCKED, // All features locked for new OAuth users
+      expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Expiration in 30 days
     };
 
     // Set the provider ID
@@ -249,21 +332,36 @@ export class UsersService {
   }
 
   // Self-registration (email/password)
-  async createSelfRegisteredUser(email: string, password: string, referralCode?: string) {
+  async createSelfRegisteredUser(email: string | undefined, password: string, fullName?: string, phoneNumber?: string, referralCode?: string) {
     const uid = nanoid(10);
     const urlPrefix = nanoid(5).toLowerCase();
     const hashedPassword = await bcrypt.hash(password, 10);
+    const phoneDigits = phoneNumber ? this.normalizePhone(phoneNumber) : '';
+    const fallbackEmail = phoneDigits ? `phone_${phoneDigits}@phone.local` : `${uid}@phone.local`;
+    const resolvedEmail = email?.trim().toLowerCase() || fallbackEmail;
+    const resolvedName = fullName?.trim() || (phoneNumber ? `User ${phoneNumber}` : resolvedEmail.split('@')[0]);
 
     const user = this.usersRepository.create({
-      email,
+      email: resolvedEmail,
       password_hash: hashedPassword,
       uid,
       url_prefix: urlPrefix,
       is_active: true,
       must_change_password: false,
       feature_config: DEFAULT_FEATURE_CONFIG_LOCKED, // All features locked for new self-registered users
+      expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // Expiration in 30 days
     });
 
-    return this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+
+    // Create associated profile
+    const profile = this.profilesRepository.create({
+      user_id: savedUser.id,
+      full_name: resolvedName,
+      mobile: phoneNumber,
+    });
+    await this.profilesRepository.save(profile);
+
+    return savedUser;
   }
 }

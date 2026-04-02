@@ -3,6 +3,7 @@
 import { useState } from 'react';
 import { Download, Loader2 } from 'lucide-react';
 import Cookies from 'js-cookie';
+import { formatPhoneNumber } from '../lib/phone-utils';
 
 interface VcfDownloadProps {
     uid?: string;
@@ -99,7 +100,7 @@ FN:${name}
             phones.forEach((phone, i) => {
                 const type = phone.label?.toLowerCase().includes('mobile') ? 'CELL' :
                     phone.label?.toLowerCase().includes('work') || phone.label?.toLowerCase().includes('office') ? 'WORK' : 'HOME';
-                vcf += `TEL;TYPE=${type}:${phone.value}\n`;
+                vcf += `TEL;TYPE=${type}:${formatPhoneNumber(phone.value)}\n`;
             });
 
             // Add emails

@@ -3,10 +3,11 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Cookies from 'js-cookie';
-import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, Pencil, Share2, Copy, Check, X, Download, Trash2, AlertTriangle, Upload, Image as ImageIcon } from 'lucide-react';
+import { Plus, FileText, Settings, LogOut, Package, ExternalLink, Loader2, Pencil, Share2, Copy, Check, X, Download, Trash2, AlertTriangle, Upload, Image as ImageIcon, Search } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '@/components/QrCode';
 import ManageTopBar from '@/components/ManageTopBar';
+import { Toast, type ToastType } from '@/components/Toast';
 
 interface Catalog {
     id: number;
@@ -60,10 +61,20 @@ export default function Dashboard() {
     const [uploadingLogoTarget, setUploadingLogoTarget] = useState<'create' | 'edit' | null>(null);
     const createLogoInputRef = useRef<HTMLInputElement | null>(null);
     const editLogoInputRef = useRef<HTMLInputElement | null>(null);
+    const [searchQuery, setSearchQuery] = useState('');
+    const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
+        message: '',
+        type: 'info',
+        isVisible: false,
+    });
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
         const token = Cookies.get('token');
+
+    const showToast = (message: string, type: ToastType = 'info') => {
+        setToast({ message, type, isVisible: true });
+    };
 
     useEffect(() => {
         if (!token) {
@@ -95,11 +106,11 @@ export default function Dashboard() {
     const uploadLogoImage = async (file: File, target: 'create' | 'edit') => {
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.type)) {
-            alert('รองรับเฉพาะไฟล์รูปภาพ jpg, png, gif, webp');
+            showToast('รองรับเฉพาะไฟล์รูปภาพ jpg, png, gif, webp', 'error');
             return;
         }
         if (file.size > 5 * 1024 * 1024) {
-            alert('ไฟล์มีขนาดเกิน 5MB');
+            showToast('ไฟล์มีขนาดเกิน 5MB', 'error');
             return;
         }
 
@@ -164,9 +175,10 @@ export default function Dashboard() {
             } else {
                 setEditCatalog((prev) => ({ ...prev, brand_logo: imageUrl || '' }));
             }
+            showToast('อัปโหลดโลโก้สำเร็จ', 'success');
         } catch (error) {
             const message = error instanceof Error ? error.message : 'อัปโหลดโลโก้ไม่สำเร็จ';
-            alert(message);
+            showToast(message, 'error');
         } finally {
             setUploadingLogoTarget(null);
             if (target === 'create' && createLogoInputRef.current) {
@@ -298,7 +310,7 @@ export default function Dashboard() {
             fetchCatalogs();
         } catch (error) {
             const message = error instanceof Error ? error.message : 'ไม่สามารถลบแคตตาล็อกได้';
-            alert(message);
+            showToast(message, 'error');
         } finally {
             setDeleting(false);
         }
@@ -311,10 +323,11 @@ export default function Dashboard() {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${token}` }
             });
-            alert('PDF generation started! Refresh in a few seconds to see the link.');
+            showToast('ระบบเริ่มสร้าง PDF แล้ว อีกสักครู่กดรีเฟรชเพื่อตรวจลิงก์ดาวน์โหลดได้เลย', 'info');
             setTimeout(fetchCatalogs, 5000);
         } catch (error) {
             console.error(error);
+            showToast('เริ่มสร้าง PDF ไม่สำเร็จ กรุณาลองใหม่', 'error');
         } finally {
             setGeneratingId(null);
         }
@@ -372,41 +385,54 @@ export default function Dashboard() {
             />
 
             {/* Content */}
-            <main className="max-w-7xl mx-auto px-6 py-10">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 mb-10">
-                    <div>
-                        <h1 className="text-3xl font-black mb-2 tracking-tight text-[#050579]">แคตตาล็อกของฉัน</h1>
-                        <p className="text-[#475569]">จัดการคอลเลกชันสินค้าและไฟล์ PDF สำหรับลูกค้า</p>
+            <main className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-10">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 md:gap-6 mb-6 md:mb-10">
+                    <div className="flex-1 w-full max-w-2xl">
+                        <div className="relative group">
+                            <input
+                                type="text"
+                                placeholder="ค้นหาชื่อแคตตาล็อก..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="w-full bg-white border border-[#D9E1F2] focus:border-[#F97316]/30 rounded-xl md:rounded-2xl px-11 md:px-12 py-3 md:py-4 text-sm md:text-base transition-all outline-none shadow-sm focus:shadow-md"
+                            />
+                            <Search className="absolute left-3.5 md:left-4 top-1/2 -translate-y-1/2 text-[#94A3B8] group-focus-within:text-[#F97316] transition-colors" size={18} />
+                        </div>
                     </div>
                     <button
                         onClick={() => setShowModal(true)}
-                        className="bg-[#F97316] hover:bg-[#EA580C] text-white px-6 py-3 rounded-2xl font-bold flex items-center gap-2 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-all active:scale-95"
+                        className="bg-[#F97316] hover:bg-[#EA580C] text-white px-5 md:px-8 py-3 md:py-4 rounded-xl md:rounded-2xl text-sm md:text-base font-black flex items-center gap-2.5 md:gap-3 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-all active:scale-95 whitespace-nowrap"
                     >
                         <Plus size={18} /> สร้างแคตตาล็อกใหม่
                     </button>
                 </div>
 
                 {catalogs.length === 0 ? (
-                    <div className="text-center py-24 border-2 border-dashed border-[#D9E1F2] rounded-[32px] bg-white">
-                        <div className="bg-[#F6F8FF] w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                            <Package size={40} className="text-[#94A3B8]" />
+                    <div className="text-center py-16 md:py-24 border-2 border-dashed border-[#D9E1F2] rounded-[24px] md:rounded-[32px] bg-white">
+                        <div className="bg-[#F6F8FF] w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center mx-auto mb-4 md:mb-6">
+                            <Package size={32} className="text-[#94A3B8]" />
                         </div>
-                        <h3 className="text-2xl font-bold mb-2 text-[#050579]">ยังไม่มีแคตตาล็อก</h3>
-                        <p className="text-[#64748B] mb-8 max-w-sm mx-auto">เริ่มสร้างแคตตาล็อกแรกของคุณเพื่อเพิ่มรายการสินค้าและแชร์กับลูกค้าของคุณ</p>
-                        <button onClick={() => setShowModal(true)} className="bg-[#F97316] hover:bg-[#EA580C] text-white px-8 py-3 rounded-xl font-bold transition-colors">สร้างแคตตาล็อกตอนนี้</button>
+                        <h3 className="text-xl md:text-2xl font-bold mb-2 text-[#050579]">ยังไม่มีแคตตาล็อก</h3>
+                        <p className="text-sm md:text-base text-[#64748B] mb-6 md:mb-8 max-w-sm mx-auto">เริ่มสร้างแคตตาล็อกแรกของคุณเพื่อเพิ่มรายการสินค้าและแชร์กับลูกค้าของคุณ</p>
+                        <button onClick={() => setShowModal(true)} className="bg-[#F97316] hover:bg-[#EA580C] text-white px-6 md:px-8 py-2.5 md:py-3 rounded-xl font-bold transition-colors">สร้างแคตตาล็อกตอนนี้</button>
                     </div>
                 ) : (
-                    <div className="space-y-6">
-                        {catalogs.map(catalog => {
+                    <div className="space-y-4 md:space-y-6">
+                        {catalogs
+                            .filter(c => 
+                                c.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                                c.description?.toLowerCase().includes(searchQuery.toLowerCase())
+                            )
+                            .map(catalog => {
                             const previewImages = getCatalogPreviewImages(catalog);
 
                             return (
-                            <div key={catalog.id} className="bg-white border border-[#D9E1F2] rounded-[24px] hover:border-[#C7D2E5] shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] transition-all group relative overflow-hidden">
+                            <div key={catalog.id} className="bg-white border border-[#D9E1F2] rounded-[16px] md:rounded-[24px] hover:border-[#C7D2E5] shadow-[0_18px_46px_-34px_rgba(15,23,42,0.14)] transition-all group relative overflow-hidden">
                                 <div className="flex flex-col lg:flex-row">
                                     {/* Left Side - Catalog Info */}
-                                    <div className="flex-1 p-6 lg:p-8">
-                                        <div className="flex items-start gap-4 mb-4">
-                                            <div className="bg-[#EEF2FF] p-3 rounded-xl text-[#050579] flex-shrink-0 w-[52px] h-[52px] flex items-center justify-center overflow-hidden">
+                                    <div className="flex-1 p-3 md:p-6 lg:p-8">
+                                        <div className="flex items-start gap-2.5 md:gap-4 mb-2.5 md:mb-4">
+                                            <div className="bg-[#EEF2FF] p-2.5 md:p-3 rounded-xl text-[#050579] flex-shrink-0 w-[44px] h-[44px] md:w-[52px] md:h-[52px] flex items-center justify-center overflow-hidden">
                                                 {catalog.layout_config?.brand_logo ? (
                                                     <img
                                                         src={getImageUrl(catalog.layout_config.brand_logo)}
@@ -419,7 +445,7 @@ export default function Dashboard() {
                                             </div>
                                             <div className="flex-1 min-w-0">
                                                 <div className="flex items-center gap-3 mb-1">
-                                                    <h3 className="text-xl font-bold text-[#0F172A] group-hover:text-[#050579] transition-colors truncate">{catalog.title}</h3>
+                                                    <h3 className="text-base md:text-xl font-bold text-[#0F172A] group-hover:text-[#050579] transition-colors truncate">{catalog.title}</h3>
                                                     {catalog.pdf_url && (
                                                         <a
                                                             href={`${API_URL}${catalog.pdf_url}`}
@@ -431,36 +457,36 @@ export default function Dashboard() {
                                                         </a>
                                                     )}
                                                 </div>
-                                                <p className="text-[#475569] text-sm line-clamp-2">{catalog.description || 'ไม่มีคำอธิบาย'}</p>
-                                                <p className="text-[#94A3B8] text-xs mt-2">{catalog.products?.length || 0} สินค้า</p>
+                                                <p className="text-[#475569] text-[11px] md:text-sm line-clamp-1 md:line-clamp-2">{catalog.description || 'ไม่มีคำอธิบาย'}</p>
+                                                <p className="text-[#94A3B8] text-[11px] mt-1.5 md:mt-2">{catalog.products?.length || 0} สินค้า</p>
                                             </div>
                                         </div>
 
                                         {/* Action Buttons */}
-                                        <div className="flex flex-wrap gap-2 mt-4">
+                                        <div className="flex flex-wrap gap-1.5 md:gap-2 mt-2 md:mt-4">
                                                 <Link
                                                 href={`/manage/catalogs/${catalog.id}`}
-                                                className="bg-[#050579] hover:bg-[#07079A] text-white px-4 py-2.5 rounded-xl text-center font-bold text-sm transition-colors"
+                                                className="bg-[#050579] hover:bg-[#07079A] text-white px-3 md:px-4 py-2 rounded-xl text-center font-bold text-xs md:text-sm transition-colors"
                                             >
                                                 จัดการสินค้า
                                             </Link>
                                             <Link
                                                 href={`/catalog/${catalog.id}`}
                                                 target="_blank"
-                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white px-4 py-2.5 rounded-xl font-bold text-sm text-[#0F172A] transition-colors flex items-center gap-2"
+                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white px-3 md:px-4 py-2 rounded-xl font-bold text-xs md:text-sm text-[#0F172A] transition-colors flex items-center gap-1.5 md:gap-2"
                                             >
-                                                <ExternalLink size={16} /> ดูหน้าสาธารณะ
+                                                <ExternalLink size={14} /> ดูหน้าสาธารณะ
                                             </Link>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); openEditModal(catalog); }}
-                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white p-2.5 rounded-xl text-[#64748B] hover:text-[#050579] transition-colors"
+                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white p-2 rounded-xl text-[#64748B] hover:text-[#050579] transition-colors"
                                                 title="แก้ไขแคตตาล็อก"
                                             >
                                                 <Pencil size={18} />
                                             </button>
                                             <button
                                                 onClick={(e) => { e.stopPropagation(); openDeleteModal(catalog); }}
-                                                className="border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] p-2.5 rounded-xl text-[#DC2626] hover:text-[#B91C1C] transition-colors"
+                                                className="border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] p-2 rounded-xl text-[#DC2626] hover:text-[#B91C1C] transition-colors"
                                                 title="ลบแคตตาล็อก"
                                             >
                                                 <Trash2 size={18} />
@@ -468,11 +494,11 @@ export default function Dashboard() {
                                             <button
                                                 onClick={() => generatePdf(catalog.id)}
                                                 disabled={generatingId === catalog.id}
-                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white p-2.5 rounded-xl text-[#64748B] hover:text-[#0F172A] transition-colors flex items-center gap-2 px-4"
+                                                className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white p-2 rounded-xl text-[#64748B] hover:text-[#0F172A] transition-colors flex items-center gap-1.5 md:gap-2 px-3 md:px-4"
                                                 title="สร้าง PDF ใหม่"
                                             >
                                                 {generatingId === catalog.id ? <Loader2 size={18} className="animate-spin" /> : <Settings size={18} />}
-                                                <span className="text-sm font-bold">{generatingId === catalog.id ? 'Processing...' : 'Generate PDF'}</span>
+                                                <span className="text-xs md:text-sm font-bold">{generatingId === catalog.id ? 'Processing...' : 'Generate PDF'}</span>
                                             </button>
                                             
                                             {catalog.pdf_url && (
@@ -480,14 +506,14 @@ export default function Dashboard() {
                                                     href={getImageUrl(catalog.pdf_url)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                    className="bg-[#F97316] hover:bg-[#EA580C] text-white px-4 py-2.5 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)]"
+                                                    className="bg-[#F97316] hover:bg-[#EA580C] text-white px-3 md:px-4 py-2 rounded-xl font-bold text-xs md:text-sm transition-colors flex items-center gap-1.5 md:gap-2 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)]"
                                                 >
-                                                    <Download size={18} /> Download PDF
+                                                    <Download size={16} /> Download PDF
                                                 </a>
                                             )}
                                         </div>
 
-                                        <div className="mt-6 pt-5 border-t border-[#E2E8F0]">
+                                        <div className="mt-4 md:mt-6 pt-3.5 md:pt-5 border-t border-[#E2E8F0]">
                                             <div className="flex items-center justify-between mb-3">
                                                 <p className="text-[10px] font-black tracking-[0.18em] uppercase text-[#64748B]">
                                                     Product Preview
@@ -497,14 +523,14 @@ export default function Dashboard() {
                                                 </p>
                                             </div>
 
-                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                                            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 md:gap-3">
                                                 {Array.from({ length: 4 }).map((_, index) => {
                                                     const preview = previewImages[index];
                                                     if (!preview) {
                                                         return (
                                                             <div
                                                                 key={`placeholder-${catalog.id}-${index}`}
-                                                                className="aspect-[4/3] rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] flex items-center justify-center"
+                                                                className={`aspect-[4/3] rounded-xl border border-dashed border-[#CBD5E1] bg-[#F8FAFC] flex items-center justify-center ${index > 1 ? 'hidden sm:flex' : ''}`}
                                                             >
                                                                 <Package size={18} className="text-[#CBD5E1]" />
                                                             </div>
@@ -514,7 +540,7 @@ export default function Dashboard() {
                                                     return (
                                                         <div
                                                             key={`preview-${catalog.id}-${index}`}
-                                                            className="aspect-[4/3] rounded-xl overflow-hidden border border-[#D9E1F2] bg-[#EEF2FF]"
+                                                            className={`aspect-[4/3] rounded-xl overflow-hidden border border-[#D9E1F2] bg-[#EEF2FF] ${index > 1 ? 'hidden sm:block' : ''}`}
                                                         >
                                                             <img
                                                                 src={preview.src}
@@ -529,37 +555,37 @@ export default function Dashboard() {
                                     </div>
 
                                     {/* Right Side - QR Code & Share */}
-                                    <div className="lg:w-72 p-6 lg:p-8 border-t lg:border-t-0 lg:border-l border-[#D9E1F2] bg-[#F6F8FF] flex flex-col items-center justify-center">
-                                        <QrCodeImage url={getCatalogUrl(catalog.id)} size={120} className="mb-4" />
+                                    <div className="lg:w-72 p-3 md:p-6 lg:p-8 border-t lg:border-t-0 lg:border-l border-[#D9E1F2] bg-[#F6F8FF] flex flex-row lg:flex-col items-center justify-between lg:justify-center gap-3">
+                                        <QrCodeImage url={getCatalogUrl(catalog.id)} size={88} className="mb-0 lg:mb-4 shrink-0" />
 
-                                        <p className="text-xs text-[#64748B] mb-3 text-center">สแกนเพื่อดูแคตตาล็อก</p>
+                                        <p className="hidden lg:block text-xs text-[#64748B] mb-3 text-center">สแกนเพื่อดูแคตตาล็อก</p>
 
                                         {/* Share Buttons */}
-                                        <div className="flex items-center gap-2 mb-3">
+                                        <div className="flex items-center gap-1.5 md:gap-2 mb-0 lg:mb-3">
                                             <button
                                                 onClick={() => shareToFacebook(catalog.id)}
-                                                className="w-10 h-10 bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white rounded-full flex items-center justify-center transition-all"
+                                                className="w-8 h-8 md:w-10 md:h-10 bg-[#1877F2]/20 hover:bg-[#1877F2] text-[#1877F2] hover:text-white rounded-full flex items-center justify-center transition-all"
                                                 title="แชร์ไป Facebook"
                                             >
                                                 <FacebookIcon />
                                             </button>
                                             <button
                                                 onClick={() => shareToLine(catalog.id)}
-                                                className="w-10 h-10 bg-[#00B900]/20 hover:bg-[#00B900] text-[#00B900] hover:text-white rounded-full flex items-center justify-center transition-all"
+                                                className="w-8 h-8 md:w-10 md:h-10 bg-[#00B900]/20 hover:bg-[#00B900] text-[#00B900] hover:text-white rounded-full flex items-center justify-center transition-all"
                                                 title="แชร์ไป Line"
                                             >
                                                 <LineIcon />
                                             </button>
                                             <button
                                                 onClick={() => shareToWhatsApp(catalog.id, catalog.title)}
-                                                className="w-10 h-10 bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white rounded-full flex items-center justify-center transition-all"
+                                                className="w-8 h-8 md:w-10 md:h-10 bg-[#25D366]/20 hover:bg-[#25D366] text-[#25D366] hover:text-white rounded-full flex items-center justify-center transition-all"
                                                 title="แชร์ไป WhatsApp"
                                             >
                                                 <WhatsAppIcon />
                                             </button>
                                             <button
                                                 onClick={() => copyLink(catalog.id)}
-                                                className={`w-10 h-10 rounded-full flex items-center justify-center transition-all ${
+                                                className={`w-8 h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center transition-all ${
                                                     copiedId === catalog.id
                                                         ? 'bg-green-500 text-white'
                                                         : 'bg-white border border-[#D9E1F2] hover:bg-[#EEF0FF] text-[#64748B] hover:text-[#0F172A]'
@@ -573,7 +599,7 @@ export default function Dashboard() {
                                         {/* More Share Options Button */}
                                         <button
                                             onClick={() => setShareModalCatalog(catalog)}
-                                            className="text-xs text-[#050579] hover:underline flex items-center gap-1"
+                                            className="hidden lg:flex text-xs text-[#050579] hover:underline items-center gap-1"
                                         >
                                             <Share2 size={14} /> แชร์เพิ่มเติม
                                         </button>
@@ -589,14 +615,14 @@ export default function Dashboard() {
             {showModal && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-md animate-in fade-in duration-300" onClick={() => setShowModal(false)} />
-                    <div className="bg-white border border-[#D9E1F2] rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                        <h2 className="text-2xl font-black mb-6 tracking-tight text-[#050579]">สร้างแคตตาล็อกใหม่</h2>
-                        <form onSubmit={createCatalog} className="space-y-6">
+                    <div className="bg-white border border-[#D9E1F2] rounded-[24px] md:rounded-[32px] p-5 md:p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <h2 className="text-xl md:text-2xl font-black mb-5 md:mb-6 tracking-tight text-[#050579]">สร้างแคตตาล็อกใหม่</h2>
+                        <form onSubmit={createCatalog} className="space-y-5 md:space-y-6">
                             <div className="space-y-2">
                                 <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">หัวข้อแคตตาล็อก</label>
                                 <input
                                     required
-                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all placeholder:text-[#94A3B8]"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 md:px-5 py-3 md:py-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all placeholder:text-[#94A3B8]"
                                     value={newCatalog.title}
                                     placeholder="เช่น คอลเลกชันฤดูร้อน 2024"
                                     onChange={e => setNewCatalog({ ...newCatalog, title: e.target.value })}
@@ -605,7 +631,7 @@ export default function Dashboard() {
                             <div className="space-y-2">
                                 <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">คำอธิบาย</label>
                                 <textarea
-                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all h-32 resize-none placeholder:text-[#94A3B8]"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 md:px-5 py-3 md:py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all h-28 md:h-32 resize-none placeholder:text-[#94A3B8]"
                                     value={newCatalog.description}
                                     placeholder="เพิ่มรายละเอียดเกี่ยวกับแคตตาล็อกนี้..."
                                     onChange={e => setNewCatalog({ ...newCatalog, description: e.target.value })}
@@ -660,11 +686,11 @@ export default function Dashboard() {
                                 </div>
                                 <p className="text-xs text-[#94A3B8]">รองรับ JPG, PNG, GIF, WebP ขนาดไม่เกิน 5MB</p>
                             </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 text-[#64748B] hover:text-[#0F172A] font-bold py-4 transition-colors">
+                            <div className="flex gap-2 md:gap-3 pt-1 md:pt-2">
+                                <button type="button" onClick={() => setShowModal(false)} className="flex-1 text-[#64748B] hover:text-[#0F172A] text-sm md:text-base font-bold py-3 md:py-4 transition-colors">
                                     ยกเลิก
                                 </button>
-                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white font-bold py-4 rounded-2xl shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-colors active:scale-95">
+                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white text-sm md:text-base font-bold py-3 md:py-4 rounded-2xl shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-colors active:scale-95">
                                     สร้างแคตตาล็อก
                                 </button>
                             </div>
@@ -677,14 +703,14 @@ export default function Dashboard() {
             {editingCatalog && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
                     <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-md animate-in fade-in duration-300" onClick={closeEditModal} />
-                    <div className="bg-white border border-[#D9E1F2] rounded-[32px] p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
-                        <h2 className="text-2xl font-black mb-6 tracking-tight text-[#050579]">แก้ไขแคตตาล็อก</h2>
-                        <form onSubmit={updateCatalog} className="space-y-6">
+                    <div className="bg-white border border-[#D9E1F2] rounded-[24px] md:rounded-[32px] p-5 md:p-8 w-full max-w-md relative z-10 shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+                        <h2 className="text-xl md:text-2xl font-black mb-5 md:mb-6 tracking-tight text-[#050579]">แก้ไขแคตตาล็อก</h2>
+                        <form onSubmit={updateCatalog} className="space-y-5 md:space-y-6">
                             <div className="space-y-2">
                                 <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">หัวข้อแคตตาล็อก</label>
                                 <input
                                     required
-                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all placeholder:text-[#94A3B8]"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 md:px-5 py-3 md:py-4 text-sm md:text-base focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all placeholder:text-[#94A3B8]"
                                     value={editCatalog.title}
                                     placeholder="เช่น คอลเลกชันฤดูร้อน 2024"
                                     onChange={e => setEditCatalog({ ...editCatalog, title: e.target.value })}
@@ -693,7 +719,7 @@ export default function Dashboard() {
                             <div className="space-y-2">
                                 <label className="block text-xs font-bold text-[#64748B] uppercase tracking-widest ml-1">คำอธิบาย</label>
                                 <textarea
-                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-5 py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all h-32 resize-none placeholder:text-[#94A3B8]"
+                                    className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 md:px-5 py-3 md:py-4 focus:outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all h-28 md:h-32 resize-none placeholder:text-[#94A3B8]"
                                     value={editCatalog.description}
                                     placeholder="เพิ่มรายละเอียดเกี่ยวกับแคตตาล็อกนี้..."
                                     onChange={e => setEditCatalog({ ...editCatalog, description: e.target.value })}
@@ -748,11 +774,11 @@ export default function Dashboard() {
                                 </div>
                                 <p className="text-xs text-[#94A3B8]">รองรับ JPG, PNG, GIF, WebP ขนาดไม่เกิน 5MB</p>
                             </div>
-                            <div className="flex gap-3 pt-2">
-                                <button type="button" onClick={closeEditModal} className="flex-1 text-[#64748B] hover:text-[#0F172A] font-bold py-4 transition-colors">
+                            <div className="flex gap-2 md:gap-3 pt-1 md:pt-2">
+                                <button type="button" onClick={closeEditModal} className="flex-1 text-[#64748B] hover:text-[#0F172A] text-sm md:text-base font-bold py-3 md:py-4 transition-colors">
                                     ยกเลิก
                                 </button>
-                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white font-bold py-4 rounded-2xl shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-colors active:scale-95">
+                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white text-sm md:text-base font-bold py-3 md:py-4 rounded-2xl shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] transition-colors active:scale-95">
                                     บันทึกการแก้ไข
                                 </button>
                             </div>
@@ -866,6 +892,12 @@ export default function Dashboard() {
                     </div>
                 </div>
             )}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
+            />
         </div>
     );
 }

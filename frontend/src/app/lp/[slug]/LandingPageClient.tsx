@@ -185,77 +185,13 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                         สแกนเพื่อเข้าชมหน้าร้าน
                     </p>
 
-                    {/* Social Buttons */}
+                    {/* Share Button */}
                     <div style={{
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: '1.25rem',
                         marginBottom: '4rem'
                     }}>
-                        {/* Facebook */}
-                        <a 
-                            href={`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(shareUrl)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            style={{
-                                width: '3.5rem',
-                                height: '3.5rem',
-                                backgroundColor: 'rgba(24,119,242,0.1)',
-                                color: '#1877F2',
-                                borderRadius: '9999px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                textDecoration: 'none'
-                            }}
-                        >
-                            <Facebook size={24} fill="currentColor" />
-                        </a>
-
-                        {/* Line */}
-                        <a 
-                            href={`https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(shareUrl)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            style={{
-                                width: '3.5rem',
-                                height: '3.5rem',
-                                backgroundColor: 'rgba(0,185,0,0.1)',
-                                color: '#00B900',
-                                borderRadius: '9999px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                textDecoration: 'none'
-                            }}
-                        >
-                            <LineIcon size={26} />
-                        </a>
-
-                        {/* WhatsApp */}
-                        <a 
-                            href={`https://wa.me/?text=${encodeURIComponent(shareUrl)}`} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
-                            style={{
-                                width: '3.5rem',
-                                height: '3.5rem',
-                                backgroundColor: 'rgba(37,211,102,0.1)',
-                                color: '#25D366',
-                                borderRadius: '9999px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                                textDecoration: 'none'
-                            }}
-                        >
-                            <WhatsAppIcon size={26} />
-                        </a>
-
                         {/* Share / Copy Link */}
                         <button 
                             onClick={async () => {

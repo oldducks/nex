@@ -4,6 +4,7 @@ import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import html2canvas from "html2canvas";
+import * as htmlToImage from "html-to-image";
 import ManageTopBar from "@/components/ManageTopBar";
 import {
   Loader2,
@@ -50,6 +51,7 @@ interface EditorState {
   textSize: number;
   textWeight: number;
   textAlign: TextAlign;
+  isFullFrame: boolean;
 }
 
 interface ExportPreset {
@@ -143,6 +145,7 @@ const defaultEditorState: EditorState = {
   textSize: 100,
   textWeight: 800,
   textAlign: "left",
+  isFullFrame: false,
 };
 
 const defaultModalState: UiModalState = {
@@ -182,13 +185,6 @@ export default function CreateLitePage() {
   const [variantSearch, setVariantSearch] = useState("");
   const [modal, setModal] = useState<UiModalState>(defaultModalState);
   const [aiLoading, setAiLoading] = useState(false);
-  const nexPageVars = {
-    "--background": "#EEF0FF",
-    "--foreground": "#0F172A",
-    "--primary": "#050579",
-    "--glass-border": "rgba(15,23,42,0.08)",
-    "--card-bg": "#FFFFFF",
-  } as React.CSSProperties;
 
   const selectedTemplate = useMemo(
     () => templates.find((item) => item.id === selectedTemplateId) || null,
@@ -409,6 +405,7 @@ export default function CreateLitePage() {
       textSize: 100,
       textWeight: 800,
       textAlign: "left",
+      isFullFrame: false,
     };
 
     try {
@@ -479,6 +476,7 @@ export default function CreateLitePage() {
       textSize: 100,
       textWeight: 800,
       textAlign: "left",
+      isFullFrame: false,
     };
 
     try {
@@ -634,19 +632,25 @@ export default function CreateLitePage() {
     if (!element) return;
 
     const images = Array.from(element.querySelectorAll("img"));
-    await Promise.all(
-      images.map(
-        (img) =>
-          new Promise<void>((resolve) => {
-            if (img.complete) {
-              resolve();
-              return;
-            }
-            img.onload = () => resolve();
-            img.onerror = () => resolve();
-          })
-      )
+    const imagePromises = images.map(
+      (img) =>
+        new Promise<void>((resolve) => {
+          if (img.complete) {
+            resolve();
+            return;
+          }
+          img.onload = () => resolve();
+          img.onerror = () => resolve();
+        })
     );
+
+    // Add a 5s timeout to not hang forever
+    const timeoutPromise = new Promise<void>((resolve) => setTimeout(resolve, 5000));
+    
+    await Promise.race([
+      Promise.all(imagePromises),
+      timeoutPromise
+    ]);
 
     if (document.fonts?.ready) await document.fonts.ready;
   };
@@ -664,30 +668,30 @@ export default function CreateLitePage() {
       setExporting(true);
       await waitForPreviewReady();
 
-      const canvas = await html2canvas(previewRef.current, {
-        backgroundColor: null,
-        scale: 2,
-        useCORS: true,
-      });
+      const options = {
+        quality: 0.95,
+        width: selectedPreset.width,
+        height: selectedPreset.height,
+        pixelRatio: 2, // Retained high resolution
+        canvasWidth: selectedPreset.width,
+        canvasHeight: selectedPreset.height,
+        cacheBust: true,
+      };
 
-      const exportCanvas = document.createElement("canvas");
-      exportCanvas.width = selectedPreset.width;
-      exportCanvas.height = selectedPreset.height;
-      const ctx = exportCanvas.getContext("2d");
-      if (!ctx) return;
-
-      ctx.drawImage(canvas, 0, 0, selectedPreset.width, selectedPreset.height);
-
-      const mime = format === "png" ? "image/png" : "image/jpeg";
-      const quality = format === "png" ? 1 : 0.92;
-      const dataUrl = exportCanvas.toDataURL(mime, quality);
+      let dataUrl = "";
+      if (format === "png") {
+        dataUrl = await htmlToImage.toPng(previewRef.current, options);
+      } else {
+        dataUrl = await htmlToImage.toJpeg(previewRef.current, options);
+      }
 
       const a = document.createElement("a");
       a.href = dataUrl;
       a.download = getExportFilename(format);
       a.click();
-    } catch (err) {
+    } catch (err: any) {
       console.error("export failed", err);
+      showAlert("ส่งออกไม่สำเร็จ", `ขออภัย เกิดข้อผิดพลาด: ${err?.message || "ระบบสร้างภาพล้มเหลว (Modern Capture)"}`);
     } finally {
       setExporting(false);
     }
@@ -702,7 +706,7 @@ export default function CreateLitePage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground" style={nexPageVars}>
+    <div className="min-h-screen bg-background text-foreground">
       <ManageTopBar
         backHref="/manage/control-center"
         subtitle="ระบบสร้างสื่อด่วน"
@@ -787,12 +791,36 @@ export default function CreateLitePage() {
                     <ImageIcon size={13} /> อัปโหลดรูปแทนที่
                     <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
                   </label>
-                  <div className="grid grid-cols-3 gap-3">
-                    <input type="range" min={50} max={180} value={editor.imageScale} onChange={(e) => applyEditorPatch({ imageScale: Number(e.target.value) })} />
-                    <input type="range" min={0} max={100} value={editor.imageX} onChange={(e) => applyEditorPatch({ imageX: Number(e.target.value) })} />
-                    <input type="range" min={0} max={100} value={editor.imageY} onChange={(e) => applyEditorPatch({ imageY: Number(e.target.value) })} />
+                  {!editor.isFullFrame && (
+                    <div className="grid grid-cols-3 gap-3">
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-[#64748B] font-bold uppercase">ขนาด</label>
+                        <input type="range" min={50} max={180} value={editor.imageScale} onChange={(e) => applyEditorPatch({ imageScale: Number(e.target.value) })} className="w-full h-1.5 bg-[#EEF0FF] rounded-lg appearance-none cursor-pointer" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-[#64748B] font-bold uppercase">แนวนอน</label>
+                        <input type="range" min={0} max={100} value={editor.imageX} onChange={(e) => applyEditorPatch({ imageX: Number(e.target.value) })} className="w-full h-1.5 bg-[#EEF0FF] rounded-lg appearance-none cursor-pointer" />
+                      </div>
+                      <div className="space-y-1">
+                        <label className="text-[10px] text-[#64748B] font-bold uppercase">แนวตั้ง</label>
+                        <input type="range" min={0} max={100} value={editor.imageY} onChange={(e) => applyEditorPatch({ imageY: Number(e.target.value) })} className="w-full h-1.5 bg-[#EEF0FF] rounded-lg appearance-none cursor-pointer" />
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex flex-wrap gap-2">
+                    <button 
+                      type="button" 
+                      onClick={() => applyEditorPatch({ isFullFrame: !editor.isFullFrame })}
+                      className={`inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border transition-all ${
+                        editor.isFullFrame 
+                          ? "bg-[#050579] text-white border-[#050579]" 
+                          : "border-[#D9E1F2] text-[#475569] hover:border-[#050579]/40"
+                      }`}
+                    >
+                      <Shield size={13} /> {editor.isFullFrame ? "ปิดโหมดเต็มกรอบ" : "เปิดโหมดเต็มกรอบ"}
+                    </button>
+                    <button type="button" onClick={resetImage} className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-[#D9E1F2] text-[#475569] hover:border-[#050579]/40"><RotateCcw size={13} /> รีเซ็ตรูป</button>
                   </div>
-                  <button type="button" onClick={resetImage} className="inline-flex items-center gap-2 text-sm px-3 py-2 rounded-xl border border-[#D9E1F2] text-[#475569] hover:border-[#050579]/40"><RotateCcw size={13} /> รีเซ็ตรูป</button>
                 </div>
 
                 <div className="pt-2 border-t border-[#D9E1F2] space-y-3">
@@ -865,7 +893,15 @@ export default function CreateLitePage() {
                 <div className="w-full rounded-2xl overflow-hidden bg-[#F6F8FF] border border-[#D9E1F2] p-3">
                   <div ref={previewRef} className={`w-full bg-gradient-to-br ${selectedTemplate.previewGradient} relative overflow-hidden`} style={{ aspectRatio: `${selectedPreset.width} / ${selectedPreset.height}` }}>
                     {editor.imageDataUrl && (
-                      <div className="absolute w-[42%] aspect-square rounded-xl overflow-hidden border border-white/30" style={{ left: `${editor.imageX}%`, top: `${editor.imageY}%`, transform: `translate(-50%, -50%) scale(${editor.imageScale / 100})` }}>
+                      <div 
+                        className={`absolute overflow-hidden ${editor.isFullFrame ? "inset-0 w-full h-full rounded-none" : "w-[42%] aspect-square rounded-xl border border-white/30"}`} 
+                        style={{ 
+                          left: editor.isFullFrame ? "0" : `${editor.imageX}%`, 
+                          top: editor.isFullFrame ? "0" : `${editor.imageY}%`, 
+                          transform: editor.isFullFrame ? "none" : `translate(-50%, -50%) scale(${editor.imageScale / 100})`,
+                          zIndex: editor.isFullFrame ? 0 : 5
+                        }}
+                      >
                         <img src={editor.imageDataUrl} alt="Uploaded" className="w-full h-full object-cover" />
                       </div>
                     )}

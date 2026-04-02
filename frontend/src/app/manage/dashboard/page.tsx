@@ -19,6 +19,7 @@ export default function AnalyticsDashboard() {
     const [landingViews, setLandingViews] = useState<Record<number, number>>({});
     const [landingLoading, setLandingLoading] = useState(false);
     const [dailyStats, setDailyStats] = useState<any[]>([]);
+    const [isMobile, setIsMobile] = useState(false);
 
     const token = Cookies.get('token');
 
@@ -29,6 +30,14 @@ export default function AnalyticsDashboard() {
         }
         fetchData();
     }, [token, period]);
+
+    useEffect(() => {
+        const media = window.matchMedia('(max-width: 768px)');
+        const update = () => setIsMobile(media.matches);
+        update();
+        media.addEventListener('change', update);
+        return () => media.removeEventListener('change', update);
+    }, []);
 
     const fetchData = async () => {
         setLoading(true);
@@ -110,13 +119,13 @@ export default function AnalyticsDashboard() {
     };
 
     const chartData = stats ? [
-        { name: 'ยอดดูโปรไฟล์', value: stats.VIEW_PROFILE, color: '#6366F1' },
-        { name: 'บันทึก VCF', value: stats.DOWNLOAD_VCF, color: '#10B981' },
-        { name: 'ยอดดูแคตตาล็อก', value: stats.VIEW_CATALOG, color: '#F59E0B' },
-        { name: 'ดาวน์โหลด PDF', value: stats.DOWNLOAD_PDF, color: '#EC4899' },
-        { name: 'ดู Landing Page', value: stats.VIEW_LANDING_PAGE, color: '#22C55E' },
-        { name: 'ส่งฟอร์ม Landing', value: stats.SUBMIT_LANDING_FORM, color: '#0EA5E9' },
-        { name: 'สแกน QR', value: stats.SCAN_QR, color: '#A855F7' },
+        { name: 'ยอดดูโปรไฟล์', shortName: 'โปรไฟล์', value: stats.VIEW_PROFILE, color: '#6366F1' },
+        { name: 'บันทึก VCF', shortName: 'VCF', value: stats.DOWNLOAD_VCF, color: '#10B981' },
+        { name: 'ยอดดูแคตตาล็อก', shortName: 'แคตตาล็อก', value: stats.VIEW_CATALOG, color: '#F59E0B' },
+        { name: 'ดาวน์โหลด PDF', shortName: 'PDF', value: stats.DOWNLOAD_PDF, color: '#EC4899' },
+        { name: 'ดู Landing Page', shortName: 'Landing', value: stats.VIEW_LANDING_PAGE, color: '#22C55E' },
+        { name: 'ส่งฟอร์ม Landing', shortName: 'ฟอร์ม', value: stats.SUBMIT_LANDING_FORM, color: '#0EA5E9' },
+        { name: 'สแกน QR', shortName: 'QR', value: stats.SCAN_QR, color: '#A855F7' },
     ] : [];
 
     const remainingDays = getRemainingDays();
@@ -139,12 +148,12 @@ export default function AnalyticsDashboard() {
                 )}
             />
 
-            <main className="max-w-7xl mx-auto px-6 py-10">
+            <main className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-10">
                 {/* Header & Filter */}
-                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-6">
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-7 md:mb-10 gap-4 md:gap-6">
                     <div>
-                        <h1 className="mb-2 text-3xl font-black tracking-tight text-[#050579]">ภาพรวมแดชบอร์ด</h1>
-                        <div className="flex items-center gap-2 text-[#475569]">
+                        <h1 className="mb-2 text-2xl md:text-3xl font-black tracking-tight text-[#050579]">ภาพรวมแดชบอร์ด</h1>
+                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 text-[#475569] text-sm md:text-base">
                             <Calendar size={16} />
                             <span>สมาชิก: <strong className="text-[#F97316]">เหลืออีก {remainingDays} วัน</strong></span>
                             {profile?.expiration_date && (
@@ -154,12 +163,12 @@ export default function AnalyticsDashboard() {
                             )}
                         </div>
                     </div>
-                    <div className="flex w-full overflow-x-auto rounded-2xl border border-[#D9E1F2] bg-white p-1 md:w-auto">
+                    <div className="grid grid-cols-2 md:flex w-full rounded-2xl border border-[#D9E1F2] bg-white p-1 md:w-auto gap-1 md:gap-0">
                         {['today', '7days', '30days', 'all'].map((p) => (
                             <button
                                 key={p}
                                 onClick={() => setPeriod(p)}
-                                className={`whitespace-nowrap rounded-xl px-4 py-2 text-sm font-bold transition-all ${period === p ? 'bg-[#F6F8FF] text-[#050579] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'}`}
+                                className={`whitespace-nowrap rounded-xl px-3 md:px-4 py-2 text-xs md:text-sm font-bold transition-all ${period === p ? 'bg-[#F6F8FF] text-[#050579] shadow-sm' : 'text-[#64748B] hover:text-[#0F172A]'}`}
                             >
                                 {p === 'today' ? 'วันนี้' : p === '7days' ? '7 วันที่ผ่านมา' : p === '30days' ? '30 วันที่ผ่านมา' : 'ทั้งหมด'}
                             </button>
@@ -175,62 +184,76 @@ export default function AnalyticsDashboard() {
                 ) : (
                     <>
                         {/* Stats Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+                        <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6 mb-4 md:mb-10">
                             <StatCard
                                 title="ยอดดูโปรไฟล์"
+                                mobileTitle="ดูโปรไฟล์"
                                 value={stats?.VIEW_PROFILE || 0}
-                                icon={<Eye size={24} className="text-indigo-500" />}
+                                icon={<Eye size={18} className="text-indigo-500" />}
                                 color="bg-indigo-500/10 border-indigo-500/20"
+                                compact
                             />
                             <StatCard
                                 title="บันทึกผู้ติดต่อ"
+                                mobileTitle="บันทึกติดต่อ"
                                 value={stats?.DOWNLOAD_VCF || 0}
-                                icon={<User size={24} className="text-emerald-500" />}
+                                icon={<User size={18} className="text-emerald-500" />}
                                 color="bg-emerald-500/10 border-emerald-500/20"
+                                compact
                             />
                             <StatCard
                                 title="ยอดดูแคตตาล็อก"
+                                mobileTitle="ดูแคตตาล็อก"
                                 value={stats?.VIEW_CATALOG || 0}
-                                icon={<Database size={24} className="text-amber-500" />}
+                                icon={<Database size={18} className="text-amber-500" />}
                                 color="bg-amber-500/10 border-amber-500/20"
+                                compact
                             />
                             <StatCard
                                 title="ดาวน์โหลด PDF"
+                                mobileTitle="ดาวน์โหลด PDF"
                                 value={stats?.DOWNLOAD_PDF || 0}
-                                icon={<FileText size={24} className="text-pink-500" />}
+                                icon={<FileText size={18} className="text-pink-500" />}
                                 color="bg-pink-500/10 border-pink-500/20"
+                                compact
                             />
                         </div>
 
                         {/* Funnel Stats Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+                        <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-6 md:mb-10">
                             <StatCard
                                 title="ยอดดู Landing Page"
+                                mobileTitle="ดู Landing"
                                 value={stats?.VIEW_LANDING_PAGE || 0}
-                                icon={<LineChart size={24} className="text-emerald-500" />}
+                                icon={<LineChart size={16} className="text-emerald-500" />}
                                 color="bg-emerald-500/10 border-emerald-500/20"
+                                compact
                             />
                             <StatCard
                                 title="ส่งฟอร์ม Landing"
+                                mobileTitle="ส่งฟอร์ม"
                                 value={stats?.SUBMIT_LANDING_FORM || 0}
-                                icon={<Download size={24} className="text-sky-500" />}
+                                icon={<Download size={16} className="text-sky-500" />}
                                 color="bg-sky-500/10 border-sky-500/20"
+                                compact
                             />
                             <StatCard
                                 title="สแกน QR ทั้งหมด"
+                                mobileTitle="สแกน QR"
                                 value={stats?.SCAN_QR || 0}
-                                icon={<QrCode size={24} className="text-violet-500" />}
+                                icon={<QrCode size={16} className="text-violet-500" />}
                                 color="bg-violet-500/10 border-violet-500/20"
+                                compact
                             />
                         </div>
 
                         {/* Charts Section */}
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-10">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 md:gap-6 mb-7 md:mb-10">
                             {/* Bar Chart */}
-                            <div className="group relative overflow-hidden rounded-[36px] border border-[#D9E1F2] bg-white p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
+                            <div className="group relative overflow-hidden rounded-[28px] md:rounded-[36px] border border-[#D9E1F2] bg-white p-4 md:p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
                                 <div className="absolute inset-0 bg-gradient-to-br from-[#EEF2FF] via-transparent to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
-                                <div className="flex items-center justify-between mb-8 relative z-10">
-                                    <h3 className="text-xl font-bold tracking-tight text-[#050579]">แยกตามประเภทการใช้งาน</h3>
+                                <div className="flex items-center justify-between mb-4 md:mb-8 relative z-10">
+                                    <h3 className="text-base md:text-xl font-bold tracking-tight text-[#050579]">แยกตามประเภทการใช้งาน</h3>
                                     <div className="hidden sm:flex gap-4">
                                         {chartData.slice(0, 3).map((item, i) => (
                                             <div key={i} className="flex items-center gap-1.5">
@@ -240,9 +263,9 @@ export default function AnalyticsDashboard() {
                                         ))}
                                     </div>
                                 </div>
-                                <div className="h-80 w-full relative z-10">
+                                <div className="h-64 md:h-80 w-full relative z-10">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                        <BarChart data={chartData} margin={{ top: 12, right: isMobile ? 8 : 30, left: 0, bottom: 0 }}>
                                             <defs>
                                                 {chartData.map((item, i) => (
                                                     <linearGradient key={`grad-${i}`} id={`colorBar-${i}`} x1="0" y1="0" x2="0" y2="1">
@@ -255,16 +278,18 @@ export default function AnalyticsDashboard() {
                                             <XAxis 
                                                 dataKey="name" 
                                                 stroke="currentColor" 
-                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                tick={{ fill: 'currentColor', fontSize: isMobile ? 9 : 10, opacity: 0.5 }} 
                                                 axisLine={false} 
                                                 tickLine={false} 
-                                                dy={10}
+                                                dy={8}
+                                                tickFormatter={(_, index) => chartData[index]?.shortName || ''}
                                             />
                                             <YAxis 
                                                 stroke="currentColor" 
-                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                tick={{ fill: 'currentColor', fontSize: isMobile ? 9 : 10, opacity: 0.5 }} 
                                                 axisLine={false} 
                                                 tickLine={false} 
+                                                width={isMobile ? 26 : 34}
                                             />
                                             <Tooltip
                                                 contentStyle={{ 
@@ -277,7 +302,7 @@ export default function AnalyticsDashboard() {
                                                 itemStyle={{ color: '#0F172A', fontSize: '12px', fontWeight: '800' }}
                                                 cursor={{ fill: 'currentColor', opacity: 0.05 }}
                                             />
-                                            <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={32} animationDuration={1500} animationEasing="ease-out">
+                                            <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={isMobile ? 20 : 32} animationDuration={1500} animationEasing="ease-out">
                                                 {chartData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={`url(#colorBar-${index})`} />
                                                 ))}
@@ -288,15 +313,15 @@ export default function AnalyticsDashboard() {
                             </div>
 
                             {/* Line Chart */}
-                            <div className="group relative overflow-hidden rounded-[36px] border border-[#D9E1F2] bg-white p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
+                            <div className="group relative overflow-hidden rounded-[28px] md:rounded-[36px] border border-[#D9E1F2] bg-white p-4 md:p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
                                 <div className="absolute inset-0 bg-gradient-to-br from-[#EAF4FF] via-transparent to-transparent opacity-0 transition-opacity duration-700 group-hover:opacity-100" />
-                                <div className="mb-8 relative z-10">
-                                    <h3 className="text-xl font-bold tracking-tight text-[#050579]">การเติบโตของผู้เข้าชม (Engagement)</h3>
+                                <div className="mb-4 md:mb-8 relative z-10">
+                                    <h3 className="text-base md:text-xl font-bold tracking-tight text-[#050579]">การเติบโตของผู้เข้าชม (Engagement)</h3>
                                     <p className="mt-1 text-xs text-[#64748B]">จำนวนการใช้งานรวมในแต่ละวัน</p>
                                 </div>
-                                <div className="h-80 w-full relative z-10">
+                                <div className="h-64 md:h-80 w-full relative z-10">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <ReLineChart data={dailyStats} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+                                        <ReLineChart data={dailyStats} margin={{ top: 12, right: isMobile ? 8 : 30, left: 0, bottom: 0 }}>
                                             <defs>
                                                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
                                                     <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
@@ -307,20 +332,21 @@ export default function AnalyticsDashboard() {
                                             <XAxis 
                                                 dataKey="date" 
                                                 stroke="currentColor" 
-                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                tick={{ fill: 'currentColor', fontSize: isMobile ? 9 : 10, opacity: 0.5 }} 
                                                 axisLine={false} 
                                                 tickLine={false} 
-                                                dy={10}
+                                                dy={8}
                                                 tickFormatter={(str) => {
                                                     const d = new Date(str);
-                                                    return d.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
+                                                    return d.toLocaleDateString('th-TH', { day: 'numeric', month: isMobile ? 'numeric' : 'short' });
                                                 }}
                                             />
                                             <YAxis 
                                                 stroke="currentColor" 
-                                                tick={{ fill: 'currentColor', fontSize: 10, opacity: 0.5 }} 
+                                                tick={{ fill: 'currentColor', fontSize: isMobile ? 9 : 10, opacity: 0.5 }} 
                                                 axisLine={false} 
                                                 tickLine={false} 
+                                                width={isMobile ? 26 : 34}
                                             />
                                             <Tooltip
                                                 labelFormatter={(label) => new Date(label).toLocaleDateString('th-TH', { dateStyle: 'long' })}
@@ -336,9 +362,9 @@ export default function AnalyticsDashboard() {
                                                 type="monotone" 
                                                 dataKey="count" 
                                                 stroke="#2563EB" 
-                                                strokeWidth={5} 
-                                                dot={{ r: 6, fill: '#2563EB', strokeWidth: 3, stroke: '#FFFFFF' }}
-                                                activeDot={{ r: 8, strokeWidth: 4, stroke: '#FFFFFF' }}
+                                                strokeWidth={isMobile ? 3 : 5} 
+                                                dot={{ r: isMobile ? 4 : 6, fill: '#2563EB', strokeWidth: 3, stroke: '#FFFFFF' }}
+                                                activeDot={{ r: isMobile ? 5 : 8, strokeWidth: 4, stroke: '#FFFFFF' }}
                                                 animationDuration={2000}
                                             />
                                         </ReLineChart>
@@ -348,9 +374,9 @@ export default function AnalyticsDashboard() {
                         </div>
 
                         {/* Landing pages performance */}
-                        <div className="rounded-[32px] border border-[#D9E1F2] bg-white p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="flex items-center gap-2 text-xl font-bold tracking-tight text-[#050579]">
+                        <div className="rounded-[28px] md:rounded-[32px] border border-[#D9E1F2] bg-white p-4 md:p-8 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)]">
+                            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 md:mb-6 gap-2">
+                                <h3 className="flex items-center gap-2 text-base md:text-xl font-bold tracking-tight text-[#050579]">
                                     <LineChart size={20} className="text-[#050579]" />
                                     สถิติ Landing Page (สูงสุด 5 หน้าแรก)
                                 </h3>
@@ -366,19 +392,19 @@ export default function AnalyticsDashboard() {
                                     ยังไม่มี Landing Page ในระบบ คุณสามารถเริ่มสร้างได้จากเมนู Landing Pages
                                 </p>
                             ) : (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
                                     {landingPages.slice(0, 5).map((page: any) => {
                                         const views = landingViews[page.id] ?? 0;
                                         return (
                                             <div
                                                 key={page.id}
-                                                className="flex items-center justify-between gap-4 rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-4"
+                                                className="flex items-center justify-between gap-3 rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-3 md:p-4"
                                             >
                                                 <div className="min-w-0">
                                                     <p className="mb-1 text-xs font-black uppercase tracking-widest text-[#64748B]">
                                                         Landing Page
                                                     </p>
-                                                    <p className="text-sm font-semibold truncate mb-1">
+                                                    <p className="text-xs md:text-sm font-semibold truncate mb-1">
                                                         {page.title || '(ไม่มีชื่อเพจ)'}
                                                     </p>
                                                     <p className="truncate text-xs text-[#64748B]">
@@ -386,7 +412,7 @@ export default function AnalyticsDashboard() {
                                                     </p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <div className="text-2xl font-black">{views.toLocaleString()}</div>
+                                                    <div className="text-xl md:text-2xl font-black">{views.toLocaleString()}</div>
                                                     <div className="text-[10px] uppercase tracking-widest text-[#64748B]">
                                                         Views รวม
                                                     </div>
@@ -404,14 +430,23 @@ export default function AnalyticsDashboard() {
     );
 }
 
-function StatCard({ title, value, icon, color }: any) {
+function StatCard({ title, mobileTitle, value, icon, color, compact = false }: any) {
     return (
-        <div className={`flex cursor-default items-center justify-between rounded-[32px] border p-8 transition-all hover:scale-[1.02] ${color} shadow-[0_20px_50px_-36px_rgba(15,23,42,0.14)]`}>
+        <div
+            className={`flex cursor-default items-center justify-between border transition-all hover:scale-[1.02] ${color} shadow-[0_20px_50px_-36px_rgba(15,23,42,0.14)] ${
+                compact
+                    ? 'min-h-[84px] rounded-[18px] p-2.5 md:min-h-[148px] md:rounded-[32px] md:p-8'
+                    : 'min-h-[108px] rounded-[22px] p-3 md:min-h-[148px] md:rounded-[32px] md:p-8'
+            }`}
+        >
             <div>
-                <p className="mb-2 text-xs font-black uppercase tracking-widest text-[#64748B]">{title}</p>
-                <h3 className="text-4xl font-black tracking-tighter text-[#050579]">{value.toLocaleString()}</h3>
+                <p className={`mb-1 md:mb-2 font-black uppercase text-[#64748B] leading-tight ${compact ? 'text-[8px] tracking-[0.05em] md:text-xs md:tracking-widest' : 'text-[9px] tracking-[0.08em] md:text-xs md:tracking-widest'}`}>
+                    <span className="md:hidden">{mobileTitle || title}</span>
+                    <span className="hidden md:inline">{title}</span>
+                </p>
+                <h3 className={`${compact ? 'text-xl md:text-4xl' : 'text-2xl md:text-4xl'} font-black tracking-tighter text-[#050579]`}>{value.toLocaleString()}</h3>
             </div>
-            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${color.split(' ')[0]} shadow-inner`}>
+            <div className={`${compact ? 'w-8 h-8 rounded-lg md:w-14 md:h-14 md:rounded-2xl' : 'w-10 h-10 rounded-xl md:w-14 md:h-14 md:rounded-2xl'} flex items-center justify-center ${color.split(' ')[0]} shadow-inner`}>
                 {icon}
             </div>
         </div>

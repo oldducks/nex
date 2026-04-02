@@ -2,6 +2,11 @@
 
 ## 📚 Phase 0: Planning & System Design
 
+### Documentation Entry Point
+- [NEX Master Standard Index](./NEX_MASTER_STANDARD_INDEX.md) - สารบัญกลางของมาตรฐาน, source of truth และกติกาการใช้งานเอกสาร
+
+---
+
 ### Week 1: Product Lock ✅
 - [MVP Scope](./PHASE0_WEEK1_MVP_SCOPE.md) - กำหนดขอบเขต MVP
 - [User Flow](./PHASE0_WEEK1_USER_FLOW.md) - กำหนดเส้นทางการใช้งาน
@@ -19,10 +24,9 @@
 
 ### Brand & UI Standards
 - [NEX Brand Guideline v2](./NEX_BRAND_GUIDELINE_V2.md) - แนวทางแบรนด์, tone of voice, messaging และ CTA hierarchy
-- [NEX Color Standard v1](./NEX_COLOR_STANDARD_V1.md) - มาตรฐานสีของแบรนด์และการใช้งานใน UI
 - [NEX Color System v2](./NEX_COLOR_SYSTEM_V2.md) - ระบบสี, usage rules, pairings และ accessibility notes
 - [NEX Tailwind Tokens v2](./NEX_TAILWIND_TOKENS_V2.md) - token naming, usage mapping และตัวอย่างการ extend theme
-- [NEX UI Rules v1](./NEX_UI_RULES_V1.md) - กติกาโครงสร้างหน้า, headings, buttons, cards, forms และ sections
+- [NEX Archive](./archive/README.md) - เอกสารเก่าที่เก็บไว้เพื่ออ้างอิงย้อนหลังเท่านั้น ห้ามใช้เป็น source of truth
 
 ---
 

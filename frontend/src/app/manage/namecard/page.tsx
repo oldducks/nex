@@ -48,13 +48,6 @@ export default function NamecardEditor() {
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const token = Cookies.get('token');
     const uid = Cookies.get('uid');
-    const nexPageVars = {
-        '--background': '#EEF0FF',
-        '--foreground': '#0F172A',
-        '--primary': '#050579',
-        '--glass-border': 'rgba(15,23,42,0.08)',
-        '--card-bg': '#FFFFFF',
-    } as React.CSSProperties;
 
     useEffect(() => {
         if (!token) { router.push('/login'); return; }
@@ -210,7 +203,7 @@ export default function NamecardEditor() {
     );
 
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500" style={nexPageVars}>
+        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
             <ManageTopBar
                 backHref="/manage/control-center"
                 subtitle="ระบบจัดการนามบัตร"

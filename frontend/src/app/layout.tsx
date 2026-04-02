@@ -3,6 +3,7 @@ import { Prompt, Montserrat } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CookieConsent } from "@/components/CookieConsent";
+import V2ThemeBridge from "@/components/V2ThemeBridge";
 
 const prompt = Prompt({
   subsets: ["latin", "thai"],
@@ -45,9 +46,21 @@ const serviceWorkerScript = `
   if (typeof window === 'undefined') return;
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.register('/sw.js').catch(function(error) {
-      console.warn('Service worker registration failed:', error);
-    });
+    navigator.serviceWorker.getRegistrations().then(function(registrations) {
+      return Promise.all(registrations.map(function(registration) {
+        return registration.unregister();
+      }));
+    }).catch(function() {});
+
+    if ('caches' in window) {
+      caches.keys().then(function(keys) {
+        return Promise.all(
+          keys
+            .filter(function(key) { return key.indexOf('nex-offline') === 0; })
+            .map(function(key) { return caches.delete(key); })
+        );
+      }).catch(function() {});
+    }
   });
 })();
 `;
@@ -66,6 +79,7 @@ export default function RootLayout({
       </head>
       <body className={`${prompt.variable} ${montserrat.variable} antialiased min-h-screen relative bg-background text-foreground transition-colors duration-500`}>
         <ThemeProvider>
+          <V2ThemeBridge />
           <div className="ambient-light" />
           {children}
           <CookieConsent />

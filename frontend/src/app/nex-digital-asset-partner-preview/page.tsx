@@ -2,6 +2,7 @@ import { readdir } from 'node:fs/promises';
 import { join } from 'node:path';
 import Image from 'next/image';
 import Link from 'next/link';
+import PreviewVideo from './PreviewVideo';
 
 const IMAGE_DIR = join(process.cwd(), 'public', 'nex-digital-asset-partner-preview');
 
@@ -50,6 +51,16 @@ export default async function NexDigitalAssetPartnerPreviewPage() {
                   className="h-auto w-full lg:h-dvh lg:w-auto lg:max-w-full"
                 />
               </section>
+              {image.order === 1 && (
+                <section className="relative overflow-hidden pt-2 lg:flex lg:min-h-dvh lg:items-center lg:justify-center">
+                  <div className="w-full overflow-hidden bg-black lg:w-auto">
+                    <PreviewVideo
+                      src="/nex-digital-asset-partner-preview/preview-video.mp4"
+                      className="block h-auto w-full lg:h-dvh lg:w-auto lg:max-w-full"
+                    />
+                  </div>
+                </section>
+              )}
               {REGISTER_BUTTON_AFTER.has(image.order) && (
                 <section className="px-4 py-5">
                   <Link

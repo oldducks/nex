@@ -95,6 +95,7 @@ export default function ManageQrPage() {
   const [selectedLandingId, setSelectedLandingId] = useState<number | null>(null);
   const [selectedFormId, setSelectedFormId] = useState<number | null>(null);
   const [selectedCatalogId, setSelectedCatalogId] = useState<number | null>(null);
+  const [deletingQrId, setDeletingQrId] = useState<number | null>(null);
   const [previewConfig, setPreviewConfig] = useState<{
     url: string;
     fgColor: string;
@@ -126,13 +127,6 @@ export default function ManageQrPage() {
     }
   }, [exportConfig]);
 
-  const nexPageVars = {
-    "--background": "#EEF0FF",
-    "--foreground": "#0F172A",
-    "--primary": "#050579",
-    "--glass-border": "rgba(15,23,42,0.08)",
-    "--card-bg": "#FFFFFF",
-  } as React.CSSProperties;
 
   useEffect(() => {
     if (!token) {
@@ -354,7 +348,6 @@ export default function ManageQrPage() {
   };
 
   const handleDeleteQr = async (id: number) => {
-    if (!window.confirm("ต้องการลบ QR นี้หรือไม่?")) return;
     try {
       await fetch(`${API_URL}/qr-codes/${id}`, {
         method: "DELETE",
@@ -362,9 +355,12 @@ export default function ManageQrPage() {
           Authorization: `Bearer ${token}`,
         },
       });
+      setDeletingQrId(null);
+      setSuccess("ลบ QR สำเร็จแล้ว");
       await loadQrList();
     } catch (e) {
       console.error("ลบ QR ไม่สำเร็จ", e);
+      setError("ลบ QR ไม่สำเร็จ กรุณาลองใหม่");
     }
   };
 
@@ -393,7 +389,7 @@ export default function ManageQrPage() {
   const finalUrl = getFinalUrl();
 
   return (
-    <div className="qr-manage-page min-h-screen bg-background text-foreground transition-colors duration-500" style={nexPageVars}>
+    <div className="qr-manage-page min-h-screen bg-background text-foreground transition-colors duration-500">
       <ManageTopBar
         backHref="/manage/control-center"
         subtitle="ระบบจัดการคิวอาร์โค้ด"
@@ -847,7 +843,7 @@ export default function ManageQrPage() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => handleDeleteQr(qr.id)}
+                        onClick={() => setDeletingQrId(qr.id)}
                         className="text-[#64748B] hover:text-[#DC2626] transition-colors"
                         title="ลบ QR นี้"
                       >
@@ -903,6 +899,37 @@ export default function ManageQrPage() {
             </div>
           )}
         </section>
+
+        {deletingQrId !== null && (
+          <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
+            <div className="absolute inset-0 bg-[#050579]/40 backdrop-blur-md" onClick={() => setDeletingQrId(null)} />
+            <div className="relative z-10 w-full max-w-md rounded-[32px] border border-[#FECACA] bg-white p-8 shadow-2xl">
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-[#FECACA] bg-[#FEF2F2] text-[#DC2626]">
+                <Trash2 size={24} />
+              </div>
+              <h2 className="mb-2 text-2xl font-black text-[#991B1B]">ยืนยันการลบ QR</h2>
+              <p className="mb-8 text-sm font-medium leading-relaxed text-[#7F1D1D]">
+                การลบนี้ไม่สามารถย้อนกลับได้ และลิงก์ดาวน์โหลดของ QR นี้จะใช้งานต่อไม่ได้
+              </p>
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={() => setDeletingQrId(null)}
+                  className="flex-1 rounded-2xl border border-[#D9E1F2] px-5 py-3 text-sm font-black text-[#64748B] transition-colors hover:bg-[#F8FAFF]"
+                >
+                  ยกเลิก
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleDeleteQr(deletingQrId)}
+                  className="flex-1 rounded-2xl bg-[#DC2626] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#B91C1C]"
+                >
+                  ยืนยันลบ
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Hidden Export Canvas */}
         <div style={{ position: 'absolute', left: '-9999px', top: '-9999px', opacity: 0, pointerEvents: 'none' }}>

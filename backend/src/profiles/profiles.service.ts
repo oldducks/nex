@@ -83,6 +83,7 @@ export class ProfilesService {
         profile_pic_url: '',
         bio: '',
         social_links_json: [],
+        email: user?.email || '',
         user: user ? { role: user.role } : null
       };
     }
@@ -94,7 +95,8 @@ export class ProfilesService {
       subscription_tier: profile.user?.subscription_tier || 'free',
       feature_config: profile.user?.feature_config || {},
       ...profile,
-      user: profile.user ? { role: profile.user.role } : null
+      email: profile.user?.email || '',
+      user: profile.user ? { role: profile.user.role, email: profile.user.email } : null
     };
   }
 

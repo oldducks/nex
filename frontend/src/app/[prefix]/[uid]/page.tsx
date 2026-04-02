@@ -11,16 +11,16 @@ function ensureHttps(url: string): string {
     }
     return `https://${trimmed}`;
 }
-import { VcfDownloadButton } from '../../../components/VcfDownload';
 import { QrCodeImage } from '../../../components/QrCode';
-import { NamecardDownloadButton } from '../../../components/NamecardDownload';
 import { ProfilePageClient } from '../../../components/ProfilePageClient';
 import { VideoEmbed } from '../../../components/VideoEmbed';
 import { Gallery } from '../../../components/Gallery';
 import { SocialLinksDisplay } from '../../../components/SocialLinksDisplay';
 
 import { SaveToHomeButton } from '../../../components/SaveToHomeButton';
+import { QrCodeDownloadActions } from '../../../components/QrCodeDownloadActions';
 import { Metadata } from 'next';
+import { formatPhoneNumber } from '../../../lib/phone-utils';
 
 // Helper function for metadata since we can't share it easily with the component
 const getImageUrlBase = (url: string | null | undefined) => {
@@ -493,7 +493,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                     </div>
                                     <div>
                                         <div className="text-xs font-bold uppercase text-foreground/50">{phone.label || 'Phone'}</div>
-                                        <div className="font-medium text-foreground">{phone.value}</div>
+                                        <div className="font-medium text-foreground">{formatPhoneNumber(phone.value)}</div>
                                     </div>
                                 </a>
                             ))}
@@ -541,6 +541,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 บันทึกคอนแทกต์หรือเปิดหน้านี้บนอุปกรณ์อื่นได้ทันที
                             </p>
                             <QrCodeImage url={profileUrl} size={180} />
+                            <QrCodeDownloadActions qrValue={profileUrl} fileBaseName={`${uid}-qr-code`} lightMode={lightMode} />
                         </section>
                     )}
 
@@ -553,7 +554,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             profilePicUrl={profileThumbUrl || profileImageUrl}
                         />
 
-                        {/* Save Contact Button */}
+                        {/* Hidden temporarily:
+                            - ดาวน์โหลดข้อมูลลงสมุดโทรศัพท์
+                            - ดาวน์โหลดนามบัตรเป็นรูปภาพ
+                        */}
+                        {/*
                         {feature_config?.can_save_vcf !== false && (
                             <VcfDownloadButton
                                 name={displayName}
@@ -566,7 +571,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             />
                         )}
 
-                        {/* Download Namecard Image Button */}
                         <NamecardDownloadButton
                             nameMain={displayName}
                             nameSub={names_i18n?.find((n: any) => n.lang === 'en')?.value}
@@ -579,6 +583,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             qrUrl={profileUrl}
                             template="gradient"
                         />
+                        */}
                     </section>
                     </div>
                 </div>

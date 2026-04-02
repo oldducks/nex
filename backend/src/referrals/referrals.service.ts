@@ -76,17 +76,16 @@ export class ReferralsService {
         let currentFee = registrationFee;
         let level = 1;
 
-        while (currentReferrerId && level <= MAX_REFERRAL_LEVELS && currentFee > 0) {
-            const commission = currentFee * (BASE_COMMISSION_RATE / 100);
-
-            if (commission < 0.01) break; // Stop if commission is too small
+        while (currentReferrerId && level <= MAX_REFERRAL_LEVELS) {
+            const commission = currentFee > 0 ? currentFee * (BASE_COMMISSION_RATE / 100) : 0;
+            const actualCommission = commission >= 0.01 ? commission : 0;
 
             // Create referral record
             const referral = this.referralsRepository.create({
                 referrer_id: currentReferrerId,
                 referred_id: newUserId,
                 level,
-                commission_amount: commission,
+                commission_amount: actualCommission,
                 commission_rate: BASE_COMMISSION_RATE,
                 registration_fee: level === 1 ? registrationFee : 0,
                 status: registrationFee > 0 ? ReferralStatus.CONFIRMED : ReferralStatus.PENDING,
@@ -98,7 +97,7 @@ export class ReferralsService {
             if (!currentReferrer?.referred_by) break;
 
             currentReferrerId = currentReferrer.referred_by;
-            currentFee = commission; // Next level gets commission of commission
+            currentFee = actualCommission; // Next level gets commission of commission
             level++;
         }
     }
@@ -147,7 +146,7 @@ export class ReferralsService {
     async getReferralTree(userId: number) {
         const referrals = await this.referralsRepository.find({
             where: { referrer_id: userId },
-            relations: ['referred'],
+            relations: ['referred', 'referred.profile'],
             order: { level: 'ASC', created_at: 'DESC' },
         });
 
@@ -158,8 +157,10 @@ export class ReferralsService {
                 id: ref.referred?.id,
                 email: ref.referred?.email,
                 uid: ref.referred?.uid,
+                profilePic: ref.referred?.profile?.profile_pic_url,
+                subscription_tier: ref.referred?.subscription_tier || 'free',
             },
-            commission: ref.commission_amount,
+            commission: typeof ref.commission_amount === 'string' ? parseFloat(ref.commission_amount) : ref.commission_amount,
             status: ref.status,
             createdAt: ref.created_at,
         }));

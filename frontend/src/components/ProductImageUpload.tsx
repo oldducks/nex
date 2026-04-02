@@ -3,6 +3,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, X, Image as ImageIcon, Loader2 } from 'lucide-react';
 import Cookies from 'js-cookie';
+import { Toast, type ToastType } from './Toast';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -19,15 +20,24 @@ export default function ProductImageUpload({
 }: ProductImageUploadProps) {
     const [uploading, setUploading] = useState(false);
     const [dragOver, setDragOver] = useState(false);
+    const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
+        message: '',
+        type: 'info',
+        isVisible: false,
+    });
     const fileInputRef = useRef<HTMLInputElement>(null);
     const token = Cookies.get('token');
+
+    const showToast = (message: string, type: ToastType = 'info') => {
+        setToast({ message, type, isVisible: true });
+    };
 
     const handleFileSelect = async (files: FileList | null) => {
         if (!files || files.length === 0) return;
 
         const remainingSlots = maxImages - images.length;
         if (remainingSlots <= 0) {
-            alert(`สามารถอัพโหลดได้สูงสุด ${maxImages} รูป`);
+            showToast(`สามารถอัพโหลดได้สูงสุด ${maxImages} รูป`, 'error');
             return;
         }
 
@@ -38,13 +48,16 @@ export default function ProductImageUpload({
         const newUrls: string[] = [];
 
         try {
+            let rejectedCount = 0;
             for (const file of filesToUpload) {
                 if (!allowedTypes.includes(file.type)) {
-                    alert(`ไฟล์ ${file.name} ไม่ใช่รูปภาพที่รองรับ (jpg, png, gif, webp)`);
+                    showToast(`ไฟล์ ${file.name} ไม่ใช่รูปภาพที่รองรับ (jpg, png, gif, webp)`, 'error');
+                    rejectedCount += 1;
                     continue;
                 }
                 if (file.size > 5 * 1024 * 1024) {
-                    alert(`ไฟล์ ${file.name} มีขนาดเกิน 5MB`);
+                    showToast(`ไฟล์ ${file.name} มีขนาดเกิน 5MB`, 'error');
+                    rejectedCount += 1;
                     continue;
                 }
 
@@ -92,10 +105,13 @@ export default function ProductImageUpload({
 
             if (newUrls.length > 0) {
                 onChange([...images, ...newUrls]);
+                showToast(`อัปโหลดรูปสำเร็จ ${newUrls.length} รูป`, 'success');
+            } else if (rejectedCount > 0) {
+                showToast('ไม่มีไฟล์ที่อัปโหลดได้ กรุณาตรวจสอบชนิดไฟล์และขนาดอีกครั้ง', 'error');
             }
         } catch (error) {
             console.error('Upload error:', error);
-            alert('อัพโหลดรูปไม่สำเร็จ กรุณาลองใหม่');
+            showToast('อัพโหลดรูปไม่สำเร็จ กรุณาลองใหม่', 'error');
         } finally {
             setUploading(false);
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -136,9 +152,32 @@ export default function ProductImageUpload({
                         <div key={index} className="relative aspect-square rounded-lg overflow-hidden border border-border group">
                             {img ? (
                                 <img
-                                    src={typeof img === 'string' && img.startsWith('http') ? img : `${API_URL}${img}`}
+                                    src={(() => {
+                                        if (!img) return '';
+                                        if (typeof img !== 'string') return '';
+
+                                        if (img.startsWith('http')) {
+                                            // Handle localhost fallback if API_URL is production
+                                            if (img.includes('localhost:') && API_URL.includes('nexsolution.cloud')) {
+                                                try {
+                                                    const parsedUrl = new URL(img);
+                                                    if (parsedUrl.pathname.startsWith('/uploads')) {
+                                                        return `${API_URL}${parsedUrl.pathname}`;
+                                                    }
+                                                } catch {}
+                                            }
+                                            return img;
+                                        }
+                                        
+                                        // Handle relative paths
+                                        if (img.startsWith('/')) return `${API_URL}${img}`;
+                                        return `${API_URL}/${img}`;
+                                    })()}
                                     alt={`Product ${index + 1}`}
                                     className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = `https://ui-avatars.com/api/?name=Product+${index + 1}&background=random`;
+                                    }}
                                 />
                             ) : (
                                 <div className="w-full h-full bg-foreground/5 flex items-center justify-center">
@@ -208,6 +247,12 @@ export default function ProductImageUpload({
                     )}
                 </div>
             )}
+            <Toast
+                message={toast.message}
+                type={toast.type}
+                isVisible={toast.isVisible}
+                onClose={() => setToast((prev) => ({ ...prev, isVisible: false }))}
+            />
         </div>
     );
 }
