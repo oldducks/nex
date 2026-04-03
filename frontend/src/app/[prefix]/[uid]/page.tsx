@@ -367,7 +367,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 )}
                                 {/* Logo Badge Premium */}
                                 {logoUrl && (
-                                    <div className="absolute right-4 top-4 flex h-20 w-20 sm:h-24 sm:w-24 items-center justify-center rounded-2xl border border-white/40 bg-white/88 p-1.5 shadow-[0_18px_40px_-24px_rgba(15,23,42,0.5)] backdrop-blur-md">
+                                    <div className="absolute left-[83.333%] top-[16.667%] flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl bg-transparent p-1.5 sm:h-24 sm:w-24">
                                         <img src={logoUrl} alt="Logo" className="w-full h-full object-contain scale-110" />
                                     </div>
                                 )}
