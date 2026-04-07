@@ -35,4 +35,28 @@ export class CreateLiteController {
       cta: body.cta,
     });
   }
+
+  @Post('ai-image/generate')
+  generateImage(
+    @Body()
+    body: {
+      prompt?: string;
+      templateId?: string;
+      headline?: string;
+      subheadline?: string;
+      ctaText?: string;
+      brandName?: string;
+      ratio?: '1:1' | '4:5' | '9:16';
+    },
+  ) {
+    return this.createLiteService.generateImageFromPrompt({
+      prompt: body.prompt,
+      templateId: body.templateId,
+      headline: body.headline,
+      subheadline: body.subheadline,
+      ctaText: body.ctaText,
+      brandName: body.brandName,
+      ratio: body.ratio,
+    });
+  }
 }

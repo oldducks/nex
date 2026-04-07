@@ -39,6 +39,8 @@ import { CreateLiteModule } from './create-lite/create-lite.module';
 import { PdpaModule } from './pdpa/pdpa.module';
 import { ConsentLog } from './pdpa/entities/consent-log.entity';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
+import { AdminSettingsModule } from './admin-settings/admin-settings.module';
+import { AdminSetting } from './admin-settings/entities/admin-setting.entity';
 
 @Module({
   imports: [
@@ -53,7 +55,22 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
       useFactory: () => ({
         type: 'postgres',
         url: process.env.DATABASE_URL,
-        entities: [User, Profile, Catalog, Product, Lead, Order, AnalyticsLog, LandingPage, Referral, Form, FormSubmission, QRCode, ConsentLog],
+        entities: [
+          User,
+          Profile,
+          Catalog,
+          Product,
+          Lead,
+          Order,
+          AnalyticsLog,
+          LandingPage,
+          Referral,
+          Form,
+          FormSubmission,
+          QRCode,
+          ConsentLog,
+          AdminSetting,
+        ],
         synchronize: process.env.TYPEORM_SYNCHRONIZE === 'true',
       }),
     }),
@@ -87,6 +104,7 @@ import { AllExceptionsFilter } from './common/filters/http-exception.filter';
     QrCodesModule,
     CreateLiteModule,
     PdpaModule,
+    AdminSettingsModule,
   ],
   controllers: [],
   providers: [

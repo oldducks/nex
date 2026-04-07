@@ -63,6 +63,7 @@ services:
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      NEX_VERTEX_PROXY_SECRET: ${NEX_VERTEX_PROXY_SECRET:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on:
       - postgres # Changed from 'db' to 'postgres' to match existing service name
