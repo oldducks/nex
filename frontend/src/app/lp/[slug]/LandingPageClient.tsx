@@ -10,6 +10,7 @@ import ManageTopBar from '@/components/ManageTopBar';
 import Cookies from 'js-cookie';
 import { getEmbedUrl, isEmbedableVideo } from '@/lib/videoUtils';
 import { QrCodeImage } from '@/components/QrCode';
+import { QrCodeDownloadActions } from '@/components/QrCodeDownloadActions';
 
 interface Block {
     id: string;
@@ -26,6 +27,7 @@ interface LandingPage {
     theme_config: any;
     seo_metadata: any;
     owner_uid?: string;
+    referral_code?: string | null;
 }
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -83,6 +85,8 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
     const primary = theme.primary_color || '#050579';
     const accent = theme.accent_color || '#F97316';
     const shareUrl = `${SITE_URL}/lp/${page.slug}`;
+    const referralCode = page.referral_code?.trim() || 'ZXQ0KPCR';
+    const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
     const baseSans = "var(--font-sans), 'Noto Sans Thai', 'Segoe UI', system-ui, -apple-system, sans-serif";
 
     return (
@@ -164,13 +168,42 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                     {/* QR Code Box */}
                     <div style={{
                         backgroundColor: 'white',
-                        padding: '1rem',
-                        borderRadius: '40px',
+                        padding: '1.5rem 1.5rem 1.25rem',
+                        borderRadius: '32px',
                         boxShadow: '0 20px 50px rgba(0,0,0,0.08)',
-                        border: '1px solid white',
+                        border: '1px solid #dbe4ff',
                         marginBottom: '1.5rem'
                     }}>
+                        <div style={{
+                            fontSize: '12px',
+                            fontWeight: 800,
+                            letterSpacing: '0.18em',
+                            textTransform: 'uppercase',
+                            color: '#94A3B8',
+                            marginBottom: '0.85rem'
+                        }}>
+                            QR Code
+                        </div>
                         <QrCodeImage url={shareUrl} size={180} />
+                        <div style={{
+                            marginTop: '1rem',
+                            fontSize: '12px',
+                            lineHeight: 1.65,
+                            color: '#64748B',
+                            maxWidth: '15rem',
+                            wordBreak: 'break-word'
+                        }}>
+                            {shareUrl}
+                        </div>
+                        <QrCodeDownloadActions
+                            qrValue={shareUrl}
+                            fileBaseName={`landing-page-${page.slug}`}
+                            titleLine="QR Code"
+                            nameLine={page.title}
+                            bottomLabel="URL"
+                            bottomLine={shareUrl}
+                            className="mt-4"
+                        />
                     </div>
                     
                     {/* QR Label */}
@@ -231,68 +264,6 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                         </button>
                     </div>
 
-                    {/* Contact Channels Section */}
-                    <div style={{
-                        display: 'flex',
-                        flexDirection: 'column',
-                        alignItems: 'center',
-                        gap: '1.25rem',
-                        marginBottom: '5rem',
-                        padding: '2.5rem 1.5rem',
-                        backgroundColor: 'rgba(255,255,255,0.6)',
-                        backdropFilter: 'blur(10px)',
-                        borderRadius: '40px',
-                        border: '1px solid white',
-                        boxShadow: '0 20px 40px -15px rgba(0,0,0,0.05)',
-                        width: '100%',
-                        maxWidth: '440px'
-                    }}>
-                        <p style={{
-                            fontSize: '11px',
-                            fontWeight: 900,
-                            color: '#050579',
-                            textTransform: 'uppercase',
-                            letterSpacing: '0.15em',
-                            opacity: 0.5
-                        }}>ติดต่อสอบถามข้อมูลเพิ่มเติม</p>
-                        
-                        <div style={{ display: 'flex', gap: '1.5rem', width: '100%', justifyContent: 'center' }}>
-                            <a 
-                                href="https://line.me/ti/p/@nexsolution" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
-                            >
-                                <div style={{ width: '56px', height: '56px', backgroundColor: '#00B900', color: 'white', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 15px -5px rgba(0,185,0,0.3)' }}>
-                                    <LineIcon size={28} />
-                                </div>
-                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#050579' }}>Line OA</span>
-                            </a>
-
-                            <a 
-                                href="https://m.me/nexsolution.cloud" 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
-                            >
-                                <div style={{ width: '56px', height: '56px', backgroundColor: '#0668E1', color: 'white', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 15px -5px rgba(6,104,225,0.3)' }}>
-                                    <Facebook size={28} fill="currentColor" />
-                                </div>
-                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#050579' }}>Facebook</span>
-                            </a>
-
-                            <a 
-                                href="mailto:support@nexsolution.cloud" 
-                                style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', textDecoration: 'none' }}
-                            >
-                                <div style={{ width: '56px', height: '56px', backgroundColor: '#050579', color: 'white', borderRadius: '20px', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 8px 15px -5px rgba(5,5,121,0.3)' }}>
-                                    <Mail size={28} />
-                                </div>
-                                <span style={{ fontSize: '12px', fontWeight: 800, color: '#050579' }}>Email</span>
-                            </a>
-                        </div>
-                    </div>
-
                     {/* Footer - ALWAYS VISIBLE */}
                     <footer style={{
                         width: '100%',
@@ -310,6 +281,20 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                         }}>
                             © NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.
                         </p>
+                        <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                            <a
+                                href={referralRegisterUrl}
+                                style={{
+                                    fontSize: '14px',
+                                    fontWeight: 700,
+                                    color: '#050579',
+                                    textDecoration: 'underline',
+                                    textUnderlineOffset: '4px',
+                                }}
+                            >
+                                สนใจระบบแบบที่คุณเห็นอยู่นี้ คลิกที่นี่
+                            </a>
+                        </div>
                     </footer>
                 </div>
             </main>
@@ -376,7 +361,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
             return (
                 <div style={{ maxWidth: '56rem', margin: '0 auto', position: 'relative', zIndex: 10 }}>
                     <div style={{
-                        borderRadius: '40px',
+                        borderRadius: '24px',
                         overflow: 'hidden',
                         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                         border: '1px solid rgba(0,0,0,0.05)',
@@ -457,7 +442,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                         position: 'relative', 
                         width: '100%',
                         backgroundColor: '#000', 
-                        borderRadius: '3rem', 
+                        borderRadius: '24px', 
                         overflow: 'hidden', 
                         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                         aspectRatio: isEmbed ? '16/9' : 'auto'
@@ -589,7 +574,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                     <div style={{
                         backgroundColor: 'white',
                         padding: '1.5rem',
-                        borderRadius: '40px',
+                        borderRadius: '24px',
                         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)',
                         border: '1px solid rgba(0,0,0,0.05)',
                         display: 'flex',
@@ -653,7 +638,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                             padding: '1.25rem 2.5rem',
                                             backgroundColor: '#050579',
                                             color: 'white',
-                                            borderRadius: '24px',
+                                            borderRadius: '18px',
                                             fontWeight: 900,
                                             fontSize: '1rem',
                                             textDecoration: 'none',
@@ -683,7 +668,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                 alignItems: 'center',
                                 gap: '1rem',
                                 padding: '1.5rem 3rem',
-                                borderRadius: '32px',
+                                borderRadius: '20px',
                                 fontWeight: 900,
                                 fontSize: '1.25rem',
                                 boxShadow: '0 20px 40px rgba(249,115,22,0.3)',
@@ -701,7 +686,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                 alignItems: 'center',
                                 gap: '1rem',
                                 padding: '1.5rem 3rem',
-                                borderRadius: '32px',
+                                borderRadius: '20px',
                                 fontWeight: 900,
                                 fontSize: '1.25rem',
                                 boxShadow: '0 20px 40px rgba(249,115,22,0.18)',
@@ -722,7 +707,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                     <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
                         <div style={{
                             padding: '3rem 2rem',
-                            borderRadius: '56px',
+                            borderRadius: '28px',
                             textAlign: 'center',
                             border: '1px solid rgba(0,0,0,0.05)',
                             backgroundColor: 'white',
@@ -752,7 +737,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                         gap: '0.75rem',
                                         padding: '1.5rem 3rem',
                                         fontWeight: 900,
-                                        borderRadius: '32px',
+                                        borderRadius: '20px',
                                         fontSize: '1.25rem',
                                         backgroundColor: '#050579',
                                         color: 'white',
@@ -769,7 +754,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                         gap: '0.75rem',
                                         padding: '1.5rem 3rem',
                                         fontWeight: 900,
-                                        borderRadius: '32px',
+                                        borderRadius: '20px',
                                         fontSize: '1.25rem',
                                         backgroundColor: '#94A3B8',
                                         color: 'white',
@@ -882,7 +867,7 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
             <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
                 <div style={{
                     padding: '3rem 2rem',
-                    borderRadius: '56px',
+                    borderRadius: '28px',
                     border: '1px solid rgba(0,0,0,0.05)',
                     textAlign: 'center',
                     backgroundColor: 'white',
@@ -899,7 +884,7 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
         <div style={{ maxWidth: '48rem', margin: '0 auto', position: 'relative', zIndex: 20 }}>
             <div style={{
                 padding: '3rem 2rem',
-                borderRadius: '56px',
+                borderRadius: '28px',
                 border: '1px solid rgba(0,0,0,0.05)',
                 backgroundColor: 'white',
                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'

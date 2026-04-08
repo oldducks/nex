@@ -2,12 +2,14 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import Cookies from 'js-cookie';
 import {
   Globe, ShoppingCart, Facebook, MessageCircle,
   Download, ArrowLeft, ExternalLink, QrCode as QrIcon,
-  ChevronLeft, ChevronRight, Info, Package, BookOpen, Grid3X3, Share2, Twitter, Search
+  ChevronLeft, ChevronRight, Info, Package, BookOpen, Share2, Twitter, Search
 } from 'lucide-react';
 import { QrCodeImage } from '../../../components/QrCode';
+import { QrCodeDownloadActions } from '../../../components/QrCodeDownloadActions';
 import dynamic from 'next/dynamic';
 import { getEmbedUrl } from '@/lib/videoUtils';
 
@@ -30,12 +32,26 @@ interface Product {
   };
 }
 
+interface InteractiveLinks {
+  website?: string;
+  order_form?: string;
+  facebook?: string;
+}
+
+interface CatalogLayoutConfig {
+  primary_color?: string;
+  font_family?: string;
+  brand_logo?: string;
+}
+
 interface Catalog {
   id: number;
+  owner_uid?: string | null;
+  referral_code?: string | null;
   title: string;
   description: string;
-  layout_config?: any;
-  interactive_links?: any;
+  layout_config?: CatalogLayoutConfig;
+  interactive_links?: InteractiveLinks;
   pdf_url?: string;
   video_config?: {
     url: string;
@@ -77,6 +93,11 @@ export default function PublicCatalog() {
   }, [slug]);
 
   useEffect(() => {
+    if (!catalog?.owner_uid) return;
+    void logCatalogEvent('VIEW_CATALOG');
+  }, [catalog?.id, catalog?.owner_uid, slug, viewMode]);
+
+  useEffect(() => {
     const nextViewMode = searchParams.get('view') === 'book' ? 'flipbook' : 'grid';
     setViewMode(nextViewMode);
   }, [searchParams]);
@@ -109,6 +130,39 @@ export default function PublicCatalog() {
       console.error(error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getVisitorId = () => {
+    let vid = Cookies.get('vid');
+    if (!vid) {
+      vid = Math.random().toString(36).substring(2) + Date.now().toString(36);
+      Cookies.set('vid', vid, { expires: 365 });
+    }
+    return vid;
+  };
+
+  const logCatalogEvent = async (action: 'VIEW_CATALOG' | 'DOWNLOAD_PDF') => {
+    if (!catalog?.owner_uid) return;
+
+    try {
+      await fetch(`${API_URL}/analytics/log`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        keepalive: true,
+        body: JSON.stringify({
+          uid: catalog.owner_uid,
+          action,
+          visitorId: getVisitorId(),
+          metadata: {
+            catalogId: catalog.id,
+            slug,
+            viewMode,
+          },
+        }),
+      });
+    } catch (error) {
+      console.error('Catalog analytics error:', error);
     }
   };
 
@@ -151,6 +205,8 @@ export default function PublicCatalog() {
 
   const theme = catalog.layout_config || {};
   const primary = theme.primary_color || '#050579';
+  const referralCode = catalog.referral_code?.trim() || 'ZXQ0KPCR';
+  const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
   const selectedProductIndex = selectedProduct
     ? catalog.products.findIndex((item) => item.id === selectedProduct.id)
     : -1;
@@ -175,7 +231,7 @@ export default function PublicCatalog() {
       : '';
 
     const coverPage = (
-      <div className="w-full h-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center p-8" style={{ '--primary': primary } as any}>
+      <div className="w-full h-full bg-gradient-to-br from-primary via-primary/80 to-primary/60 flex items-center justify-center p-8" style={{ '--primary': primary } as React.CSSProperties}>
         <div className="text-center text-white w-full max-w-[420px]">
           {brandLogoUrl && (
             <div className="mb-8 flex justify-center">
@@ -204,10 +260,11 @@ export default function PublicCatalog() {
           pages={flipbookPages}
           coverPage={coverPage}
           onExit={() => setCatalogViewMode('grid')}
-           shareUrl={shareUrl}
+          shareUrl={shareUrl}
           shareTitle={`${catalog.title} - Digital Catalog`}
           catalogName={catalog.title}
           products={catalog.products}
+          promoHref={referralRegisterUrl}
         />
       </div>
     );
@@ -219,27 +276,29 @@ export default function PublicCatalog() {
         
         {/* Header */}
         <header className="sticky top-0 z-40 bg-background/80 backdrop-blur-xl border-b border-foreground/10">
-          <div className="max-w-6xl mx-auto px-6 h-20 flex items-center justify-between">
-            <h1 className="text-xl font-black tracking-tight uppercase text-[#050579]">{catalog.title}</h1>
-            <div className="flex items-center gap-3">
+          <div className="mx-auto flex h-20 w-full max-w-md items-center justify-between px-4 md:max-w-6xl md:px-6">
+            <h1 className="max-w-[132px] text-2xl font-black leading-none tracking-tight text-[#050579] md:max-w-none md:text-xl md:uppercase">
+              {catalog.title}
+            </h1>
+            <div className="flex items-center gap-2 md:gap-3">
               <button
                 onClick={() => setCatalogViewMode('flipbook')}
-                className="flex items-center gap-2 px-4 py-2.5 bg-primary/10 hover:bg-primary text-primary hover:text-white rounded-xl transition-all text-sm font-bold"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-all hover:bg-primary hover:text-white md:h-auto md:w-auto md:gap-2 md:px-4 md:py-2.5 md:text-sm md:font-bold"
               >
                 <BookOpen size={18} />
                 <span className="hidden sm:inline">Book View</span>
               </button>
-              <div className="h-6 w-px bg-foreground/10 mx-2" />
+              <div className="mx-1 hidden h-6 w-px bg-foreground/10 md:block" />
               <button
                 onClick={() => setShowQrModal(true)}
-                className="p-3 bg-foreground/5 hover:bg-foreground/10 rounded-xl transition-colors"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 transition-colors hover:bg-foreground/10"
                 title="QR Code"
               >
                 <QrIcon size={20} />
               </button>
               <button
                 onClick={() => setShowShareModal(true)}
-                className="p-3 bg-foreground/5 hover:bg-foreground/10 rounded-xl transition-colors"
+                className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 transition-colors hover:bg-foreground/10"
                 title="Share"
               >
                 <Share2 size={20} />
@@ -248,7 +307,11 @@ export default function PublicCatalog() {
                 <a 
                   href={getImageUrl(catalog.pdf_url)} 
                   target="_blank"
-                  className="p-3 bg-foreground/5 hover:bg-foreground/10 rounded-xl transition-colors"
+                  rel="noopener noreferrer"
+                  onClick={() => {
+                    void logCatalogEvent('DOWNLOAD_PDF');
+                  }}
+                  className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 transition-colors hover:bg-foreground/10 md:flex"
                 >
                   <Download size={20} />
                 </a>
@@ -260,20 +323,22 @@ export default function PublicCatalog() {
           </div>
         </header>
 
-        <main className="max-w-6xl mx-auto px-6 py-12">
+        <main className="mx-auto w-full max-w-md px-4 py-6 md:max-w-6xl md:px-6 md:py-12">
           {/* Welcome Section */}
-          <div className="mb-16 text-center md:text-left">
-            <h2 className="text-4xl md:text-6xl font-black mb-6 tracking-tighter text-[#050579]">
-              {catalog.description || 'Welcome to our digital collection'}
+          <div className="mb-8 rounded-[32px] border border-white/60 bg-white/55 p-6 shadow-[0_24px_70px_-50px_rgba(5,5,121,0.26)] md:mb-12 md:p-8">
+            <h2 className="text-xl font-black leading-[1.2] text-[#050579] md:max-w-4xl md:text-6xl md:leading-[0.95] md:tracking-tighter">
+              {catalog.title}
             </h2>
-            <p className="text-[#475569] max-w-2xl text-lg leading-relaxed">
-              เลือกชมสินค้าที่คุณสนใจ และคลิกเพื่อดูรายละเอียดเชิงลึก หรือสั่งซื้อผ่านลิงก์ได้ทันที
-            </p>
+            {catalog.description && (
+              <p className="mt-3 text-sm font-medium leading-7 text-[#64748B] md:mt-4 md:max-w-3xl md:text-lg md:leading-8">
+                {catalog.description}
+              </p>
+            )}
           </div>
 
           {/* Hero Video Section if enabled */}
           {catalog.video_config?.enabled && (
-             <div className="mb-20">
+             <div className="mb-10 md:mb-20">
                 <div className="relative w-full aspect-video rounded-[40px] overflow-hidden shadow-2xl bg-black group">
                     {catalog.video_config.url ? (
                         <a href={catalog.video_config.link_url || DEFAULT_REFERRAL_URL} target="_blank" rel="noopener noreferrer" className="block w-full h-full">
@@ -301,21 +366,21 @@ export default function PublicCatalog() {
           )}
 
           {/* Search bar for grid view */}
-          <div className="mb-10 max-w-xl">
+          <div className="mb-8 md:mb-10 md:max-w-xl">
             <div className="relative group">
                <input
                  type="text"
                  placeholder="ค้นหาชื่อสินค้า..."
                  value={searchQuery}
                  onChange={(e) => setSearchQuery(e.target.value)}
-                 className="w-full bg-foreground/5 border-2 border-transparent focus:border-primary/30 focus:bg-white rounded-2xl px-12 py-4 transition-all outline-none"
+                 className="w-full rounded-2xl border-2 border-transparent bg-white/65 px-12 py-4 text-base transition-all outline-none focus:border-primary/30 focus:bg-white"
                />
                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground/30 group-focus-within:text-primary transition-colors" size={20} />
             </div>
           </div>
 
           {/* Product Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
             {catalog.products
               .filter(p => 
                 p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -325,10 +390,10 @@ export default function PublicCatalog() {
               <div
                 key={product.id}
                 onClick={() => setSelectedProduct(product)}
-                className="group relative bg-[var(--card)] border border-white/5 rounded-[32px] overflow-hidden hover:border-primary/30 transition-all duration-500 cursor-pointer hover:shadow-2xl hover:shadow-primary/5"
+                className="group relative cursor-pointer overflow-hidden rounded-[30px] border border-white/50 bg-[var(--card)] transition-all duration-500 hover:border-primary/30 hover:shadow-2xl hover:shadow-primary/5"
               >
                 {/* Image */}
-                <div className="aspect-[4/5] relative overflow-hidden">
+                <div className="relative aspect-[4/4.5] overflow-hidden md:aspect-[4/5]">
                   <img
                     src={getImageUrl(product.images_json?.[0])}
                     alt={product.name}
@@ -339,26 +404,26 @@ export default function PublicCatalog() {
                 </div>
 
                 {/* Content Overlay/Bar */}
-                <div className="p-6 sm:p-8">
+                <div className="p-5 sm:p-8">
                   {product.brand && (
                     <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B] mb-2 line-clamp-1">
                       แบรนด์: {product.brand}
                     </p>
                   )}
-                  <h3 className="text-xl font-bold mb-2 group-hover:text-primary transition-colors">{product.name}</h3>
+                  <h3 className="mb-3 text-2xl font-black leading-tight tracking-tight text-[#050579] transition-colors group-hover:text-primary">{product.name}</h3>
 
                   {/* Price Badge - Below title */}
-                  <div className="inline-block px-4 py-2 bg-primary text-white font-black rounded-full shadow-lg mb-4">
+                  <div className="mb-4 inline-block rounded-full bg-primary px-4 py-2 text-base font-black text-white shadow-lg">
                     ฿{product.price.toLocaleString()}
                   </div>
 
-                  <p className="text-[#475569] text-sm line-clamp-2 md:line-clamp-3 mb-6">
+                  <p className="mb-5 text-sm leading-7 text-[#475569] line-clamp-2 md:line-clamp-3">
                     {product.description}
                   </p>
 
                   <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold uppercase tracking-widest text-primary">View Details</span>
-                    <div className="w-10 h-10 rounded-full bg-white/5 flex items-center justify-center group-hover:bg-primary group-hover:text-white transition-all">
+                    <span className="text-xs font-bold uppercase tracking-widest text-primary">ดูรายละเอียด</span>
+                    <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#EEF0FF] transition-all group-hover:bg-primary group-hover:text-white">
                       <ChevronRight size={18} />
                     </div>
                   </div>
@@ -366,10 +431,19 @@ export default function PublicCatalog() {
               </div>
             ))}
           </div>
+
+          <div className="mt-12 pb-10 text-center">
+            <a
+              href={referralRegisterUrl}
+              className="text-sm font-semibold text-[#050579] underline underline-offset-4 transition-opacity hover:opacity-80"
+            >
+              สนใจระบบแบบที่คุณเห็นอยู่นี้ คลิกที่นี่
+            </a>
+          </div>
         </main>
 
         {/* Footer Links (Mobile) */}
-        <div className="md:hidden fixed bottom-6 left-1/2 -translate-x-1/2 z-50 flex items-center gap-4 px-6 py-3 bg-[var(--background)]/80 backdrop-blur-2xl border border-white/10 rounded-2xl shadow-2xl">
+        <div className="fixed bottom-5 left-1/2 z-50 flex -translate-x-1/2 items-center gap-4 rounded-2xl border border-white/10 bg-[var(--background)]/85 px-6 py-3 shadow-2xl backdrop-blur-2xl md:hidden">
            <CatalogLinks links={catalog.interactive_links} />
         </div>
 
@@ -416,7 +490,7 @@ export default function PublicCatalog() {
   );
 }
 
-function CatalogLinks({ links }: { links?: any }) {
+function CatalogLinks({ links }: { links?: InteractiveLinks }) {
   if (!links) return null;
   return (
     <div className="flex items-center gap-3">
@@ -457,16 +531,25 @@ function QrCodeModal({ url, title, onClose }: { url: string, title: string, onCl
           <h3 className="text-2xl font-black mb-4">QR Code</h3>
           <p className="text-[#475569] mb-8">สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ</p>
           
-          <div className="bg-white p-6 rounded-2xl mb-6">
+          <div className="bg-[#F8FAFF] border border-[#D9E1F2] p-6 rounded-[28px] mb-6">
+            <p className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#94A3B8]">QR Code</p>
             <QrCodeImage 
               url={url}
               size={256}
               className="w-full h-auto"
             />
+            <p className="mt-4 text-sm font-semibold text-[#475569]">{title}</p>
+            <p className="mt-1 break-all text-xs text-[#64748B]">{url}</p>
+            <QrCodeDownloadActions
+              qrValue={url}
+              fileBaseName={`catalog-${title.replace(/\s+/g, '-').toLowerCase() || 'qr'}`}
+              titleLine="QR Code"
+              nameLine={title}
+              bottomLabel="URL"
+              bottomLine={url}
+              className="mt-4"
+            />
           </div>
-          
-          <p className="text-sm text-[#475569] mb-2">{title}</p>
-          <p className="text-xs text-[#64748B]">{url}</p>
         </div>
       </div>
     </div>
@@ -570,7 +653,7 @@ function ProductModal({
   hasNext?: boolean;
 }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
       <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
 
       <button
@@ -601,15 +684,15 @@ function ProductModal({
         <ChevronRight size={34} />
       </button>
       
-      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-4xl relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
+      <div className="relative z-10 w-full max-w-4xl overflow-hidden rounded-[32px] border border-[#D9E1F2] bg-white text-[#0F172A] shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500 sm:rounded-[40px]">
+        <button onClick={onClose} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:bg-[#EEF0FF] sm:right-6 sm:top-6 sm:h-12 sm:w-12">
           <ArrowLeft size={24} />
         </button>
 
-        <div className="flex flex-col md:flex-row h-full max-h-[90vh]">
+        <div className="flex max-h-[92vh] flex-col md:flex-row">
           {/* Gallery Sidebar/Image */}
-          <div className="md:w-1/2 p-4 md:p-8">
-            <div className="relative aspect-[4/5] rounded-[32px] overflow-hidden bg-black group">
+          <div className="p-3 md:w-1/2 md:p-8">
+            <div className="group relative aspect-[4/4.5] overflow-hidden rounded-[28px] bg-black sm:aspect-[4/5] sm:rounded-[32px]">
               <img src={getImageUrl(product.images_json?.[0])} alt={product.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
               <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-all flex items-center justify-center pointer-events-none">
                     <div className="opacity-0 group-hover:opacity-100 bg-white/90 text-primary px-4 py-2 rounded-full font-bold text-sm shadow-xl transform translate-y-4 group-hover:translate-y-0 transition-all">
@@ -620,16 +703,16 @@ function ProductModal({
           </div>
 
           {/* Info Section */}
-          <div className="md:w-1/2 p-8 md:p-12 overflow-y-auto">
-            <div className="mb-10">
+          <div className="overflow-y-auto px-5 pb-6 pt-2 md:w-1/2 md:p-12">
+            <div className="mb-8">
               {product.brand && (
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B] mb-2">แบรนด์: {product.brand}</p>
               )}
-              <h2 className="text-3xl md:text-4xl font-black mb-4 tracking-tighter">{product.name}</h2>
-              <div className="inline-block px-4 py-2 bg-primary/10 text-primary rounded-full font-bold text-lg mb-6">
+              <h2 className="mb-4 text-2xl font-black leading-tight tracking-tighter md:text-4xl">{product.name}</h2>
+              <div className="mb-5 inline-block rounded-full bg-primary/10 px-4 py-2 text-base font-bold text-primary md:text-lg">
                 ฿{product.price.toLocaleString()}
               </div>
-              <p className="text-[#475569] leading-relaxed text-lg">
+              <p className="text-base leading-8 text-[#475569] md:text-lg">
                 {product.description}
               </p>
             </div>
@@ -644,7 +727,7 @@ function ProductModal({
                   <a 
                     href={product.interactive_links?.order_form || product.interactive_links?.website || DEFAULT_REFERRAL_URL} 
                     target="_blank"
-                    className="w-full bg-primary hover:bg-primary/90 text-white font-bold py-5 rounded-2xl transition-all flex items-center justify-center gap-3 group"
+                    className="group flex w-full items-center justify-center gap-3 rounded-2xl bg-primary py-4 text-base font-bold text-white transition-all hover:bg-primary/90 md:py-5"
                   >
                     {product.interactive_links?.order_form ? 'Order Now' : 'Check Details'} 
                     <ShoppingCart size={20} className="group-hover:translate-x-1 transition-transform" />
@@ -652,12 +735,12 @@ function ProductModal({
 
                   <div className="grid grid-cols-2 gap-3">
                     {product.interactive_links?.website && (
-                      <a href={product.interactive_links.website} target="_blank" className="bg-[#F6F8FF] hover:bg-[#EEF0FF] py-5 rounded-2xl flex items-center justify-center gap-2 transition-all">
+                      <a href={product.interactive_links.website} target="_blank" className="flex items-center justify-center gap-2 rounded-2xl bg-[#F6F8FF] py-4 transition-all hover:bg-[#EEF0FF] md:py-5">
                         <Globe size={18} /> Website
                       </a>
                     )}
                     {product.interactive_links?.facebook && (
-                      <a href={product.interactive_links.facebook} target="_blank" className="bg-[#F6F8FF] hover:bg-[#EEF0FF] py-5 rounded-2xl flex items-center justify-center gap-2 transition-all">
+                      <a href={product.interactive_links.facebook} target="_blank" className="flex items-center justify-center gap-2 rounded-2xl bg-[#F6F8FF] py-4 transition-all hover:bg-[#EEF0FF] md:py-5">
                         <Facebook size={18} /> Facebook
                       </a>
                     )}

@@ -1,6 +1,6 @@
 import { getProfile } from '../../../lib/api';
 import { notFound } from 'next/navigation';
-import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2, ExternalLink, Briefcase, Sparkles } from 'lucide-react';
+import { AlertTriangle, Phone, Mail, Globe, Heart, User, Building2, ExternalLink, Briefcase } from 'lucide-react';
 
 // Helper function to ensure URL has protocol
 function ensureHttps(url: string): string {
@@ -16,6 +16,8 @@ import { ProfilePageClient } from '../../../components/ProfilePageClient';
 import { VideoEmbed } from '../../../components/VideoEmbed';
 import { Gallery } from '../../../components/Gallery';
 import { SocialLinksDisplay } from '../../../components/SocialLinksDisplay';
+import { AnalyticsTracker } from '../../../components/AnalyticsTracker';
+import { VcfDownloadButton } from '../../../components/VcfDownload';
 
 import { SaveToHomeButton } from '../../../components/SaveToHomeButton';
 import { QrCodeDownloadActions } from '../../../components/QrCodeDownloadActions';
@@ -179,6 +181,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     const profileThumbUrl = getThumbUrl(profile_pic_url || '');
     const logoUrl = logo?.url ? getImageUrl(logo.url) : '';
     const profileUrl = `${SITE_URL}/${data.url_prefix}/${uid}`;
+    const primaryPhone = formatPhoneNumber(
+        phones?.find((phone: any) => phone?.value?.trim())?.value || ''
+    );
+    const referralCode = typeof data.referral_code === 'string' && data.referral_code.trim()
+        ? data.referral_code.trim()
+        : 'ZXQ0KPCR';
+    const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
 
     // Theme Configuration (locked to profile owner's layout_config)
     const theme = layout_config || {};
@@ -282,6 +291,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
     return (
         <ProfilePageClient profileData={data}>
+            <AnalyticsTracker uid={uid} />
             <link href={`https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;700;900&display=swap`} rel="stylesheet" />
             
             <main
@@ -371,12 +381,6 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                         <img src={logoUrl} alt="Logo" className="w-full h-full object-contain scale-110" />
                                     </div>
                                 )}
-                                <div className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
-                                    <div className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/12 px-3 py-1.5 text-[11px] font-semibold tracking-[0.18em] text-white/92 backdrop-blur-md">
-                                        <Sparkles size={14} />
-                                        NEX DIGITAL CARD
-                                    </div>
-                                </div>
                             </div>
                         </div>
 
@@ -535,13 +539,25 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
 
                     {/* QR Code */}
                     {qr_enabled !== false && (
-                        <section className="mb-8 rounded-[28px] border px-5 py-6 text-center shadow-[0_20px_50px_-36px_rgba(15,23,42,0.35)]" style={{ backgroundColor: lightMode ? 'rgba(246,248,255,0.9)' : 'rgba(8,22,39,0.92)', borderColor }}>
-                            <h3 className="mb-2 text-lg font-bold">Scan to Connect</h3>
-                            <p className="mb-4 text-sm" style={{ color: mutedText }}>
-                                บันทึกคอนแทกต์หรือเปิดหน้านี้บนอุปกรณ์อื่นได้ทันที
-                            </p>
-                            <QrCodeImage url={profileUrl} size={180} />
-                            <QrCodeDownloadActions qrValue={profileUrl} fileBaseName={`${uid}-qr-code`} lightMode={lightMode} />
+                        <section className="mb-8 rounded-[28px] border px-5 py-8 text-center shadow-[0_20px_50px_-36px_rgba(15,23,42,0.35)]" style={{ backgroundColor: lightMode ? 'rgba(246,248,255,0.9)' : 'rgba(8,22,39,0.92)', borderColor }}>
+                            <div className="flex flex-col items-center gap-4">
+                                <div className="flex flex-col items-center gap-2">
+                                    <h3 className="text-lg font-bold">Scan to Connect</h3>
+                                    <p className="text-sm" style={{ color: mutedText }}>
+                                        บันทึกคอนแทกต์หรือเปิดหน้านี้บนอุปกรณ์อื่นได้ทันที
+                                    </p>
+                                </div>
+                                <QrCodeImage url={profileUrl} size={180} />
+                                <QrCodeDownloadActions
+                                    qrValue={profileUrl}
+                                    fileBaseName={`${uid}-qr-code`}
+                                    lightMode={lightMode}
+                                    className="mt-0"
+                                    titleLine="qrcode นี้ เป็นนามบัตรดิจิทัลของ"
+                                    nameLine={displayName}
+                                    phoneLine={primaryPhone}
+                                />
+                            </div>
                         </section>
                     )}
 
@@ -553,14 +569,10 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             profileName={displayName}
                             profilePicUrl={profileThumbUrl || profileImageUrl}
                         />
-
-                        {/* Hidden temporarily:
-                            - ดาวน์โหลดข้อมูลลงสมุดโทรศัพท์
-                            - ดาวน์โหลดนามบัตรเป็นรูปภาพ
-                        */}
-                        {/*
+                        
                         {feature_config?.can_save_vcf !== false && (
                             <VcfDownloadButton
+                                uid={uid}
                                 name={displayName}
                                 position={displayPosition}
                                 company={displayCompany}
@@ -571,19 +583,13 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                             />
                         )}
 
-                        <NamecardDownloadButton
-                            nameMain={displayName}
-                            nameSub={names_i18n?.find((n: any) => n.lang === 'en')?.value}
-                            position={displayPosition}
-                            company={displayCompany}
-                            phone={phones?.[0]?.value}
-                            email={emails?.[0]?.value}
-                            website={ensureHttps(websites?.[0]?.url || '')}
-                            logoUrl={logo?.url}
-                            qrUrl={profileUrl}
-                            template="gradient"
-                        />
-                        */}
+                        <a
+                            href={referralRegisterUrl}
+                            className="pt-2 text-center text-sm font-semibold underline underline-offset-4 transition-opacity hover:opacity-80"
+                            style={{ color: lightMode ? '#050579' : '#93C5FD' }}
+                        >
+                            สนใจระบบแบบที่คุณเห็นอยู่นี้ คลิกที่นี่
+                        </a>
                     </section>
                     </div>
                 </div>
