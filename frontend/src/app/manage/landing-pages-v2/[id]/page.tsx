@@ -12,15 +12,12 @@ import {
   ChevronUp,
   ExternalLink,
   Image as ImageIcon,
-  Layout,
   Loader2,
   MapPin,
-  Monitor,
   MousePointer2,
   Plus,
   Save,
   Settings2,
-  Smartphone,
   Trash2,
   Type,
   Video,
@@ -32,8 +29,6 @@ import { getEmbedUrl, isEmbedableVideo } from "@/lib/videoUtils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://nexsolution.cloud";
-
-type PreviewMode = "mobile" | "desktop";
 
 interface Block {
   id: string;
@@ -269,44 +264,6 @@ function normalizeUrl(value?: unknown): string | null {
     trimmed = `https://${trimmed}`;
   }
   return trimmed;
-}
-
-function renderBlockLabel(type: Block["type"]) {
-  switch (type) {
-    case "text":
-      return "ข้อความ";
-    case "image":
-      return "รูปภาพ";
-    case "video":
-      return "วิดีโอ";
-    case "button":
-      return "ปุ่ม";
-    case "form":
-      return "ฟอร์ม";
-    case "location":
-      return "ที่ตั้ง";
-    default:
-      return "Section";
-  }
-}
-
-function renderBlockIcon(type: Block["type"]) {
-  switch (type) {
-    case "text":
-      return Type;
-    case "image":
-      return ImageIcon;
-    case "video":
-      return Video;
-    case "button":
-      return MousePointer2;
-    case "form":
-      return MessageSquare;
-    case "location":
-      return MapPin;
-    default:
-      return Layout;
-  }
 }
 
 function getDefaultBlockContent(type: Block["type"]) {
@@ -624,7 +581,6 @@ export default function LandingPageEditorV2() {
   const [forms, setForms] = useState<FormOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [previewMode, setPreviewMode] = useState<PreviewMode>("mobile");
   const [showSettings, setShowSettings] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{ type: "success" | "error" | null; message: string }>({
@@ -858,12 +814,12 @@ export default function LandingPageEditorV2() {
 
       <main className="relative z-10 mx-auto mt-6 w-full max-w-md px-4">
         <section className="rounded-3xl border border-[#D9E1F2] bg-white p-4 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.16)]">
-          <div className="flex items-start justify-between gap-3">
-            <div>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+            <div className="min-w-0">
               <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">ข้อมูลหน้า</div>
-              <h1 className="mt-1 text-xl font-black text-[#050579]">ตั้งค่าพื้นฐานของ Sale Page</h1>
+              <h1 className="mt-1 text-xl font-black leading-tight text-[#050579]">ตั้งค่าพื้นฐานของ Sale Page</h1>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2 sm:shrink-0">
               <a
                 href={publicUrl}
                 target="_blank"
@@ -913,59 +869,52 @@ export default function LandingPageEditorV2() {
 
           <div className="mt-4 space-y-4">
             {page.content_blocks.map((block, index) => {
-              const Icon = renderBlockIcon(block.type);
               return (
                 <article
                   key={block.id}
                   className="rounded-3xl border border-[#D9E1F2] bg-[#F6F8FF] p-4"
                 >
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white text-[#4F46E5]">
-                      <Icon size={22} />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <div className="text-xs font-black uppercase tracking-[0.16em] text-[#94A3B8]">
-                            section {index + 1}
-                          </div>
-                          <h3 className="mt-1 text-lg font-black text-[#050579]">{renderBlockLabel(block.type)}</h3>
+                  <div className="min-w-0">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                      <div className="min-w-0">
+                        <div className="text-xs font-black uppercase tracking-[0.16em] text-[#94A3B8]">
+                          section {index + 1}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <select
-                            value={block.type}
-                            onChange={(e) => changeBlockType(block.id, e.target.value as Block["type"])}
-                            className="h-10 rounded-xl border border-[#D9E1F2] bg-white px-3 text-xs font-bold text-[#050579] outline-none"
-                          >
-                            <option value="text">ข้อความ</option>
-                            <option value="image">รูปภาพ</option>
-                            <option value="video">วิดีโอ</option>
-                            <option value="button">ปุ่ม</option>
-                            <option value="form">ฟอร์ม</option>
-                            <option value="location">ที่ตั้ง</option>
-                          </select>
-                          <button
-                            type="button"
-                            onClick={() => moveBlock(index, "up")}
-                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-white text-[#64748B]"
-                          >
-                            <ChevronUp size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => moveBlock(index, "down")}
-                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-white text-[#64748B]"
-                          >
-                            <ChevronDown size={16} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => removeBlock(block.id)}
-                            className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#FECACA] bg-white text-[#EF4444]"
-                          >
-                            <Trash2 size={16} />
-                          </button>
-                        </div>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 sm:justify-end">
+                        <select
+                          value={block.type}
+                          onChange={(e) => changeBlockType(block.id, e.target.value as Block["type"])}
+                          className="h-10 min-w-0 max-w-full rounded-xl border border-[#D9E1F2] bg-white px-3 text-xs font-bold text-[#050579] outline-none sm:max-w-[180px]"
+                        >
+                          <option value="text">ข้อความ</option>
+                          <option value="image">รูปภาพ</option>
+                          <option value="video">วิดีโอ</option>
+                          <option value="button">ปุ่ม</option>
+                          <option value="form">ฟอร์ม</option>
+                          <option value="location">ที่ตั้ง</option>
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => moveBlock(index, "up")}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-white text-[#64748B]"
+                        >
+                          <ChevronUp size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => moveBlock(index, "down")}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-white text-[#64748B]"
+                        >
+                          <ChevronDown size={16} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => removeBlock(block.id)}
+                          className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#FECACA] bg-white text-[#EF4444]"
+                        >
+                          <Trash2 size={16} />
+                        </button>
                       </div>
                     </div>
                   </div>
@@ -979,35 +928,17 @@ export default function LandingPageEditorV2() {
                   </div>
 
                   <div className="mt-4 rounded-2xl border border-[#D9E1F2] bg-white p-3">
-                    <div className="mb-3 flex items-center justify-between gap-3">
+                    <div className="mb-3">
                       <div>
                         <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
                           Preview
                         </div>
                         <div className="mt-1 text-sm font-bold text-[#050579]">ตัวอย่าง section นี้</div>
                       </div>
-                      <div className="flex items-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-1">
-                        <button
-                          type="button"
-                          onClick={() => setPreviewMode("mobile")}
-                          className={`flex h-9 w-9 items-center justify-center rounded-xl ${previewMode === "mobile" ? "bg-white text-[#050579]" : "text-[#94A3B8]"}`}
-                        >
-                          <Smartphone size={16} />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => setPreviewMode("desktop")}
-                          className={`flex h-9 w-9 items-center justify-center rounded-xl ${previewMode === "desktop" ? "bg-white text-[#050579]" : "text-[#94A3B8]"}`}
-                        >
-                          <Monitor size={16} />
-                        </button>
-                      </div>
                     </div>
 
                     <div className="flex justify-center">
-                      <div
-                        className={`overflow-hidden rounded-[24px] border border-[#D9E1F2] bg-white shadow-[0_20px_40px_-28px_rgba(15,23,42,0.35)] ${previewMode === "mobile" ? "w-full max-w-[375px]" : "w-full"}`}
-                      >
+                      <div className="w-full max-w-[375px] overflow-hidden rounded-[24px] border border-[#D9E1F2] bg-white shadow-[0_20px_40px_-28px_rgba(15,23,42,0.35)]">
                         <RenderPreviewBlock block={block} theme={page.theme_config} />
                       </div>
                     </div>
