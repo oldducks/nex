@@ -271,25 +271,6 @@ function normalizeUrl(value?: unknown): string | null {
   return trimmed;
 }
 
-function renderBlockSummary(block: Block) {
-  switch (block.type) {
-    case "text":
-      return block.content.title || "ยังไม่ได้ใส่หัวข้อ";
-    case "image":
-      return block.content.url ? "เพิ่มรูปภาพแล้ว" : "ยังไม่ได้เพิ่มรูปภาพ";
-    case "video":
-      return block.content.url ? "เพิ่มวิดีโอแล้ว" : "ยังไม่ได้เพิ่มวิดีโอ";
-    case "button":
-      return block.content.text || "ยังไม่ได้ตั้งค่าปุ่ม";
-    case "form":
-      return block.content.title || "ฟอร์มติดต่อ";
-    case "location":
-      return block.content.address || "ยังไม่ได้ตั้งค่าที่ตั้ง";
-    default:
-      return "Section";
-  }
-}
-
 function renderBlockLabel(type: Block["type"]) {
   switch (type) {
     case "text":
@@ -949,7 +930,6 @@ export default function LandingPageEditorV2() {
                             section {index + 1}
                           </div>
                           <h3 className="mt-1 text-lg font-black text-[#050579]">{renderBlockLabel(block.type)}</h3>
-                          <p className="mt-1 text-sm text-[#64748B]">{renderBlockSummary(block)}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <select
