@@ -52,6 +52,12 @@ interface LandingPage {
   seo_metadata: any;
 }
 
+interface FormOption {
+  id: number;
+  name: string;
+  submission_count?: number;
+}
+
 const resolveUploadedImageUrl = async (jobId: string, token?: string): Promise<string> => {
   const maxAttempts = 40;
 
@@ -322,11 +328,22 @@ function renderBlockIcon(type: Block["type"]) {
   }
 }
 
+function getDefaultBlockContent(type: Block["type"]) {
+  if (type === "text") return { title: "", body: "" };
+  if (type === "image") return { url: "", link: "" };
+  if (type === "video") return { url: "", autoplay: false };
+  if (type === "button") return { text: "", link: "" };
+  if (type === "location") return { title: "ที่ตั้งของเรา", address: "", embed_url: "", map_url: "" };
+  return { title: "ติดต่อเรา", description: "", mode: "internal", form_id: "", external_url: "" };
+}
+
 function RenderBlockEditor({
   block,
+  forms,
   onUpdate,
 }: {
   block: Block;
+  forms: FormOption[];
   onUpdate: (content: any) => void;
 }) {
   switch (block.type) {
@@ -390,6 +407,53 @@ function RenderBlockEditor({
     case "form":
       return (
         <div className="space-y-3 rounded-2xl border border-[#D9E1F2] bg-white p-4">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-3">
+              <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">โหมดฟอร์ม</div>
+              <select
+                value={block.content.mode || "internal"}
+                onChange={(e) =>
+                  onUpdate({
+                    ...block.content,
+                    mode: e.target.value,
+                    form_id: e.target.value === "internal" ? block.content.form_id || "" : "",
+                  })
+                }
+                className="h-11 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm font-bold text-[#0F172A] outline-none"
+              >
+                <option value="internal">ฟอร์มในระบบ NEX</option>
+                <option value="external">ลิงก์ฟอร์มภายนอก</option>
+              </select>
+            </div>
+
+            {block.content.mode !== "external" ? (
+              <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-3">
+                <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">เลือกฟอร์มจากระบบ</div>
+                <select
+                  value={block.content.form_id || ""}
+                  onChange={(e) => onUpdate({ ...block.content, mode: "internal", form_id: e.target.value })}
+                  className="h-11 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm font-bold text-[#0F172A] outline-none"
+                >
+                  <option value="">เลือกฟอร์มที่ต้องการใช้</option>
+                  {forms.map((form) => (
+                    <option key={form.id} value={form.id}>
+                      {form.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-3">
+                <div className="mb-2 text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">ลิงก์ฟอร์มภายนอก</div>
+                <input
+                  value={block.content.external_url || ""}
+                  onChange={(e) => onUpdate({ ...block.content, mode: "external", external_url: e.target.value })}
+                  placeholder="https://docs.google.com/forms/..."
+                  className="h-11 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm text-[#0F172A] outline-none"
+                />
+              </div>
+            )}
+          </div>
           <input
             value={block.content.title || ""}
             onChange={(e) => onUpdate({ ...block.content, title: e.target.value })}
@@ -402,6 +466,11 @@ function RenderBlockEditor({
             placeholder="คำอธิบายฟอร์ม"
             className="min-h-24 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none"
           />
+          {block.content.mode !== "external" ? (
+            <p className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-xs text-[#64748B]">
+              ถ้าเลือกฟอร์มในระบบ ลูกค้าจะกรอกข้อมูลแล้วถูกบันทึกเข้าระบบ leads และ submissions ของคุณโดยตรง
+            </p>
+          ) : null}
         </div>
       );
     case "location":
@@ -571,6 +640,7 @@ export default function LandingPageEditorV2() {
     : "/manage/landing-pages";
 
   const [page, setPage] = useState<LandingPage | null>(null);
+  const [forms, setForms] = useState<FormOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [previewMode, setPreviewMode] = useState<PreviewMode>("mobile");
@@ -594,11 +664,17 @@ export default function LandingPageEditorV2() {
 
     const fetchPage = async () => {
       try {
-        const res = await fetch(`${API_URL}/landing-pages/${id}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("fetch failed");
-        const data = await res.json();
+        const [pageRes, formsRes] = await Promise.all([
+          fetch(`${API_URL}/landing-pages/${id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+          fetch(`${API_URL}/forms`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        ]);
+
+        if (!pageRes.ok) throw new Error("fetch failed");
+        const data = await pageRes.json();
         const normalized = {
           ...data,
           content_blocks: data.content_blocks || [],
@@ -610,6 +686,9 @@ export default function LandingPageEditorV2() {
         };
         setPage(normalized);
         lastSavedSnapshotRef.current = JSON.stringify(normalized);
+        if (formsRes.ok) {
+          setForms(await formsRes.json());
+        }
       } catch (error) {
         console.error(error);
       } finally {
@@ -699,18 +778,7 @@ export default function LandingPageEditorV2() {
     const newBlock: Block = {
       id: Date.now().toString(),
       type,
-      content:
-        type === "text"
-          ? { title: "", body: "" }
-          : type === "image"
-            ? { url: "", link: "" }
-            : type === "video"
-              ? { url: "", autoplay: false }
-              : type === "button"
-                ? { text: "", link: "" }
-                : type === "location"
-                  ? { title: "ที่ตั้งของเรา", address: "", embed_url: "", map_url: "" }
-                  : { title: "ติดต่อเรา", description: "" },
+      content: getDefaultBlockContent(type),
     };
     setPage({ ...page, content_blocks: [...page.content_blocks, newBlock] });
   };
@@ -740,6 +808,33 @@ export default function LandingPageEditorV2() {
     if (newIndex < 0 || newIndex >= blocks.length) return;
     [blocks[index], blocks[newIndex]] = [blocks[newIndex], blocks[index]];
     setPage({ ...page, content_blocks: blocks });
+  };
+
+  const changeBlockType = (blockId: string, nextType: Block["type"]) => {
+    if (!page) return;
+    const targetBlock = page.content_blocks.find((block) => block.id === blockId);
+    if (!targetBlock || targetBlock.type === nextType) return;
+
+    const currentContent = JSON.stringify(targetBlock.content || {});
+    const defaultCurrentContent = JSON.stringify(getDefaultBlockContent(targetBlock.type));
+    const hasUserContent = currentContent !== defaultCurrentContent;
+    if (hasUserContent) {
+      const confirmed = window.confirm("การเปลี่ยนประเภท section จะล้างข้อมูลเดิมของ section นี้ ต้องการดำเนินการต่อหรือไม่?");
+      if (!confirmed) return;
+    }
+
+    setPage({
+      ...page,
+      content_blocks: page.content_blocks.map((block) =>
+        block.id === blockId
+          ? {
+              ...block,
+              type: nextType,
+              content: getDefaultBlockContent(nextType),
+            }
+          : block,
+      ),
+    });
   };
 
   if (loading) {
@@ -857,6 +952,18 @@ export default function LandingPageEditorV2() {
                           <p className="mt-1 text-sm text-[#64748B]">{renderBlockSummary(block)}</p>
                         </div>
                         <div className="flex items-center gap-2">
+                          <select
+                            value={block.type}
+                            onChange={(e) => changeBlockType(block.id, e.target.value as Block["type"])}
+                            className="h-10 rounded-xl border border-[#D9E1F2] bg-white px-3 text-xs font-bold text-[#050579] outline-none"
+                          >
+                            <option value="text">ข้อความ</option>
+                            <option value="image">รูปภาพ</option>
+                            <option value="video">วิดีโอ</option>
+                            <option value="button">ปุ่ม</option>
+                            <option value="form">ฟอร์ม</option>
+                            <option value="location">ที่ตั้ง</option>
+                          </select>
                           <button
                             type="button"
                             onClick={() => moveBlock(index, "up")}
@@ -886,6 +993,7 @@ export default function LandingPageEditorV2() {
                   <div className="mt-4">
                     <RenderBlockEditor
                       block={block}
+                      forms={forms}
                       onUpdate={(content) => updateBlockContent(block.id, content)}
                     />
                   </div>
