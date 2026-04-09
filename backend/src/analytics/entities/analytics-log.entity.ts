@@ -9,6 +9,7 @@ export enum AnalyticsAction {
     VIEW_LANDING_PAGE = 'VIEW_LANDING_PAGE',
     SUBMIT_LANDING_FORM = 'SUBMIT_LANDING_FORM',
     SCAN_QR = 'SCAN_QR',
+    LOGIN_SUCCESS = 'LOGIN_SUCCESS',
 }
 
 @Entity('analytics_logs')

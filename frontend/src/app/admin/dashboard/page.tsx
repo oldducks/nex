@@ -71,6 +71,38 @@ interface DashboardData {
     users: DashboardUser[];
 }
 
+interface ExecutiveReportDaily {
+    date: string;
+    newUsers: number;
+    loginSuccess: number;
+    viewProfile: number;
+    viewCatalog: number;
+    downloadVcf: number;
+    downloadPdf: number;
+    viewLandingPage: number;
+}
+
+interface ExecutiveReport {
+    period?: 'weekly' | 'monthly';
+    days: number;
+    generatedAt: string;
+    summary: {
+        totalUsers: number;
+        activeUsers: number;
+        premiumUsers: number;
+        freeUsers: number;
+        newUsersInPeriod: number;
+        activeUsersInPeriod: number;
+        loginSuccessInPeriod: number;
+        viewProfileInPeriod: number;
+        viewCatalogInPeriod: number;
+        downloadVcfInPeriod: number;
+        downloadPdfInPeriod: number;
+        viewLandingPageInPeriod: number;
+    };
+    daily: ExecutiveReportDaily[];
+}
+
 interface AiImageSettings {
     provider: 'vertex';
     connection_mode?: 'cloud_run_proxy' | 'api_key';
@@ -129,9 +161,10 @@ const AI_IMAGE_MODELS = [
 
 export default function SuperAdminDashboard() {
     const router = useRouter();
-    const [activeTab, setActiveTab] = useState<'users' | 'api' | 'templates'>('users');
+    const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'api' | 'templates'>('users');
     const [searchTerm, setSearchTerm] = useState('');
     const [tierFilter, setTierFilter] = useState<'all' | 'free' | 'premium'>('all');
+    const [activityFilter, setActivityFilter] = useState<'all' | 'latest_desc' | 'latest_asc' | 'no_activity'>('all');
     const [rowsPerPage, setRowsPerPage] = useState<10 | 50 | 100>(10);
     const [currentPage, setCurrentPage] = useState(1);
     const [detailUserId, setDetailUserId] = useState<number | null>(null);
@@ -166,6 +199,10 @@ export default function SuperAdminDashboard() {
     const [templateCategories, setTemplateCategories] = useState<TemplateCategory[]>([]);
     const [templateSearch, setTemplateSearch] = useState('');
     const [templateCategoryId, setTemplateCategoryId] = useState('all');
+    const [reportPeriod, setReportPeriod] = useState<'weekly' | 'monthly'>('weekly');
+    const [executiveReport, setExecutiveReport] = useState<ExecutiveReport | null>(null);
+    const [reportLoading, setReportLoading] = useState(false);
+    const [reportError, setReportError] = useState<string | null>(null);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -483,6 +520,33 @@ export default function SuperAdminDashboard() {
         setTemplateLoading(false);
     }, [API_URL]);
 
+    const fetchExecutiveReport = useCallback(async (period: 'weekly' | 'monthly') => {
+        const token = Cookies.get('token');
+        if (!token) return;
+        setReportLoading(true);
+        setReportError(null);
+        try {
+            const res = await fetch(`${API_URL}/users/admin/executive-report?period=${period}`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setExecutiveReport(data);
+                setReportError(null);
+            } else {
+                setExecutiveReport(null);
+                const body = await res.json().catch(() => ({}));
+                setReportError(body?.message || 'โหลดข้อมูลรายงานไม่สำเร็จ');
+            }
+        } catch (error) {
+            console.error('Failed to fetch executive report:', error);
+            setExecutiveReport(null);
+            setReportError('เชื่อมต่อข้อมูลรายงานไม่สำเร็จ');
+        } finally {
+            setReportLoading(false);
+        }
+    }, [API_URL]);
+
     const toggleTemplateStatus = async (templateId: number) => {
         const token = Cookies.get('token');
         if (!token) return;
@@ -613,22 +677,41 @@ export default function SuperAdminDashboard() {
         return { firstName: firstName || '-', lastName: lastName || '-' };
     };
 
-    const filteredUsers = (dashboardData?.users || []).filter((user) => {
-        const nameParts = splitName(user.full_name);
-        const fullNameLabel = [nameParts.firstName, nameParts.lastName]
-            .filter((part) => part && part !== '-')
-            .join(' ')
-            .trim();
+    const filteredUsers = useMemo(() => {
         const keyword = searchTerm.trim().toLowerCase();
-        const matchesKeyword = !keyword || (
-            user.uid?.toLowerCase().includes(keyword) ||
-            (user.email || '').toLowerCase().includes(keyword) ||
-            (user.mobile || '').toLowerCase().includes(keyword) ||
-            fullNameLabel.toLowerCase().includes(keyword)
-        );
-        const matchesTier = tierFilter === 'all' || user.subscription_tier === tierFilter;
-        return matchesKeyword && matchesTier;
-    });
+
+        const base = (dashboardData?.users || []).filter((user) => {
+            const nameParts = splitName(user.full_name);
+            const fullNameLabel = [nameParts.firstName, nameParts.lastName]
+                .filter((part) => part && part !== '-')
+                .join(' ')
+                .trim();
+            const matchesKeyword = !keyword || (
+                user.uid?.toLowerCase().includes(keyword) ||
+                (user.email || '').toLowerCase().includes(keyword) ||
+                (user.mobile || '').toLowerCase().includes(keyword) ||
+                fullNameLabel.toLowerCase().includes(keyword)
+            );
+            const matchesTier = tierFilter === 'all' || user.subscription_tier === tierFilter;
+            return matchesKeyword && matchesTier;
+        });
+
+        if (activityFilter === 'no_activity') {
+            return base.filter((user) => !user.stats.lastActivity);
+        }
+
+        if (activityFilter === 'latest_desc' || activityFilter === 'latest_asc') {
+            return base
+                .slice()
+                .sort((a, b) => {
+                    const aTime = a.stats.lastActivity ? new Date(a.stats.lastActivity).getTime() : -1;
+                    const bTime = b.stats.lastActivity ? new Date(b.stats.lastActivity).getTime() : -1;
+                    return activityFilter === 'latest_desc' ? bTime - aTime : aTime - bTime;
+                });
+        }
+
+        return base;
+    }, [dashboardData?.users, searchTerm, tierFilter, activityFilter]);
 
     const filteredTemplates = useMemo(() => {
         const keyword = templateSearch.trim().toLowerCase();
@@ -648,7 +731,7 @@ export default function SuperAdminDashboard() {
 
     useEffect(() => {
         setCurrentPage(1);
-    }, [searchTerm, tierFilter, rowsPerPage]);
+    }, [searchTerm, tierFilter, activityFilter, rowsPerPage]);
 
     useEffect(() => {
         if (currentPage > totalPages) {
@@ -661,6 +744,25 @@ export default function SuperAdminDashboard() {
             fetchTemplateData();
         }
     }, [activeTab, authorized, templates.length, templateLoading, fetchTemplateData]);
+
+    useEffect(() => {
+        if (activeTab !== 'reports') return;
+        void fetchExecutiveReport(reportPeriod);
+    }, [activeTab, reportPeriod, fetchExecutiveReport]);
+
+    const maxDailyActivity = useMemo(() => {
+        if (!executiveReport?.daily?.length) return 1;
+        return Math.max(
+            1,
+            ...executiveReport.daily.map((item) =>
+                item.loginSuccess + item.viewCatalog + item.viewProfile + item.downloadPdf + item.downloadVcf + item.newUsers,
+            ),
+        );
+    }, [executiveReport]);
+    const maxDailyNewUsers = useMemo(() => {
+        if (!executiveReport?.daily?.length) return 1;
+        return Math.max(1, ...executiveReport.daily.map((item) => item.newUsers));
+    }, [executiveReport]);
     const detailUser = (dashboardData?.users || []).find((user) => user.id === detailUserId) || null;
     const toggleConfirmUser = (dashboardData?.users || []).find((user) => user.id === toggleConfirm) || null;
 
@@ -742,6 +844,16 @@ export default function SuperAdminDashboard() {
                             }`}
                     >
                         ผู้ใช้ทั้งหมด
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('reports')}
+                        className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-sm font-bold transition-all ${activeTab === 'reports'
+                            ? 'bg-[#050579] text-white'
+                            : 'bg-white border border-[#D9E1F2] text-[#334155] hover:bg-[#F8FAFF]'
+                            }`}
+                    >
+                        <BarChart3 size={14} />
+                        รายงานผู้บริหาร
                     </button>
                     <button
                         onClick={() => setActiveTab('api')}
@@ -830,32 +942,34 @@ export default function SuperAdminDashboard() {
                                     <option value="free">Free Plan</option>
                                     <option value="premium">Premium</option>
                                 </select>
+                                <select
+                                    value={activityFilter}
+                                    onChange={(e) => setActivityFilter(e.target.value as 'all' | 'latest_desc' | 'latest_asc' | 'no_activity')}
+                                    className="w-full md:w-[190px] rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-sm text-[#0F172A] outline-none focus:ring-2 focus:ring-[#050579]/20"
+                                >
+                                    <option value="all">กิจกรรม: ทั้งหมด</option>
+                                    <option value="latest_desc">ล่าสุด → เก่าสุด</option>
+                                    <option value="latest_asc">เก่าสุด → ล่าสุด</option>
+                                    <option value="no_activity">ยังไม่มีกิจกรรม</option>
+                                </select>
                                 <input
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
                                     placeholder="ค้นหา รหัส / ชื่อ / อีเมล / เบอร์โทร"
                                     className="w-full md:w-[320px] rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-sm text-[#0F172A] outline-none focus:ring-2 focus:ring-[#050579]/20"
                                 />
-                                <select
-                                    value={rowsPerPage}
-                                    onChange={(e) => setRowsPerPage(Number(e.target.value) as 10 | 50 | 100)}
-                                    className="w-full md:w-[120px] rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-sm text-[#0F172A] outline-none focus:ring-2 focus:ring-[#050579]/20"
-                                >
-                                    <option value={10}>10 รายชื่อ</option>
-                                    <option value={50}>50 รายชื่อ</option>
-                                    <option value={100}>100 รายชื่อ</option>
-                                </select>
                             </div>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[880px] table-fixed">
+                        <table className="w-full min-w-[1020px] table-fixed">
                             <colgroup>
                                 <col style={{ width: 200 }} />
                                 <col style={{ width: 220 }} />
                                 <col style={{ width: 130 }} />
                                 <col style={{ width: 110 }} />
                                 <col style={{ width: 170 }} />
+                                <col style={{ width: 190 }} />
                                 <col style={{ width: 150 }} />
                             </colgroup>
                             <thead className="bg-[#F8FAFF]">
@@ -865,6 +979,7 @@ export default function SuperAdminDashboard() {
                                     <th className="px-4 py-2.5 text-center text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">แพ็กเกจ</th>
                                     <th className="px-4 py-2.5 text-center text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">สถานะ</th>
                                     <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">วันหมดอายุ</th>
+                                    <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">ใช้งานล่าสุด</th>
                                     <th className="px-4 py-2.5 text-center text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">จัดการ</th>
                                 </tr>
                             </thead>
@@ -934,6 +1049,13 @@ export default function SuperAdminDashboard() {
                                                 )}
                                             </div>
                                         </td>
+                                        <td className="px-4 py-3 text-xs text-[#64748B]">
+                                            {user.stats.lastActivity ? (
+                                                <span className="font-medium text-[#334155]">{formatDateTime(user.stats.lastActivity)}</span>
+                                            ) : (
+                                                <span className="text-[#94A3B8]">ยังไม่มีข้อมูล</span>
+                                            )}
+                                        </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-center gap-1.5">
                                                 <button
@@ -984,6 +1106,16 @@ export default function SuperAdminDashboard() {
                             แสดง {filteredUsers.length === 0 ? 0 : startIndex + 1}-{Math.min(endIndex, filteredUsers.length)} จาก {filteredUsers.length} รายชื่อ
                         </p>
                         <div className="flex items-center gap-2">
+                            <select
+                                value={rowsPerPage}
+                                onChange={(e) => setRowsPerPage(Number(e.target.value) as 10 | 50 | 100)}
+                                className="rounded-lg border border-[#D9E1F2] bg-white px-3 py-1.5 text-sm text-[#334155] outline-none focus:ring-2 focus:ring-[#050579]/20"
+                                title="จำนวนรายการต่อหน้า"
+                            >
+                                <option value={10}>10 รายชื่อ</option>
+                                <option value={50}>50 รายชื่อ</option>
+                                <option value={100}>100 รายชื่อ</option>
+                            </select>
                             <button
                                 type="button"
                                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
@@ -1007,6 +1139,117 @@ export default function SuperAdminDashboard() {
                     </div>
                 </div>
                 </>
+                ) : activeTab === 'reports' ? (
+                    <div className="space-y-4">
+                        <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4 md:p-5">
+                            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <h2 className="text-lg font-bold flex items-center gap-2">
+                                        <BarChart3 size={18} className="text-indigo-500" />
+                                        รายงานผู้บริหาร
+                                    </h2>
+                                    <p className="text-sm text-[#64748B] mt-1">สรุปภาพรวมการเติบโตและการใช้งานระบบสำหรับการตัดสินใจเชิงธุรกิจ</p>
+                                </div>
+                                <div className="inline-flex rounded-xl border border-[#D9E1F2] bg-[#F8FAFF] p-1">
+                                    <button
+                                        type="button"
+                                        onClick={() => setReportPeriod('weekly')}
+                                        className={`rounded-lg px-3 py-1.5 text-sm font-bold transition ${reportPeriod === 'weekly' ? 'bg-[#050579] text-white' : 'text-[#334155]'}`}
+                                    >
+                                        7 วัน
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setReportPeriod('monthly')}
+                                        className={`rounded-lg px-3 py-1.5 text-sm font-bold transition ${reportPeriod === 'monthly' ? 'bg-[#050579] text-white' : 'text-[#334155]'}`}
+                                    >
+                                        30 วัน
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        {reportLoading ? (
+                            <div className="bg-white border border-[#D9E1F2] rounded-2xl p-10 text-center">
+                                <Loader2 className="mx-auto animate-spin text-[#050579]" size={24} />
+                                <p className="mt-3 text-sm text-[#64748B]">กำลังโหลดรายงาน...</p>
+                            </div>
+                        ) : executiveReport ? (
+                            <>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">ผู้ใช้ใหม่ ({executiveReport.days} วัน)</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{executiveReport.summary.newUsersInPeriod}</p>
+                                    </div>
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">ล็อกอินสำเร็จ ({executiveReport.days} วัน)</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{executiveReport.summary.loginSuccessInPeriod}</p>
+                                    </div>
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">ผู้ใช้ที่มี activity ({executiveReport.days} วัน)</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{executiveReport.summary.activeUsersInPeriod}</p>
+                                    </div>
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">Premium / Free</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{executiveReport.summary.premiumUsers} / {executiveReport.summary.freeUsers}</p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4 md:p-5">
+                                        <h3 className="text-base font-bold text-[#0F172A] mb-1">กราฟผู้ใช้ใหม่รายวัน</h3>
+                                        <p className="text-xs text-[#64748B] mb-4">จำนวนผู้ใช้ที่สมัครใหม่ในแต่ละวัน</p>
+                                        <div className="h-64 overflow-x-auto rounded-xl border border-[#EEF0FF] bg-[#FAFBFF] p-3">
+                                            <div className="flex h-full min-w-[720px] items-end gap-2">
+                                                {executiveReport.daily.map((row) => {
+                                                    const barHeight = row.newUsers === 0 ? 6 : Math.max(12, Math.round((row.newUsers / maxDailyNewUsers) * 100));
+                                                    return (
+                                                        <div key={`new-${row.date}`} className="flex flex-1 min-w-[42px] flex-col items-center gap-1">
+                                                            <span className="text-[10px] font-bold text-[#334155]">{row.newUsers}</span>
+                                                            <div
+                                                                className="w-full rounded-t-md bg-[#4F46E5] transition-all"
+                                                                style={{ height: `${barHeight}%` }}
+                                                                title={`${new Date(row.date).toLocaleDateString('th-TH')}: ${row.newUsers} คน`}
+                                                            />
+                                                            <span className="text-[10px] text-[#64748B]">{new Date(row.date).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' })}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4 md:p-5">
+                                        <h3 className="text-base font-bold text-[#0F172A] mb-1">กราฟกิจกรรมรายวัน</h3>
+                                        <p className="text-xs text-[#64748B] mb-4">รวม Login, View, Download ต่อวัน</p>
+                                        <div className="h-64 overflow-x-auto rounded-xl border border-[#EEF0FF] bg-[#FAFBFF] p-3">
+                                            <div className="flex h-full min-w-[720px] items-end gap-2">
+                                                {executiveReport.daily.map((row) => {
+                                                    const dailyTotal = row.loginSuccess + row.viewProfile + row.viewCatalog + row.downloadPdf + row.downloadVcf + row.viewLandingPage;
+                                                    const barHeight = dailyTotal === 0 ? 6 : Math.max(12, Math.round((dailyTotal / maxDailyActivity) * 100));
+                                                    return (
+                                                        <div key={`act-${row.date}`} className="flex flex-1 min-w-[42px] flex-col items-center gap-1">
+                                                            <span className="text-[10px] font-bold text-[#334155]">{dailyTotal}</span>
+                                                            <div
+                                                                className="w-full rounded-t-md bg-[#16A34A] transition-all"
+                                                                style={{ height: `${barHeight}%` }}
+                                                                title={`${new Date(row.date).toLocaleDateString('th-TH')}: ${dailyTotal} กิจกรรม`}
+                                                            />
+                                                            <span className="text-[10px] text-[#64748B]">{new Date(row.date).toLocaleDateString('th-TH', { day: '2-digit', month: '2-digit' })}</span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </>
+                        ) : (
+                            <div className="bg-white border border-[#D9E1F2] rounded-2xl p-8 text-center text-[#64748B] text-sm">
+                                {reportError || 'ยังไม่มีข้อมูลรายงาน'}
+                            </div>
+                        )}
+                    </div>
                 ) : activeTab === 'api' ? (
                     <div className="bg-white border border-[#D9E1F2] rounded-2xl p-5 md:p-6">
                         <div className="flex items-start justify-between gap-3 mb-4">

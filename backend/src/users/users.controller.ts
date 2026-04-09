@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException, NotFoundException, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException, NotFoundException, ParseIntPipe, Query } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateFeatureConfigDto } from './dto/update-feature-config.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { AnalyticsService } from '../analytics/analytics.service';
+import { AnalyticsAction } from '../analytics/entities/analytics-log.entity';
 
 @Controller('users')
 export class UsersController {
@@ -67,6 +68,112 @@ export class UsersController {
       totalUsers: users.length,
       activeUsers: users.filter(u => u.is_active).length,
       users: result
+    };
+  }
+
+  @Get('admin/executive-report')
+  @UseGuards(JwtAuthGuard)
+  async getExecutiveReport(@Request() req, @Query('period') period?: 'weekly' | 'monthly') {
+    if (req.user.role !== 'super_admin') {
+      throw new ForbiddenException('Only super admin can access this');
+    }
+
+    const days = period === 'monthly' ? 30 : 7;
+
+    const [usersSummary, activitySummary] = await Promise.all([
+      this.usersService.getExecutiveUsersSummary(days),
+      this.analyticsService.getExecutiveActivity(days),
+    ]);
+
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - Math.max(0, days - 1));
+
+    const dateKeys: string[] = [];
+    const cursor = new Date(startDate);
+    const today = new Date();
+    while (cursor <= today) {
+      dateKeys.push(cursor.toISOString().slice(0, 10));
+      cursor.setDate(cursor.getDate() + 1);
+    }
+
+    const dailyMap = new Map<string, {
+      date: string;
+      newUsers: number;
+      loginSuccess: number;
+      viewProfile: number;
+      viewCatalog: number;
+      downloadVcf: number;
+      downloadPdf: number;
+      viewLandingPage: number;
+    }>();
+
+    for (const dateKey of dateKeys) {
+      dailyMap.set(dateKey, {
+        date: dateKey,
+        newUsers: 0,
+        loginSuccess: 0,
+        viewProfile: 0,
+        viewCatalog: 0,
+        downloadVcf: 0,
+        downloadPdf: 0,
+        viewLandingPage: 0,
+      });
+    }
+
+    for (const item of usersSummary.newUsersDaily) {
+      const target = dailyMap.get(item.date);
+      if (target) {
+        target.newUsers = item.count;
+      }
+    }
+
+    for (const item of activitySummary.dailyActivity) {
+      const target = dailyMap.get(item.date);
+      if (!target) continue;
+      switch (item.action) {
+        case AnalyticsAction.LOGIN_SUCCESS:
+          target.loginSuccess = item.count;
+          break;
+        case AnalyticsAction.VIEW_PROFILE:
+          target.viewProfile = item.count;
+          break;
+        case AnalyticsAction.VIEW_CATALOG:
+          target.viewCatalog = item.count;
+          break;
+        case AnalyticsAction.DOWNLOAD_VCF:
+          target.downloadVcf = item.count;
+          break;
+        case AnalyticsAction.DOWNLOAD_PDF:
+          target.downloadPdf = item.count;
+          break;
+        case AnalyticsAction.VIEW_LANDING_PAGE:
+          target.viewLandingPage = item.count;
+          break;
+        default:
+          break;
+      }
+    }
+
+    return {
+      period,
+      days,
+      generatedAt: new Date().toISOString(),
+      summary: {
+        totalUsers: usersSummary.totalUsers,
+        activeUsers: usersSummary.activeUsers,
+        premiumUsers: usersSummary.premiumUsers,
+        freeUsers: usersSummary.freeUsers,
+        newUsersInPeriod: usersSummary.newUsersInPeriod,
+        activeUsersInPeriod: activitySummary.activeUsersInPeriod,
+        loginSuccessInPeriod: activitySummary.loginSuccessInPeriod,
+        viewProfileInPeriod: activitySummary.viewProfileInPeriod,
+        viewCatalogInPeriod: activitySummary.viewCatalogInPeriod,
+        downloadVcfInPeriod: activitySummary.downloadVcfInPeriod,
+        downloadPdfInPeriod: activitySummary.downloadPdfInPeriod,
+        viewLandingPageInPeriod: activitySummary.viewLandingPageInPeriod,
+      },
+      daily: Array.from(dailyMap.values()),
     };
   }
 

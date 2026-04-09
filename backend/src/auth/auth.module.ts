@@ -11,6 +11,7 @@ import { FacebookStrategy } from './strategies/facebook.strategy';
 import { LineAuthService } from './strategies/line.strategy';
 import { ReferralsModule } from '../referrals/referrals.module';
 import { ReferralMiddleware } from './referral.middleware';
+import { AnalyticsModule } from '../analytics/analytics.module';
 
 // Conditionally provide OAuth strategies only if credentials exist
 const googleProvider = {
@@ -40,6 +41,7 @@ const facebookProvider = {
 @Module({
   imports: [
     UsersModule,
+    AnalyticsModule,
     PassportModule,
     ConfigModule,
     forwardRef(() => ReferralsModule),

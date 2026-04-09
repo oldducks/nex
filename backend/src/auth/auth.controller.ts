@@ -7,6 +7,8 @@ import { LoginDto, ForgotPasswordDto, ResetPasswordDto, ChangePasswordDto, Regis
 import { JwtAuthGuard } from './jwt-auth.guard';
 import { LineAuthService } from './strategies/line.strategy';
 import { ReferralsService } from '../referrals/referrals.service';
+import { AnalyticsService } from '../analytics/analytics.service';
+import { AnalyticsAction } from '../analytics/entities/analytics-log.entity';
 
 @Controller('auth')
 export class AuthController {
@@ -17,8 +19,22 @@ export class AuthController {
         private readonly configService: ConfigService,
         private readonly lineAuthService: LineAuthService,
         private readonly referralsService: ReferralsService,
+        private readonly analyticsService: AnalyticsService,
     ) {
         this.frontendUrl = this.configService.get('FRONTEND_URL') || 'http://localhost:3000';
+    }
+
+    private async trackLoginSuccess(userId: number, provider: 'password' | 'google' | 'facebook' | 'line') {
+        try {
+            await this.analyticsService.logEventByUserId(
+                userId,
+                AnalyticsAction.LOGIN_SUCCESS,
+                `login:${provider}`,
+                { provider, source: 'auth' },
+            );
+        } catch (error) {
+            console.error('Failed to track login success:', error);
+        }
     }
 
     private setAuthCookies(res: Response, payload: { access_token: string; uid?: string }) {
@@ -60,6 +76,7 @@ export class AuthController {
         }
         const result = await this.authService.login(user);
         this.setAuthCookies(res, result);
+        await this.trackLoginSuccess(user.id, 'password');
         return result;
     }
 
@@ -151,6 +168,9 @@ export class AuthController {
         }
         const result = await this.authService.oauthLogin(user);
         this.setAuthCookies(res, result);
+        if (user?.id) {
+            await this.trackLoginSuccess(user.id, 'google');
+        }
         res.redirect(`${this.frontendUrl}/oauth-callback?status=success`);
     }
 
@@ -174,6 +194,9 @@ export class AuthController {
         }
         const result = await this.authService.oauthLogin(user);
         this.setAuthCookies(res, result);
+        if (user?.id) {
+            await this.trackLoginSuccess(user.id, 'facebook');
+        }
         res.redirect(`${this.frontendUrl}/oauth-callback?status=success`);
     }
 
@@ -217,6 +240,9 @@ export class AuthController {
 
             const result = await this.authService.oauthLogin(user);
             this.setAuthCookies(res, result);
+            if (user?.id) {
+                await this.trackLoginSuccess(user.id, 'line');
+            }
             res.redirect(`${this.frontendUrl}/oauth-callback?status=success`);
         } catch (error) {
             console.error('LINE auth error:', error);

@@ -1,16 +1,45 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, Between } from 'typeorm';
 import { AnalyticsLog, AnalyticsAction } from './entities/analytics-log.entity';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
-export class AnalyticsService {
+export class AnalyticsService implements OnModuleInit {
     constructor(
         @InjectRepository(AnalyticsLog)
         private analyticsRepository: Repository<AnalyticsLog>,
         private usersService: UsersService,
     ) { }
+
+    async onModuleInit() {
+        try {
+            await this.analyticsRepository.query(`
+                DO $$
+                BEGIN
+                    IF EXISTS (
+                        SELECT 1
+                        FROM pg_type
+                        WHERE typname = 'analytics_logs_action_enum'
+                    ) THEN
+                        IF NOT EXISTS (
+                            SELECT 1
+                            FROM pg_enum e
+                            JOIN pg_type t ON e.enumtypid = t.oid
+                            WHERE t.typname = 'analytics_logs_action_enum'
+                              AND e.enumlabel = 'LOGIN_SUCCESS'
+                        ) THEN
+                            ALTER TYPE analytics_logs_action_enum ADD VALUE 'LOGIN_SUCCESS';
+                        END IF;
+                    END IF;
+                END
+                $$;
+            `);
+        } catch (error) {
+            // Non-blocking: service can still run with existing action set.
+            console.warn('Analytics enum patch skipped:', (error as Error)?.message || error);
+        }
+    }
 
     async logEvent(uid: string, action: AnalyticsAction, visitorId: string, metadata?: any) {
         const user = await this.usersService.findOneByUid(uid);
@@ -86,6 +115,7 @@ export class AnalyticsService {
             [AnalyticsAction.VIEW_LANDING_PAGE]: 0,
             [AnalyticsAction.SUBMIT_LANDING_FORM]: 0,
             [AnalyticsAction.SCAN_QR]: 0,
+            [AnalyticsAction.LOGIN_SUCCESS]: 0,
         };
 
         stats.forEach(item => {
@@ -161,16 +191,17 @@ export class AnalyticsService {
         // Group by user
         const userStats: Record<number, any> = {};
         stats.forEach(item => {
-            if (!userStats[item.userId]) {
-                userStats[item.userId] = {
-                    userId: item.userId,
-                    viewCount: 0,
-                    downloadVcf: 0,
-                    viewCatalog: 0,
-                    downloadPdf: 0,
-                    lastActivity: null
-                };
-            }
+                if (!userStats[item.userId]) {
+                    userStats[item.userId] = {
+                        userId: item.userId,
+                        viewCount: 0,
+                        downloadVcf: 0,
+                        viewCatalog: 0,
+                        downloadPdf: 0,
+                        loginSuccess: 0,
+                        lastActivity: null
+                    };
+                }
             userStats[item.userId][this.actionToKey(item.action)] = parseInt(item.count, 10);
             if (!userStats[item.userId].lastActivity || new Date(item.lastActivity) > new Date(userStats[item.userId].lastActivity)) {
                 userStats[item.userId].lastActivity = item.lastActivity;
@@ -180,6 +211,58 @@ export class AnalyticsService {
         return Object.values(userStats);
     }
 
+    async getExecutiveActivity(days: number) {
+        const now = new Date();
+        const startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setDate(startDate.getDate() - Math.max(0, days - 1));
+
+        const [summary, activeUsersRaw, dailyRaw] = await Promise.all([
+            this.analyticsRepository
+                .createQueryBuilder('log')
+                .select('log.action', 'action')
+                .addSelect('COUNT(log.id)', 'count')
+                .where('log.created_at >= :startDate', { startDate })
+                .andWhere('log.created_at <= :now', { now })
+                .groupBy('log.action')
+                .getRawMany<{ action: AnalyticsAction; count: string }>(),
+            this.analyticsRepository
+                .createQueryBuilder('log')
+                .select('COUNT(DISTINCT log.user_id)', 'count')
+                .where('log.created_at >= :startDate', { startDate })
+                .andWhere('log.created_at <= :now', { now })
+                .getRawOne<{ count: string }>(),
+            this.analyticsRepository
+                .createQueryBuilder('log')
+                .select("TO_CHAR(log.created_at::date, 'YYYY-MM-DD')", 'date')
+                .addSelect('log.action', 'action')
+                .addSelect('COUNT(log.id)', 'count')
+                .where('log.created_at >= :startDate', { startDate })
+                .andWhere('log.created_at <= :now', { now })
+                .groupBy('log.created_at::date')
+                .addGroupBy('log.action')
+                .orderBy('log.created_at::date', 'ASC')
+                .getRawMany<{ date: string; action: AnalyticsAction; count: string }>(),
+        ]);
+
+        const summaryMap = new Map(summary.map((item) => [item.action, Number(item.count || 0)]));
+
+        return {
+            activeUsersInPeriod: Number(activeUsersRaw?.count || 0),
+            loginSuccessInPeriod: summaryMap.get(AnalyticsAction.LOGIN_SUCCESS) || 0,
+            viewProfileInPeriod: summaryMap.get(AnalyticsAction.VIEW_PROFILE) || 0,
+            viewCatalogInPeriod: summaryMap.get(AnalyticsAction.VIEW_CATALOG) || 0,
+            downloadVcfInPeriod: summaryMap.get(AnalyticsAction.DOWNLOAD_VCF) || 0,
+            downloadPdfInPeriod: summaryMap.get(AnalyticsAction.DOWNLOAD_PDF) || 0,
+            viewLandingPageInPeriod: summaryMap.get(AnalyticsAction.VIEW_LANDING_PAGE) || 0,
+            dailyActivity: dailyRaw.map((item) => ({
+                date: item.date,
+                action: item.action,
+                count: Number(item.count || 0),
+            })),
+        };
+    }
+
     private actionToKey(action: AnalyticsAction): string {
         switch (action) {
             case AnalyticsAction.VIEW_PROFILE: return 'viewCount';
@@ -187,6 +270,7 @@ export class AnalyticsService {
             case AnalyticsAction.VIEW_CATALOG: return 'viewCatalog';
             case AnalyticsAction.DOWNLOAD_PDF: return 'downloadPdf';
             case AnalyticsAction.SCAN_QR: return 'scanQr';
+            case AnalyticsAction.LOGIN_SUCCESS: return 'loginSuccess';
             default: return 'viewCount';
         }
     }

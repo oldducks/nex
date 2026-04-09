@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, FeatureConfig, DEFAULT_FEATURE_CONFIG_ALL_ENABLED, DEFAULT_FEATURE_CONFIG_LOCKED, UserRole } from './entities/user.entity';
@@ -29,13 +29,75 @@ export class UsersService {
     private profilesRepository: Repository<Profile>,
   ) { }
 
+  private async generateUniqueValue(field: 'uid' | 'url_prefix' | 'referral_code', length: number, uppercase = false): Promise<string> {
+    while (true) {
+      const rawValue = nanoid(length);
+      const value = uppercase ? rawValue.toUpperCase() : rawValue.toLowerCase();
+      const existing = await this.usersRepository.findOne({ where: { [field]: value } as any, select: ['id'] });
+      if (!existing) {
+        return value;
+      }
+    }
+  }
+
   async create(createUserDto: CreateUserDto) {
+    const normalizedEmail = createUserDto.email?.trim().toLowerCase();
+    const normalizedPhone = createUserDto.phoneNumber?.trim();
+
+    if (!normalizedEmail && !normalizedPhone) {
+      throw new BadRequestException('กรุณากรอกอีเมลหรือเบอร์โทรศัพท์อย่างใดอย่างหนึ่ง');
+    }
+
+    if (normalizedEmail) {
+      const existingEmail = await this.findOneByEmail(normalizedEmail);
+      if (existingEmail) {
+        throw new ConflictException('อีเมลนี้ถูกใช้งานแล้ว');
+      }
+    }
+
+    if (normalizedPhone) {
+      const existingPhone = await this.findOneByPhone(normalizedPhone);
+      if (existingPhone) {
+        throw new ConflictException('เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว');
+      }
+    }
+
+    const uid = createUserDto.uid?.trim() || await this.generateUniqueValue('uid', 10, false);
+    const urlPrefix = await this.generateUniqueValue('url_prefix', 5, false);
+    const referralCode = await this.generateUniqueValue('referral_code', 8, true);
+    const phoneDigits = normalizedPhone ? this.normalizePhone(normalizedPhone) : '';
+    const fallbackEmail = phoneDigits ? `phone_${phoneDigits}@phone.local` : `${uid}@phone.local`;
+    const resolvedEmail = normalizedEmail || fallbackEmail;
+    const resolvedName = createUserDto.fullName?.trim() || (normalizedPhone ? `User ${normalizedPhone}` : resolvedEmail.split('@')[0]);
     const hashedPassword = await bcrypt.hash(createUserDto.password, 10);
+
     const user = this.usersRepository.create({
-      ...createUserDto,
+      email: resolvedEmail,
       password_hash: hashedPassword,
+      uid,
+      url_prefix: urlPrefix,
+      role: createUserDto.role || UserRole.USER,
+      group_id: createUserDto.group_id ? parseInt(createUserDto.group_id, 10) : undefined,
+      is_active: true,
+      must_change_password: false,
+      feature_config: DEFAULT_FEATURE_CONFIG_LOCKED,
+      expiration_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+      referral_code: referralCode,
     });
-    return this.usersRepository.save(user);
+    const savedUser = await this.usersRepository.save(user);
+
+    const profile = this.profilesRepository.create({
+      user_id: savedUser.id,
+      full_name: resolvedName,
+      mobile: normalizedPhone,
+      email_contact: normalizedEmail,
+      names_i18n: [{ lang: 'th', value: resolvedName }],
+      emails: normalizedEmail ? [{ label: 'Email', value: normalizedEmail }] : [],
+      phones: normalizedPhone ? [{ label: 'Phone', value: normalizedPhone }] : [],
+    } as Partial<Profile>);
+    await this.profilesRepository.save(profile);
+
+    return savedUser;
   }
 
   findAll() {
@@ -198,6 +260,45 @@ export class UsersService {
         user.profile?.full_name ||
         null,
     }));
+  }
+
+  async getExecutiveUsersSummary(days: number) {
+    const now = new Date();
+    const startDate = new Date();
+    startDate.setHours(0, 0, 0, 0);
+    startDate.setDate(startDate.getDate() - Math.max(0, days - 1));
+
+    const [totalUsers, activeUsers, premiumUsers, freeUsers, newUsersInPeriod, newUsersDailyRaw] = await Promise.all([
+      this.usersRepository.count(),
+      this.usersRepository.count({ where: { is_active: true } }),
+      this.usersRepository.count({ where: { subscription_tier: 'premium' } }),
+      this.usersRepository.count({ where: { subscription_tier: 'free' } }),
+      this.usersRepository
+        .createQueryBuilder('u')
+        .where('u.created_at >= :startDate', { startDate })
+        .getCount(),
+      this.usersRepository
+        .createQueryBuilder('u')
+        .select("TO_CHAR(u.created_at::date, 'YYYY-MM-DD')", 'date')
+        .addSelect('COUNT(u.id)', 'count')
+        .where('u.created_at >= :startDate', { startDate })
+        .andWhere('u.created_at <= :now', { now })
+        .groupBy('u.created_at::date')
+        .orderBy('u.created_at::date', 'ASC')
+        .getRawMany<{ date: string; count: string }>(),
+    ]);
+
+    return {
+      totalUsers,
+      activeUsers,
+      premiumUsers,
+      freeUsers,
+      newUsersInPeriod,
+      newUsersDaily: newUsersDailyRaw.map((item) => ({
+        date: item.date,
+        count: Number(item.count || 0),
+      })),
+    };
   }
 
   async setExpiration(id: number, expirationDate: Date | null) {
