@@ -3,9 +3,33 @@
 import React from 'react';
 import { ShoppingCart } from 'lucide-react';
 
-export function FlipbookProductPage({ product }: { product: any }) {
+interface FlipbookProductPageProps {
+    product: {
+        id: number;
+        name: string;
+        brand?: string;
+        description?: string;
+        price?: number;
+        images_json?: string[];
+        interactive_links?: {
+            order_form?: string;
+            website?: string;
+        };
+    };
+    showName?: boolean;
+    showPrice?: boolean;
+    showActionButton?: boolean;
+}
+
+export function FlipbookProductPage({
+    product,
+    showName = true,
+    showPrice = true,
+    showActionButton = true,
+}: FlipbookProductPageProps) {
     const DEFAULT_REFERRAL_URL = 'https://nexsolution.cloud/manage/referrals';
     const linkUrl = product.interactive_links?.order_form || product.interactive_links?.website || DEFAULT_REFERRAL_URL;
+    const isDocumentMode = !showName && !showPrice && !showActionButton;
 
     const getImageUrl = (url: string | undefined) => {
         if (!url) return 'https://via.placeholder.com/400x500';
@@ -18,13 +42,26 @@ export function FlipbookProductPage({ product }: { product: any }) {
                     if (parsedUrl.pathname.startsWith('/uploads')) {
                         return `${API_URL}${parsedUrl.pathname}`;
                     }
-                } catch (e) {}
+                } catch {}
             }
             return url;
         }
         if (url.startsWith('/uploads')) return `${API_URL}${url}`;
         return url;
     };
+
+    if (isDocumentMode) {
+        return (
+            <div className="flipbook-product-page w-full h-full bg-white relative z-10">
+                <img
+                    src={getImageUrl(product.images_json?.[0])}
+                    alt={product.name}
+                    className="w-full h-full object-contain"
+                    decoding="async"
+                />
+            </div>
+        );
+    }
 
     return (
         <>
@@ -54,12 +91,16 @@ export function FlipbookProductPage({ product }: { product: any }) {
                         แบรนด์: {product.brand}
                     </p>
                 )}
-                <h3 className="flipbook-product-title text-base md:text-lg font-bold text-gray-900 line-clamp-1">{product.name}</h3>
+                {showName ? (
+                    <h3 className="flipbook-product-title text-base md:text-lg font-bold text-gray-900 line-clamp-1">{product.name}</h3>
+                ) : null}
 
                 {/* Price Badge - Below title */}
-                <div className="flipbook-product-price inline-block px-3 py-1 bg-primary text-white font-bold rounded-full shadow-lg text-sm">
-                    ฿{product.price?.toLocaleString()}
-                </div>
+                {showPrice ? (
+                    <div className="flipbook-product-price inline-block px-3 py-1 bg-primary text-white font-bold rounded-full shadow-lg text-sm">
+                        ฿{product.price?.toLocaleString()}
+                    </div>
+                ) : null}
 
                 <p className="flipbook-product-description text-gray-600 text-xs leading-relaxed line-clamp-2">
                     {product.description}
@@ -67,15 +108,17 @@ export function FlipbookProductPage({ product }: { product: any }) {
             </div>
 
             {/* Quick Action Button */}
-            <a
-                href={linkUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flipbook-product-action mt-2 w-full py-2 bg-primary hover:bg-primary/90 text-white text-center rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
-            >
-                <ShoppingCart size={14} />
-                {product.interactive_links?.order_form ? 'สั่งซื้อสินค้า' : 'ดูรายละเอียด'}
-            </a>
+            {showActionButton ? (
+                <a
+                    href={linkUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flipbook-product-action mt-2 w-full py-2 bg-primary hover:bg-primary/90 text-white text-center rounded-lg font-bold text-sm transition-colors flex items-center justify-center gap-2"
+                >
+                    <ShoppingCart size={14} />
+                    {product.interactive_links?.order_form ? 'สั่งซื้อสินค้า' : 'ดูรายละเอียด'}
+                </a>
+            ) : null}
         </div>
         <style jsx>{`
             @media (max-width: 767px) and (orientation: landscape) {

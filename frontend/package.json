@@ -9,12 +9,16 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@imgly/background-removal": "^1.7.0",
+    "fabric": "^7.2.0",
     "framer-motion": "^12.29.2",
     "html-to-image": "^1.11.13",
     "html2canvas": "^1.4.1",
     "js-cookie": "^3.0.5",
     "lucide-react": "^0.563.0",
     "next": "16.1.6",
+    "onnxruntime-web": "^1.21.0",
+    "pdfjs-dist": "^4.10.38",
     "qrcode.react": "^4.2.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",

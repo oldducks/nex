@@ -20,6 +20,7 @@ const DEFAULT_REFERRAL_URL = 'https://nexsolution.cloud/manage/referrals';
 
 interface Product {
   id: number;
+  order?: number;
   name: string;
   brand?: string;
   description: string;
@@ -42,6 +43,9 @@ interface CatalogLayoutConfig {
   primary_color?: string;
   font_family?: string;
   brand_logo?: string;
+  catalog_mode?: string;
+  hide_product_name?: boolean;
+  hide_product_price?: boolean;
 }
 
 interface Catalog {
@@ -204,26 +208,39 @@ export default function PublicCatalog() {
   );
 
   const theme = catalog.layout_config || {};
+  const orderedProducts = catalog.products
+    .slice()
+    .sort((a, b) => (a.order ?? 0) - (b.order ?? 0) || a.id - b.id);
   const primary = theme.primary_color || '#050579';
   const referralCode = catalog.referral_code?.trim() || 'ZXQ0KPCR';
   const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
   const selectedProductIndex = selectedProduct
-    ? catalog.products.findIndex((item) => item.id === selectedProduct.id)
+    ? orderedProducts.findIndex((item) => item.id === selectedProduct.id)
     : -1;
   const canGoPrevProduct = selectedProductIndex > 0;
   const canGoNextProduct =
-    selectedProductIndex >= 0 && selectedProductIndex < catalog.products.length - 1;
+    selectedProductIndex >= 0 && selectedProductIndex < orderedProducts.length - 1;
 
   const styles = {
     '--primary': primary,
     fontFamily: theme.font_family ? `"${theme.font_family}", sans-serif` : 'inherit',
   } as React.CSSProperties;
+  const hideProductName = Boolean(theme.hide_product_name);
+  const hideProductPrice = Boolean(theme.hide_product_price);
+  const isDocumentBookCatalog = theme.catalog_mode === "document_book";
 
   // Flipbook View
   if (viewMode === 'flipbook') {
-    const flipbookPages = catalog.products.map(product => ({
+    const flipbookPages = orderedProducts.map(product => ({
       id: product.id,
-      content: <FlipbookProductPage product={product} />
+      content: (
+        <FlipbookProductPage
+          product={product}
+          showName={!hideProductName}
+          showPrice={!hideProductPrice}
+          showActionButton={!isDocumentBookCatalog}
+        />
+      )
     }));
 
     const brandLogoUrl = catalog.layout_config?.brand_logo
@@ -246,7 +263,7 @@ export default function PublicCatalog() {
           )}
           <div className="text-4xl md:text-6xl font-black tracking-tighter mb-4">{catalog.title}</div>
           <div className="text-lg opacity-80">{catalog.description || 'Digital Collection'}</div>
-          <div className="mt-8 text-sm opacity-60">{catalog.products.length} Products</div>
+          <div className="mt-8 text-sm opacity-60">{orderedProducts.length} Products</div>
         </div>
       </div>
     );
@@ -263,7 +280,7 @@ export default function PublicCatalog() {
           shareUrl={shareUrl}
           shareTitle={`${catalog.title} - Digital Catalog`}
           catalogName={catalog.title}
-          products={catalog.products}
+          products={orderedProducts}
           promoHref={referralRegisterUrl}
         />
       </div>
@@ -381,10 +398,9 @@ export default function PublicCatalog() {
 
           {/* Product Grid */}
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 md:gap-8 lg:grid-cols-3">
-            {catalog.products
+            {orderedProducts
               .filter(p => 
-                p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                p.brand?.toLowerCase().includes(searchQuery.toLowerCase())
+                `${p.name || ''} ${p.brand || ''} ${p.description || ''}`.toLowerCase().includes(searchQuery.toLowerCase())
               )
               .map((product) => (
               <div
@@ -396,7 +412,7 @@ export default function PublicCatalog() {
                 <div className="relative aspect-[4/4.5] overflow-hidden md:aspect-[4/5]">
                   <img
                     src={getImageUrl(product.images_json?.[0])}
-                    alt={product.name}
+                    alt={product.name || catalog.title}
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                     decoding="async"
                   />
@@ -410,12 +426,18 @@ export default function PublicCatalog() {
                       แบรนด์: {product.brand}
                     </p>
                   )}
-                  <h3 className="mb-3 text-2xl font-black leading-tight tracking-tight text-[#050579] transition-colors group-hover:text-primary">{product.name}</h3>
+                  {!hideProductName ? (
+                    <h3 className="mb-3 text-2xl font-black leading-tight tracking-tight text-[#050579] transition-colors group-hover:text-primary">
+                      {product.name}
+                    </h3>
+                  ) : null}
 
                   {/* Price Badge - Below title */}
-                  <div className="mb-4 inline-block rounded-full bg-primary px-4 py-2 text-base font-black text-white shadow-lg">
-                    ฿{product.price.toLocaleString()}
-                  </div>
+                  {!hideProductPrice ? (
+                    <div className="mb-4 inline-block rounded-full bg-primary px-4 py-2 text-base font-black text-white shadow-lg">
+                      ฿{product.price.toLocaleString()}
+                    </div>
+                  ) : null}
 
                   <p className="mb-5 text-sm leading-7 text-[#475569] line-clamp-2 md:line-clamp-3">
                     {product.description}
@@ -453,14 +475,16 @@ export default function PublicCatalog() {
             product={selectedProduct} 
             getImageUrl={getImageUrl}
             onClose={() => setSelectedProduct(null)}
+            showName={!hideProductName}
+            showPrice={!hideProductPrice}
             onPrev={
               canGoPrevProduct
-                ? () => setSelectedProduct(catalog.products[selectedProductIndex - 1])
+                ? () => setSelectedProduct(orderedProducts[selectedProductIndex - 1])
                 : undefined
             }
             onNext={
               canGoNextProduct
-                ? () => setSelectedProduct(catalog.products[selectedProductIndex + 1])
+                ? () => setSelectedProduct(orderedProducts[selectedProductIndex + 1])
                 : undefined
             }
             hasPrev={canGoPrevProduct}
@@ -639,6 +663,8 @@ function ProductModal({
   product,
   onClose,
   getImageUrl,
+  showName = true,
+  showPrice = true,
   onPrev,
   onNext,
   hasPrev = false,
@@ -647,6 +673,8 @@ function ProductModal({
   product: Product;
   onClose: () => void;
   getImageUrl: (url: string | undefined) => string;
+  showName?: boolean;
+  showPrice?: boolean;
   onPrev?: () => void;
   onNext?: () => void;
   hasPrev?: boolean;
@@ -708,10 +736,14 @@ function ProductModal({
               {product.brand && (
                 <p className="text-[11px] font-black uppercase tracking-[0.18em] text-[#64748B] mb-2">แบรนด์: {product.brand}</p>
               )}
-              <h2 className="mb-4 text-2xl font-black leading-tight tracking-tighter md:text-4xl">{product.name}</h2>
-              <div className="mb-5 inline-block rounded-full bg-primary/10 px-4 py-2 text-base font-bold text-primary md:text-lg">
-                ฿{product.price.toLocaleString()}
-              </div>
+              {showName ? (
+                <h2 className="mb-4 text-2xl font-black leading-tight tracking-tighter md:text-4xl">{product.name}</h2>
+              ) : null}
+              {showPrice ? (
+                <div className="mb-5 inline-block rounded-full bg-primary/10 px-4 py-2 text-base font-bold text-primary md:text-lg">
+                  ฿{product.price.toLocaleString()}
+                </div>
+              ) : null}
               <p className="text-base leading-8 text-[#475569] md:text-lg">
                 {product.description}
               </p>
