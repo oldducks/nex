@@ -3,12 +3,15 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { LandingPage } from './entities/landing-page.entity';
 import { CreateLandingPageDto, UpdateLandingPageDto } from './dto/landing-page.dto';
+import { User, UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class LandingPagesService {
     constructor(
         @InjectRepository(LandingPage)
         private repository: Repository<LandingPage>,
+        @InjectRepository(User)
+        private usersRepository: Repository<User>,
     ) {}
 
     private sanitizeSlug(value: string): string {
@@ -55,8 +58,15 @@ export class LandingPagesService {
     }
 
     async create(userId: number, dto: CreateLandingPageDto) {
-        // Check landing page limit (max 10 per user)
+        const user = await this.usersRepository.findOneBy({ id: userId });
+        const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GROUP_ADMIN;
+
         const existingCount = await this.repository.count({ where: { user_id: userId } });
+        if (!isAdmin && existingCount >= 1) {
+            throw new ConflictException('ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน');
+        }
+
+        // Check landing page limit (max 10 per user)
         if (existingCount >= 10) {
             throw new ConflictException('คุณสร้าง Landing Page ครบ 10 หน้าแล้ว ไม่สามารถสร้างเพิ่มได้');
         }
@@ -90,8 +100,13 @@ export class LandingPagesService {
 
     async findBySlug(slug: string) {
         const decodedSlug = decodeURIComponent(slug);
+        const isNumericLookup = /^\d+$/.test(decodedSlug);
+        const where = isNumericLookup
+            ? ({ id: Number(decodedSlug), is_published: true } as const)
+            : ({ slug: decodedSlug, is_published: true } as const);
+
         const page = await this.repository.findOne({
-            where: { slug: decodedSlug, is_published: true },
+            where,
             relations: ['user'],
         });
         if (!page) throw new NotFoundException('Landing Page not found');

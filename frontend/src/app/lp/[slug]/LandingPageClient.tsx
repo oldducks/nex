@@ -84,7 +84,7 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
     const theme = page.theme_config || {};
     const primary = theme.primary_color || '#050579';
     const accent = theme.accent_color || '#F97316';
-    const shareUrl = `${SITE_URL}/lp/${page.slug}`;
+    const shareUrl = `${SITE_URL}/lp/${page.id}`;
     const referralCode = page.referral_code?.trim() || 'ZXQ0KPCR';
     const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
     const baseSans = "var(--font-sans), 'Noto Sans Thai', 'Segoe UI', system-ui, -apple-system, sans-serif";
@@ -200,8 +200,6 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                             fileBaseName={`landing-page-${page.slug}`}
                             titleLine="QR Code"
                             nameLine={page.title}
-                            bottomLabel="URL"
-                            bottomLine={shareUrl}
                             className="mt-4"
                         />
                     </div>

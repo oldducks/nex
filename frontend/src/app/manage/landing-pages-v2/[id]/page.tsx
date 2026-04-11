@@ -8,10 +8,12 @@ import Cookies from "js-cookie";
 import Link from "next/link";
 import {
   ArrowLeft,
+  Bold,
   ChevronDown,
   ChevronUp,
   ExternalLink,
   Image as ImageIcon,
+  Italic,
   Loader2,
   MapPin,
   MousePointer2,
@@ -29,6 +31,7 @@ import { getEmbedUrl, isEmbedableVideo } from "@/lib/videoUtils";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://nexsolution.cloud";
+const TEXT_FONT_OPTIONS = ["Arial", "Georgia", "Tahoma", "Verdana", "Trebuchet MS", "Times New Roman", "Courier New"];
 
 interface Block {
   id: string;
@@ -267,12 +270,122 @@ function normalizeUrl(value?: unknown): string | null {
 }
 
 function getDefaultBlockContent(type: Block["type"]) {
-  if (type === "text") return { title: "", body: "" };
+  if (type === "text") {
+    return {
+      title: "",
+      body: "",
+      title_style: {
+        color: "#050579",
+        fontSize: 32,
+        fontFamily: "Arial",
+        fontWeight: 900,
+        fontStyle: "normal",
+      },
+      body_style: {
+        color: "#475569",
+        fontSize: 16,
+        fontFamily: "Arial",
+        fontWeight: 400,
+        fontStyle: "normal",
+      },
+    };
+  }
   if (type === "image") return { url: "", link: "" };
   if (type === "video") return { url: "", autoplay: false };
   if (type === "button") return { text: "", link: "" };
   if (type === "location") return { title: "ที่ตั้งของเรา", address: "", embed_url: "", map_url: "" };
   return { title: "ติดต่อเรา", description: "", mode: "internal", form_id: "", external_url: "" };
+}
+
+function TextStyleControls({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: any;
+  onChange: (next: any) => void;
+}) {
+  const style = {
+    color: value?.color || "#0F172A",
+    fontSize: Number(value?.fontSize || 16),
+    fontFamily: value?.fontFamily || "Arial",
+    fontWeight: Number(value?.fontWeight || 400),
+    fontStyle: value?.fontStyle === "italic" ? "italic" : "normal",
+  };
+
+  return (
+    <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-3">
+      <div className="mb-3 text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">{label}</div>
+
+      <div className="grid grid-cols-2 gap-3">
+        <label className="space-y-2">
+          <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-[#64748B]">สีตัวอักษร</span>
+          <input
+            type="color"
+            value={style.color}
+            onChange={(e) => onChange({ ...style, color: e.target.value })}
+            className="h-11 w-full rounded-xl border border-[#D9E1F2] bg-white px-2"
+          />
+        </label>
+
+        <label className="space-y-2">
+          <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-[#64748B]">ฟอนต์</span>
+          <select
+            value={style.fontFamily}
+            onChange={(e) => onChange({ ...style, fontFamily: e.target.value })}
+            className="h-11 w-full rounded-xl border border-[#D9E1F2] bg-white px-3 text-sm font-bold text-[#0F172A] outline-none"
+          >
+            {TEXT_FONT_OPTIONS.map((font) => (
+              <option key={font} value={font}>
+                {font}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+
+      <div className="mt-3 grid grid-cols-[1fr_auto_auto] gap-3 items-end">
+        <label className="space-y-2">
+          <span className="block text-[11px] font-black uppercase tracking-[0.12em] text-[#64748B]">
+            ขนาดตัวอักษร {style.fontSize}px
+          </span>
+          <input
+            type="range"
+            min={12}
+            max={72}
+            value={style.fontSize}
+            onChange={(e) => onChange({ ...style, fontSize: Number(e.target.value) })}
+            className="h-11 w-full accent-[#050579]"
+          />
+        </label>
+
+        <button
+          type="button"
+          onClick={() => onChange({ ...style, fontWeight: style.fontWeight >= 700 ? 400 : 800 })}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl border transition ${
+            style.fontWeight >= 700
+              ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316]"
+              : "border-[#D9E1F2] bg-white text-[#64748B]"
+          }`}
+        >
+          <Bold size={16} />
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChange({ ...style, fontStyle: style.fontStyle === "italic" ? "normal" : "italic" })}
+          className={`flex h-11 w-11 items-center justify-center rounded-xl border transition ${
+            style.fontStyle === "italic"
+              ? "border-[#F97316] bg-[#FFF7ED] text-[#F97316]"
+              : "border-[#D9E1F2] bg-white text-[#64748B]"
+          }`}
+        >
+          <Italic size={16} />
+        </button>
+      </div>
+    </div>
+  );
 }
 
 function RenderBlockEditor({
@@ -299,6 +412,16 @@ function RenderBlockEditor({
             onChange={(e) => onUpdate({ ...block.content, body: e.target.value })}
             placeholder="เนื้อหา"
             className="min-h-28 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none"
+          />
+          <TextStyleControls
+            label="รูปแบบหัวข้อ"
+            value={block.content.title_style}
+            onChange={(next) => onUpdate({ ...block.content, title_style: next })}
+          />
+          <TextStyleControls
+            label="รูปแบบเนื้อหา"
+            value={block.content.body_style}
+            onChange={(next) => onUpdate({ ...block.content, body_style: next })}
           />
         </div>
       );
@@ -429,12 +552,26 @@ function RenderPreviewBlock({
 
   switch (block.type) {
     case "text":
+      const titleStyle = {
+        color: block.content.title_style?.color || primary,
+        fontSize: `${block.content.title_style?.fontSize || 32}px`,
+        fontFamily: block.content.title_style?.fontFamily || "Arial",
+        fontWeight: block.content.title_style?.fontWeight || 900,
+        fontStyle: block.content.title_style?.fontStyle || "normal",
+      };
+      const bodyStyle = {
+        color: block.content.body_style?.color || "#475569",
+        fontSize: `${block.content.body_style?.fontSize || 16}px`,
+        fontFamily: block.content.body_style?.fontFamily || "Arial",
+        fontWeight: block.content.body_style?.fontWeight || 400,
+        fontStyle: block.content.body_style?.fontStyle || "normal",
+      };
       return (
         <section className="px-5 py-8 text-center">
-          <h2 className="text-[32px] font-black leading-tight text-[var(--primary)]" style={{ ["--primary" as any]: primary }}>
+          <h2 className="leading-tight" style={titleStyle}>
             {block.content.title || "หัวข้อ"}
           </h2>
-          <p className="mt-4 whitespace-pre-wrap text-base leading-7 text-[#475569]">
+          <p className="mt-4 whitespace-pre-wrap leading-7" style={bodyStyle}>
             {block.content.body || "เนื้อหา"}
           </p>
         </section>
@@ -786,7 +923,7 @@ export default function LandingPageEditorV2() {
     return <div className="p-6 text-sm text-[#0F172A]">ไม่พบข้อมูลหน้านี้</div>;
   }
 
-  const publicUrl = `${SITE_URL}/lp/${encodeURIComponent(page.slug)}`;
+  const publicUrl = `${SITE_URL}/lp/${page.id}`;
 
   return (
     <div className="relative min-h-screen bg-[#EEF0FF] pb-28 text-[#0F172A]">

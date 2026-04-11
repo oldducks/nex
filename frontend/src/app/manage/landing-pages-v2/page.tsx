@@ -34,6 +34,9 @@ interface LandingPage {
 
 interface MeProfile {
     subscription_tier?: string;
+    user?: {
+        role?: string;
+    } | null;
 }
 
 const sanitizeSlug = (value: string): string =>
@@ -68,13 +71,13 @@ export default function LandingPagesListPage() {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [newPage, setNewPage] = useState({ title: '', slug: '' });
-    const [slugEdited, setSlugEdited] = useState(false);
     const [deletingPage, setDeletingPage] = useState<LandingPage | null>(null);
     const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
         message: '',
         type: 'info',
         isVisible: false,
     });
+    const [isAdmin, setIsAdmin] = useState(false);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
@@ -93,6 +96,16 @@ export default function LandingPagesListPage() {
         return 'แผนพื้นฐาน';
     };
 
+    const openCreatePageModal = () => {
+        if (!isAdmin && pages.length >= 1) {
+            showToast('ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน', 'error');
+            return;
+        }
+
+        setNewPage({ title: '', slug: '' });
+        setShowModal(true);
+    };
+
     const fetchPages = useCallback(async () => {
         try {
             const profileRes = await fetch(`${API_URL}/profile/me`, {
@@ -101,6 +114,9 @@ export default function LandingPagesListPage() {
             if (profileRes.ok) {
                 const profileData: MeProfile = await profileRes.json();
                 setCurrentPlanLabel(resolvePlanLabel(profileData.subscription_tier));
+                setIsAdmin(
+                    profileData.user?.role === 'super_admin' || profileData.user?.role === 'group_admin'
+                );
             }
 
             const res = await fetch(`${API_URL}/landing-pages`, {
@@ -147,6 +163,12 @@ export default function LandingPagesListPage() {
 
     const createPage = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!isAdmin && pages.length >= 1) {
+            setShowModal(false);
+            showToast('ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน', 'error');
+            return;
+        }
+
         try {
             const res = await fetch(`${API_URL}/landing-pages`, {
                 method: 'POST',
@@ -160,7 +182,8 @@ export default function LandingPagesListPage() {
                 const data = await res.json();
                 router.push(`${editorBasePath}/${data.id}`);
             } else {
-                showToast('เกิดข้อผิดพลาดในการสร้าง หรือ Slug อาจซ้ำกัน', 'error');
+                const errorData = await res.json().catch(() => null);
+                showToast(errorData?.message || 'เกิดข้อผิดพลาดในการสร้าง หรือ Slug อาจซ้ำกัน', 'error');
             }
         } catch (error) {
             console.error(error);
@@ -227,11 +250,7 @@ export default function LandingPagesListPage() {
             <main className="relative z-10 mx-auto mt-6 w-full max-w-md px-4 pb-8 md:max-w-2xl">
                 <div className="mb-8 flex justify-center">
                     <button
-                        onClick={() => {
-                            setNewPage({ title: '', slug: '' });
-                            setSlugEdited(false);
-                            setShowModal(true);
-                        }}
+                        onClick={openCreatePageModal}
                         className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#F97316] px-7 py-4 text-lg font-black text-white shadow-[0_20px_45px_-20px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-95"
                     >
                         <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/22">
@@ -245,7 +264,7 @@ export default function LandingPagesListPage() {
                     <h2 className="text-xl font-black leading-tight text-[#050579]">หน้าร้านออนไลน์ของคุณ</h2>
                     <div className="mt-4 space-y-4">
                         {pages.map((page) => {
-                            const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/lp/${encodeURIComponent(page.slug)}`;
+                            const shareUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud'}/lp/${page.id}`;
                             const expandedType = expandedPanel.pageId === page.id ? expandedPanel.type : null;
                             const isQrExpanded = expandedType === 'qr';
                             const isShareExpanded = expandedType === 'share';
@@ -285,7 +304,7 @@ export default function LandingPagesListPage() {
                                                 <ChevronDown size={16} className="rotate-[-90deg] text-[#475569]" />
                                             </Link>
                                             <Link
-                                                href={`/lp/${encodeURIComponent(page.slug)}`}
+                                                href={`/lp/${page.id}`}
                                                 target="_blank"
                                                 className="flex items-center justify-between rounded-2xl border border-[#D1DBEF] bg-white/92 px-3 py-3 text-[#0F172A] transition hover:border-[#B9C9E6]"
                                             >
@@ -360,7 +379,7 @@ export default function LandingPagesListPage() {
                                                     <Share2 size={14} />
                                                     <span>แชร์และข้อมูลเพิ่มเติม</span>
                                                 </div>
-                                                <p className="truncate text-sm font-semibold text-[#050579]">/lp/{page.slug}</p>
+                                                <p className="truncate text-sm font-semibold text-[#050579]">/lp/{page.id}</p>
                                                 {page.description ? (
                                                     <p className="mt-2 text-sm leading-relaxed text-[#64748B]">{page.description}</p>
                                                 ) : null}
@@ -421,7 +440,7 @@ export default function LandingPagesListPage() {
                         
                         <form onSubmit={createPage} className="space-y-6">
                             <div>
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase mb-2 ml-1 tracking-widest">ชื่อหน้าร้าน</label>
+                                <label className="block text-sm font-bold text-[#64748B] mb-2 ml-1">ชื่อหน้าร้าน</label>
                                 <input
                                     required
                                     className="w-full bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-3.5 outline-none focus:ring-2 focus:ring-[#F97316]/20 transition-all font-bold text-[#050579]"
@@ -429,31 +448,12 @@ export default function LandingPagesListPage() {
                                     value={newPage.title}
                                     onChange={e => {
                                         const val = e.target.value;
-                                        setNewPage((prev) => ({
+                                        setNewPage({
                                             title: val,
-                                            slug: slugEdited ? prev.slug : createSmartSlug(val),
-                                        }));
+                                            slug: createSmartSlug(val),
+                                        });
                                     }}
                                 />
-                            </div>
-                            <div>
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase mb-2 ml-1 tracking-widest">URL SLUG</label>
-                                <div className="flex items-center gap-2 bg-[#F6F8FF] border border-[#D9E1F2] rounded-2xl px-4 py-3.5 focus-within:ring-2 focus-within:ring-[#F97316]/20 transition-all">
-                                    <span className="text-[#94A3B8] font-bold text-sm">/lp/</span>
-                                    <input
-                                        required
-                                        className="bg-transparent border-none focus:ring-0 w-full outline-none font-bold text-[#050579]"
-                                        placeholder="url-slug"
-                                        value={newPage.slug}
-                                        onChange={e => {
-                                            setSlugEdited(true);
-                                            setNewPage({ ...newPage, slug: createSmartSlug(e.target.value) });
-                                        }}
-                                    />
-                                </div>
-                                <p className="mt-2 ml-1 text-[11px] font-medium text-[#94A3B8]">
-                                    ระบบรองรับภาษาไทย ภาษาอังกฤษ ตัวเลข และขีด เพื่อให้ URL อ่านง่ายและเป็นมิตรกับ SEO
-                                </p>
                             </div>
                             <div className="flex gap-4 pt-4">
                                 <button type="button" onClick={() => setShowModal(false)} className="flex-1 py-4 rounded-2xl border border-[#D9E1F2] font-black text-xs uppercase tracking-widest text-[#64748B] hover:bg-gray-50 transition-colors">ยกเลิก</button>
