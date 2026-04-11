@@ -113,6 +113,7 @@ interface AiImageSettings {
     project_id: string;
     location: string;
     model: string;
+    video_model?: string;
     has_api_key: boolean;
     has_adc?: boolean;
     auth_mode?: 'api_key' | 'adc' | 'unconfigured';
@@ -153,10 +154,18 @@ interface AdminTemplateItem {
 }
 
 const AI_IMAGE_MODELS = [
-    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image Preview (Recommended)' },
-    { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image' },
+    { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image (Recommended)' },
+    { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image Preview (Pro)' },
     { value: 'gemini-2.5-flash-image-preview', label: 'Gemini 2.5 Flash Image Preview' },
     { value: 'imagen-3.0-generate-002', label: 'Imagen 3.0 Generate 002' },
+];
+
+const AI_VIDEO_MODELS = [
+    { value: '', label: 'Use Default / Fallback' },
+    { value: 'veo-3.1-generate-001', label: 'Veo 3.1 Generate 001' },
+    { value: 'veo-3.1-fast-generate-001', label: 'Veo 3.1 Fast Generate 001' },
+    { value: 'veo-3.1-lite-generate-001', label: 'Veo 3.1 Lite Generate 001' },
+    { value: 'veo-3.1-generate-preview', label: 'Veo 3.1 Generate Preview' },
 ];
 
 export default function SuperAdminDashboard() {
@@ -184,7 +193,8 @@ export default function SuperAdminDashboard() {
     const [providerNote, setProviderNote] = useState('');
     const [projectId, setProjectId] = useState('');
     const [location, setLocation] = useState('asia-southeast1');
-    const [model, setModel] = useState('gemini-3.1-flash-image-preview');
+    const [model, setModel] = useState('gemini-2.5-flash-image');
+    const [videoModel, setVideoModel] = useState('');
     const [apiKey, setApiKey] = useState('');
     const [clearStoredApiKey, setClearStoredApiKey] = useState(false);
     const [isEnabled, setIsEnabled] = useState(false);
@@ -254,7 +264,8 @@ export default function SuperAdminDashboard() {
                     setProviderNote(data.note || '');
                     setProjectId(data.project_id || '');
                     setLocation(data.location || 'asia-southeast1');
-                    setModel(data.model || 'gemini-3.1-flash-image-preview');
+                    setModel(data.model || 'gemini-2.5-flash-image');
+                    setVideoModel(data.video_model || '');
                     setIsEnabled(Boolean(data.is_enabled));
                 }
             } catch (error) {
@@ -407,6 +418,34 @@ export default function SuperAdminDashboard() {
         setActionLoading(null);
     };
 
+    const updateUserRole = async (userId: number, role: string) => {
+        setActionLoading(userId);
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/users/${userId}/role`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ role })
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                setDashboardData(prev => prev ? {
+                    ...prev,
+                    users: prev.users.map(u => u.id === userId ? { 
+                        ...u, 
+                        role: updated.role
+                    } : u)
+                } : null);
+            }
+        } catch (error) {
+            console.error('Update role failed:', error);
+        }
+        setActionLoading(null);
+    };
+
     const saveAiSettings = async () => {
         const token = Cookies.get('token');
         if (!token) return;
@@ -425,6 +464,7 @@ export default function SuperAdminDashboard() {
                 project_id: projectId,
                 location,
                 model,
+                video_model: videoModel,
                 is_enabled: isEnabled,
             };
             if (connectionMode === 'api_key' && (clearStoredApiKey || apiKey.trim())) {
@@ -446,6 +486,8 @@ export default function SuperAdminDashboard() {
 
             const updated = await res.json() as AiImageSettings;
             setAiSettings(updated);
+            setModel(updated.model || 'gemini-2.5-flash-image');
+            setVideoModel(updated.video_model || '');
             setApiKey('');
             setClearStoredApiKey(false);
             setAiMessage('บันทึกการตั้งค่า Vertex provider แล้ว');
@@ -479,7 +521,10 @@ export default function SuperAdminDashboard() {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (settingsRes.ok) {
-                setAiSettings(await settingsRes.json() as AiImageSettings);
+                const refreshed = await settingsRes.json() as AiImageSettings;
+                setAiSettings(refreshed);
+                setModel(refreshed.model || 'gemini-2.5-flash-image');
+                setVideoModel(refreshed.video_model || '');
             }
             if (result.ok) {
                 setAiMessage('ทดสอบการตั้งค่าสำเร็จ พร้อมใช้งาน');
@@ -967,6 +1012,7 @@ export default function SuperAdminDashboard() {
                                 <col style={{ width: 200 }} />
                                 <col style={{ width: 220 }} />
                                 <col style={{ width: 130 }} />
+                                <col style={{ width: 130 }} />
                                 <col style={{ width: 110 }} />
                                 <col style={{ width: 170 }} />
                                 <col style={{ width: 190 }} />
@@ -977,6 +1023,7 @@ export default function SuperAdminDashboard() {
                                     <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">รหัส</th>
                                     <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">ชื่อ</th>
                                     <th className="px-4 py-2.5 text-center text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">แพ็กเกจ</th>
+                                    <th className="px-4 py-2.5 text-center text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">สิทธิ์</th>
                                     <th className="px-4 py-2.5 text-center text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">สถานะ</th>
                                     <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">วันหมดอายุ</th>
                                     <th className="px-4 py-2.5 text-left text-[11px] font-medium text-[#64748B] uppercase whitespace-nowrap">ใช้งานล่าสุด</th>
@@ -1019,6 +1066,22 @@ export default function SuperAdminDashboard() {
                                             >
                                               {user.subscription_tier === 'premium' ? '★ Premium' : 'Free Plan'}
                                             </button>
+                                        </td>
+                                        <td className="px-4 py-3 text-center">
+                                            <select
+                                                value={user.role}
+                                                onChange={(e) => updateUserRole(user.id, e.target.value)}
+                                                disabled={actionLoading === user.id}
+                                                className={`px-2 py-1 outline-none rounded-md text-[10px] font-black uppercase tracking-widest transition-all border ${
+                                                    user.role === 'super_admin' ? 'bg-purple-500/10 text-purple-600 border-purple-500/30 hover:bg-purple-500/20' : 
+                                                    user.role === 'group_admin' ? 'bg-blue-500/10 text-blue-600 border-blue-500/30 hover:bg-blue-500/20' : 
+                                                    'bg-gray-100 text-gray-600 border-gray-200 hover:bg-gray-200'
+                                                }`}
+                                            >
+                                                <option value="user">User</option>
+                                                <option value="group_admin">Group Admin</option>
+                                                <option value="super_admin">Super Admin</option>
+                                            </select>
                                         </td>
                                         <td className="px-4 py-3 text-center">
                                             {user.is_active ? (
@@ -1415,23 +1478,43 @@ export default function SuperAdminDashboard() {
                                 </label>
                             </div>
 
-                            <label className="block">
-                                <span className="text-xs font-bold text-[#334155]">Model</span>
-                                <select
-                                    value={model}
-                                    onChange={(e) => setModel(e.target.value)}
-                                    className="mt-1 w-full rounded-xl border border-[#D9E1F2] bg-white px-3 py-2.5 text-sm text-[#0F172A] outline-none focus:ring-2 focus:ring-[#050579]/20"
-                                >
-                                    {AI_IMAGE_MODELS.map((option) => (
-                                        <option key={option.value} value={option.value}>
-                                            {option.label}
-                                        </option>
-                                    ))}
-                                </select>
-                                <p className="mt-1 text-xs text-[#64748B]">
-                                    เลือก model สำหรับงานสร้าง/แก้ภาพได้จากหน้านี้โดยไม่ต้องแก้โค้ด
-                                </p>
-                            </label>
+                            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <label className="block">
+                                    <span className="text-xs font-bold text-[#334155]">Image Model</span>
+                                    <select
+                                        value={model}
+                                        onChange={(e) => setModel(e.target.value)}
+                                        className="mt-1 w-full rounded-xl border border-[#D9E1F2] bg-white px-3 py-2.5 text-sm text-[#0F172A] outline-none focus:ring-2 focus:ring-[#050579]/20"
+                                    >
+                                        {AI_IMAGE_MODELS.map((option) => (
+                                            <option key={option.value} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="mt-1 text-xs text-[#64748B]">
+                                        ใช้สำหรับงานสร้าง/แก้ภาพเท่านั้น
+                                    </p>
+                                </label>
+
+                                <label className="block">
+                                    <span className="text-xs font-bold text-[#334155]">Video Model</span>
+                                    <select
+                                        value={videoModel}
+                                        onChange={(e) => setVideoModel(e.target.value)}
+                                        className="mt-1 w-full rounded-xl border border-[#D9E1F2] bg-white px-3 py-2.5 text-sm text-[#0F172A] outline-none focus:ring-2 focus:ring-[#050579]/20"
+                                    >
+                                        {AI_VIDEO_MODELS.map((option) => (
+                                            <option key={option.value || 'default'} value={option.value}>
+                                                {option.label}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <p className="mt-1 text-xs text-[#64748B]">
+                                        ใช้สำหรับงานวิดีโอเท่านั้น ถ้าเลือก Default ระบบจะใช้ fallback runtime อัตโนมัติ
+                                    </p>
+                                </label>
+                            </div>
 
                             <label className="block">
                                 <span className="text-xs font-bold text-[#334155]">Note</span>

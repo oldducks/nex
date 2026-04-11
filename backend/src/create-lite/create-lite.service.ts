@@ -4,6 +4,12 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import sharp from 'sharp';
 import { GoogleAuth } from 'google-auth-library';
+import {
+  DEFAULT_IMAGE_MODEL,
+  isAllowedImageModel,
+  resolveAllowedImageModel,
+} from './image-models.constants';
+import { ALLOWED_VIDEO_MODELS, DEFAULT_VIDEO_MODEL, isAllowedVideoModel, normalizeVideoModel } from './video-models.constants';
 
 export interface CreateLiteTemplate {
   id: string;
@@ -44,17 +50,31 @@ export interface CreateLiteImageInput {
   ratio?: '1:1' | '4:5' | '9:16';
 }
 
+export interface CreateLiteDirectPromptImageInput {
+  prompt: string;
+  ratio?: '1:1' | '4:5' | '9:16' | '16:9';
+  referenceImageUrls?: string[];
+}
+
 export interface CreateLiteReplaceProductInput {
   prompt: string;
   ratio?: '1:1' | '4:5' | '9:16';
   baseImageUrl: string;
   productImageUrl: string;
+  maskImageUrl?: string;
 }
 
 export interface CreateLiteReferenceImageInput {
   prompt: string;
   ratio?: '1:1' | '4:5' | '9:16';
   referenceImageUrl: string;
+}
+
+export interface CreateLiteVideoReferenceInput {
+  prompt: string;
+  ratio?: '9:16' | '16:9';
+  referenceImageUrl: string;
+  durationSeconds?: 8;
 }
 
 type ProxyImageRuntimeConfig = {
@@ -78,6 +98,16 @@ type DirectImageRuntimeConfig = {
 };
 
 type GoogleImageRuntimeConfig = ProxyImageRuntimeConfig | DirectImageRuntimeConfig;
+
+type GoogleVideoRuntimeConfig = {
+  connection_mode: 'cloud_run_proxy' | 'api_key';
+  provider_url: string;
+  project_id: string;
+  location: string;
+  model: string;
+  auth_mode: 'proxy' | 'api_key' | 'adc';
+  api_key?: string;
+};
 
 @Injectable()
 export class CreateLiteService {
@@ -407,250 +437,261 @@ export class CreateLiteService {
     const runtime = await this.getGoogleImageRuntimeConfig();
 
     const prompt = this.buildImagePrompt(input);
-    const aspectRatio = input.ratio || '1:1';
-    const sampleCount = 1;
+    return this.generateImageViaProxy(runtime, {
+      prompt,
+      aspectRatio: input.ratio || '1:1',
+      sampleCount: 1,
+    });
+  }
 
-    if (runtime.connection_mode === 'cloud_run_proxy') {
-      const requestId = this.createRequestId();
-      const endpoint = this.buildProxyGenerateImageEndpoint(runtime.provider_url);
+  async generateImageFromDirectPrompt(
+    input: CreateLiteDirectPromptImageInput,
+  ): Promise<{ imageDataUrl: string; promptUsed: string; model: string }> {
+    const runtime = await this.getGoogleImageRuntimeConfig();
+    const prompt = String(input.prompt || '').trim();
+    if (!prompt) {
+      throw new BadRequestException('กรุณากรอก prompt');
+    }
+
+    const ratio = input.ratio === '4:5' || input.ratio === '9:16' || input.ratio === '16:9' ? input.ratio : '1:1';
+    const rawUrls = Array.isArray(input.referenceImageUrls) ? input.referenceImageUrls : [];
+    const urls = rawUrls
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .slice(0, 6);
+
+    const referenceImages = await Promise.all(
+      urls.map(async (url) => {
+        const image = await this.resolveEditImageToInlineData(url);
+        return {
+          mimeType: image.mimeType,
+          data: image.data,
+        };
+      }),
+    );
+
+    return this.generateImageViaProxy(runtime, {
+      prompt,
+      aspectRatio: ratio,
+      sampleCount: 1,
+      ...(referenceImages.length > 0
+        ? {
+            editMode: 'reference-image',
+            referenceImages,
+          }
+        : {}),
+    });
+  }
+
+  async generateImageWithProductReplace(
+    input: CreateLiteReplaceProductInput,
+  ): Promise<{ imageDataUrl: string; promptUsed: string; model: string }> {
+    const runtime = await this.getGoogleImageRuntimeConfig();
+    // Force Nano Banana (Gemini 2.5 Flash Image) to bypass any stale DB settings
+    const modelToUse = 'gemini-2.5-flash-image';
+    const isGemini = true; // Forcing true since we are forcing the model
+    
+    const [baseImage, productImage, maskImage] = await Promise.all([
+      this.resolveEditImageToInlineData(input.baseImageUrl),
+      this.resolveEditImageToInlineData(input.productImageUrl),
+      input.maskImageUrl ? this.resolveEditImageToInlineData(input.maskImageUrl) : Promise.resolve(null),
+    ]);
+
+    const prompt = this.buildGeminiProductReplacePrompt(input.prompt);
+
+    return this.generateImageViaProxy({ ...runtime, model: modelToUse }, {
+      prompt,
+      aspectRatio: input.ratio || '1:1',
+      sampleCount: 1,
+      editMode: 'product-replace',
+      model: modelToUse, // Explicitly tell proxy which model to use
+      baseImage: {
+        mimeType: baseImage.mimeType,
+        data: baseImage.data,
+      },
+      referenceImage: {
+        mimeType: productImage.mimeType,
+        data: productImage.data,
+      },
+      ...(maskImage && !isGemini
+        ? {
+            maskImage: {
+              mimeType: maskImage.mimeType,
+              data: maskImage.data,
+            },
+          }
+        : {}),
+    });
+  }
+
+  async generateImageWithReferenceImage(
+    input: CreateLiteReferenceImageInput,
+  ): Promise<{ imageDataUrl: string; promptUsed: string; model: string }> {
+    const runtime = await this.getGoogleImageRuntimeConfig();
+    const [referenceImage, faceFocusedReferenceImage] = await Promise.all([
+      this.resolveEditImageToInlineData(input.referenceImageUrl),
+      this.resolveFaceFocusedInlineData(input.referenceImageUrl),
+    ]);
+
+    return this.generateImageViaProxy(runtime, {
+      prompt: this.buildReferenceImageEditPrompt(input.prompt, input.ratio),
+      aspectRatio: input.ratio || '1:1',
+      sampleCount: 1,
+      editMode: 'reference-image',
+      referenceImage: {
+        mimeType: referenceImage.mimeType,
+        data: referenceImage.data,
+      },
+      faceReferenceImage: {
+        mimeType: faceFocusedReferenceImage.mimeType,
+        data: faceFocusedReferenceImage.data,
+      },
+      referenceImages: [
+        { mimeType: referenceImage.mimeType, data: referenceImage.data },
+        { mimeType: faceFocusedReferenceImage.mimeType, data: faceFocusedReferenceImage.data },
+      ],
+    });
+  }
+
+
+  async generateVideoFromReferenceImage(
+    input: CreateLiteVideoReferenceInput,
+  ): Promise<{ videoBase64: string; mimeType: string; model: string }> {
+    const runtime = await this.getGoogleVideoRuntimeConfig();
+    const referenceImage = await this.resolveVideoReferenceImageToInlineData(input.referenceImageUrl);
+    const aspectRatio = input.ratio === '16:9' ? '16:9' : '9:16';
+
+    if (runtime.auth_mode === 'proxy') {
+      const requestId = this.createRequestId().replace(/^img_/, 'vid_');
+      const endpoint = this.buildProxyGenerateVideoEndpoint(runtime.provider_url);
       this.logger.log(
-        `AI image provider mode=cloud_run_proxy proxy=${this.safeLogUrl(endpoint)} model=${runtime.model} requestId=${requestId}`,
+        `AI video provider mode=cloud_run_proxy proxy=${this.safeLogUrl(endpoint)} model=${runtime.model} requestId=${requestId}`,
       );
 
       const response = await this.fetchImageWithRetry(
         endpoint,
         this.buildProxyRequestInit(
           {
-            prompt,
+            prompt: input.prompt,
             aspectRatio,
-            sampleCount,
+            durationSeconds: 8,
+            sampleCount: 1,
             model: runtime.model,
+            referenceImage: {
+              data: referenceImage.data,
+              mimeType: referenceImage.mimeType,
+            },
+            image: {
+              bytesBase64Encoded: referenceImage.data,
+              mimeType: referenceImage.mimeType,
+            },
           },
           requestId,
         ),
-        `proxy:${runtime.model}:${requestId}`,
+        `video-proxy:${runtime.model}:${requestId}`,
       );
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => '');
-        throw new BadRequestException(`Cloud Run image proxy failed (${response.status}): ${errorText || 'unknown error'}`);
+        if (response.status === 404) {
+          throw new BadRequestException(`Cloud Run proxy ไม่พบ endpoint สำหรับวิดีโอ (${this.safeLogUrl(endpoint)}). โปรดเพิ่ม POST /generate-video ใน Cloud Run service`);
+        }
+        throw new BadRequestException(`Cloud Run video proxy failed (${response.status}): ${errorText || 'unknown error'}`);
       }
 
       const data: any = await response.json();
-      const base64 = this.pickProxyImageBase64(data);
-      if (!base64) {
-        throw new BadRequestException('Cloud Run proxy ไม่ได้ส่งรูปกลับมา');
+      const videoBase64 = this.pickProxyVideoBase64(data);
+      if (!videoBase64) {
+        throw new BadRequestException('Cloud Run video proxy ไม่ได้ส่งวิดีโอกลับมา');
       }
 
       return {
-        imageDataUrl: `data:image/png;base64,${base64}`,
-        promptUsed: prompt,
+        videoBase64,
+        mimeType: data?.video?.mimeType || data?.mimeType || data?.contentType || 'video/mp4',
         model: runtime.model,
       };
     }
+    const directRuntime = runtime as GoogleVideoRuntimeConfig & { auth_mode: 'adc' | 'api_key' };
 
-    if (this.isGeminiImageModel(runtime.model)) {
-      const modelLocation = runtime.model.toLowerCase().includes('image') ? 'global' : runtime.location;
-      const endpoint = this.buildVertexGenerateContentEndpoint(runtime, modelLocation);
-      const response = await this.fetchImageWithRetry(
-        endpoint,
-        await this.buildVertexRequestInit(runtime, {
-          contents: [
-            {
-              role: 'user',
-              parts: [
-                {
-                  text: [
-                    `Target aspect ratio: ${aspectRatio}.`,
-                    'Create one polished commercial image based on the following direction.',
-                    prompt,
-                  ].join(' '),
-                },
-              ],
+    const startRes = await this.fetchImageWithRetry(
+      this.buildVertexVideoPredictLongRunningEndpoint(directRuntime),
+      await this.buildVertexRequestInit(directRuntime, {
+        instances: [
+          {
+            prompt: input.prompt,
+            image: {
+              bytesBase64Encoded: referenceImage.data,
+              mimeType: referenceImage.mimeType,
             },
-          ],
-          generationConfig: {
-            temperature: 0.4,
-            responseModalities: ['TEXT', 'IMAGE'],
           },
-        }),
-        `prompt-only:${runtime.model}`,
-      );
-
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => '');
-        throw new BadRequestException(`Vertex Gemini generate failed (${response.status}): ${errorText || 'unknown error'}`);
-      }
-
-      const data: any = await response.json();
-      const base64 = this.pickGenerateContentImageBase64(data);
-      if (!base64) {
-        throw new BadRequestException('Gemini ไม่ได้ส่งรูปกลับมาสำหรับ prompt-only generation');
-      }
-
-      return {
-        imageDataUrl: `data:image/png;base64,${base64}`,
-        promptUsed: prompt,
-        model: runtime.model,
-      };
-    }
-
-    const endpoint = this.buildVertexPredictEndpoint(runtime);
-    const response = await this.fetchImageWithRetry(
-      endpoint,
-      await this.buildVertexRequestInit(runtime, {
-        instances: [{ prompt }],
+        ],
         parameters: {
-          sampleCount,
           aspectRatio,
+          durationSeconds: 8,
+          sampleCount: 1,
           personGeneration: 'allow_adult',
         },
       }),
-      `predict:${runtime.model}`,
+      `video-start:${runtime.model}`,
     );
 
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new BadRequestException(`Vertex generate failed (${response.status}): ${errorText || 'unknown error'}`);
+    if (!startRes.ok) {
+      const errorText = await startRes.text().catch(() => '');
+      throw new BadRequestException(`Vertex Veo start failed (${startRes.status}): ${errorText || 'unknown error'}`);
     }
 
-    const data: any = await response.json();
-    const base64 = this.pickImageBase64(data);
-    if (!base64) {
-      throw new BadRequestException('Vertex ไม่ได้ส่งรูปกลับมา');
+    const startData: any = await startRes.json();
+    const operationName = typeof startData?.name === 'string' ? startData.name : '';
+    if (!operationName) {
+      throw new BadRequestException('Vertex Veo ไม่ได้ส่ง operation name กลับมา');
     }
 
-    return {
-      imageDataUrl: `data:image/png;base64,${base64}`,
-      promptUsed: prompt,
-      model: runtime.model,
-    };
+    const maxPollMs = Number(process.env.AI_VIDEO_MAX_POLL_MS || 12 * 60 * 1000);
+    const pollEveryMs = Number(process.env.AI_VIDEO_POLL_INTERVAL_MS || 8000);
+    const startedAt = Date.now();
+
+    while (Date.now() - startedAt < maxPollMs) {
+      await this.sleep(pollEveryMs);
+
+      const pollRes = await this.fetchImageWithRetry(
+        this.buildVertexVideoFetchOperationEndpoint(directRuntime),
+        await this.buildVertexRequestInit(directRuntime, { operationName }),
+        `video-poll:${runtime.model}`,
+      );
+
+      if (!pollRes.ok) {
+        const errorText = await pollRes.text().catch(() => '');
+        throw new BadRequestException(`Vertex Veo poll failed (${pollRes.status}): ${errorText || 'unknown error'}`);
+      }
+
+      const pollData: any = await pollRes.json();
+      if (!pollData?.done) {
+        continue;
+      }
+
+      if (pollData?.error?.message) {
+        throw new BadRequestException(`Vertex Veo failed: ${pollData.error.message}`);
+      }
+
+      const firstVideo = pollData?.response?.videos?.[0] || pollData?.response?.generateVideoResponse?.generatedSamples?.[0]?.video;
+      const videoBase64 = this.pickVideoBase64(firstVideo);
+      if (!videoBase64) {
+        const gcsUri = firstVideo?.gcsUri || '';
+        if (gcsUri) {
+          throw new BadRequestException('Veo ส่งผลลัพธ์เป็น GCS URI ซึ่งระบบนี้ยังไม่เชื่อมการดึงไฟล์จาก GCS อัตโนมัติ');
+        }
+        throw new BadRequestException('Veo ไม่ได้ส่งไฟล์วิดีโอกลับมา');
+      }
+
+      return {
+        videoBase64,
+        mimeType: firstVideo?.mimeType || 'video/mp4',
+        model: runtime.model,
+      };
+    }
+
+    throw new BadRequestException('หมดเวลารอการสร้างวิดีโอจาก Veo กรุณาลองใหม่');
   }
-
-  async generateImageWithProductReplace(
-    input: CreateLiteReplaceProductInput,
-  ): Promise<{ imageDataUrl: string; promptUsed: string; model: string }> {
-    const runtime = this.ensureDirectImageRuntime(await this.getGoogleImageRuntimeConfig({ imageEdit: true }));
-    const [baseImage, productImage] = await Promise.all([
-      this.resolveImageToInlineData(input.baseImageUrl),
-      this.resolveImageToInlineData(input.productImageUrl),
-    ]);
-
-    const modelLocation = runtime.model.toLowerCase().includes('image') ? 'global' : runtime.location;
-    const endpoint = this.buildVertexGenerateContentEndpoint(runtime, modelLocation);
-    const response = await this.fetchImageWithRetry(
-      endpoint,
-      await this.buildVertexRequestInit(runtime, {
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                inline_data: {
-                  mime_type: baseImage.mimeType,
-                  data: baseImage.data,
-                },
-              },
-              {
-                inline_data: {
-                  mime_type: productImage.mimeType,
-                  data: productImage.data,
-                },
-              },
-              {
-                text: this.buildTwoImageEditPrompt(input.prompt, input.ratio),
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          responseModalities: ['TEXT', 'IMAGE'],
-        },
-      }),
-      `product-replace:${runtime.model}`,
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new BadRequestException(`Vertex Gemini image edit failed (${response.status}): ${errorText || 'unknown error'}`);
-    }
-
-    const data: any = await response.json();
-    const base64 = this.pickGenerateContentImageBase64(data);
-    if (!base64) {
-      throw new BadRequestException('Gemini ไม่ได้ส่งรูปกลับมา');
-    }
-
-    return {
-      imageDataUrl: `data:image/png;base64,${base64}`,
-      promptUsed: input.prompt,
-      model: runtime.model,
-    };
-  }
-
-  async generateImageWithReferenceImage(
-    input: CreateLiteReferenceImageInput,
-  ): Promise<{ imageDataUrl: string; promptUsed: string; model: string }> {
-    const runtime = this.ensureDirectImageRuntime(await this.getGoogleImageRuntimeConfig({ imageEdit: true }));
-    const [referenceImage, faceFocusedReferenceImage] = await Promise.all([
-      this.resolveImageToInlineData(input.referenceImageUrl),
-      this.resolveFaceFocusedInlineData(input.referenceImageUrl),
-    ]);
-
-    const modelLocation = runtime.model.toLowerCase().includes('image') ? 'global' : runtime.location;
-    const endpoint = this.buildVertexGenerateContentEndpoint(runtime, modelLocation);
-    const response = await this.fetchImageWithRetry(
-      endpoint,
-      await this.buildVertexRequestInit(runtime, {
-        contents: [
-          {
-            role: 'user',
-            parts: [
-              {
-                inline_data: {
-                  mime_type: referenceImage.mimeType,
-                  data: referenceImage.data,
-                },
-              },
-              {
-                inline_data: {
-                  mime_type: faceFocusedReferenceImage.mimeType,
-                  data: faceFocusedReferenceImage.data,
-                },
-              },
-              {
-                text: this.buildReferenceImageEditPrompt(input.prompt, input.ratio),
-              },
-            ],
-          },
-        ],
-        generationConfig: {
-          temperature: 0.2,
-          responseModalities: ['TEXT', 'IMAGE'],
-        },
-      }),
-      `reference-image:${runtime.model}`,
-    );
-
-    if (!response.ok) {
-      const errorText = await response.text().catch(() => '');
-      throw new BadRequestException(`Vertex Gemini reference image failed (${response.status}): ${errorText || 'unknown error'}`);
-    }
-
-    const data: any = await response.json();
-    const base64 = this.pickGenerateContentImageBase64(data);
-    if (!base64) {
-      throw new BadRequestException('Gemini ไม่ได้ส่งรูปกลับมาสำหรับ reference image flow');
-    }
-
-    return {
-      imageDataUrl: `data:image/png;base64,${base64}`,
-      promptUsed: input.prompt,
-      model: runtime.model,
-    };
-  }
-
   private buildImagePrompt(input: CreateLiteImageInput): string {
     const custom = (input.prompt || '').trim();
     if (custom) return custom;
@@ -667,19 +708,46 @@ export class CreateLiteService {
     return parts.join(' ');
   }
 
-  private buildTwoImageEditPrompt(prompt: string, ratio?: '1:1' | '4:5' | '9:16'): string {
+  private buildGeminiProductReplacePrompt(prompt: string): string {
+    const userInstruction = prompt && prompt.trim() ? `Additional instructions: ${prompt.trim()}` : '';
     return [
-      'Use the first image as the base marketing template and preserve its composition, text blocks, background, and overall layout as much as possible.',
-      'Use the second image as the exact product reference to insert into the design.',
-      'The product in the final image must match the uploaded product photo as closely as possible.',
-      'Preserve the product packaging design, colors, logo, proportions, text, and visible branding from the second image.',
-      'Do not recolor the product, do not turn it metallic or golden, and do not replace the branding with a different product design.',
-      'Replace or integrate only the product area in the template with the uploaded product naturally.',
-      'Keep the template identity intact and make the result look like a finished ad creative.',
-      'Do not add unrelated objects or redesign the whole poster.',
-      `Target aspect ratio: ${ratio || '1:1'}. Preserve the template aspect ratio if possible.`,
-      `Creative direction: ${prompt}`,
-    ].join(' ');
+      'Task: Image Fusion / Product Replacement.',
+      'Instruction: Here are two images. The first image is a template and the second image is a product.',
+      'Replace the main product in the template with this new product.',
+      'Keep the template’s lighting, reflection, and background identical.',
+      'Maintain 100% fidelity of the labels and text from the product image.',
+      userInstruction,
+    ].filter(Boolean).join(' ');
+  }
+
+  private buildTwoImageEditPrompt(
+    prompt: string,
+    ratio?: '1:1' | '4:5' | '9:16',
+    hasMaskImage = false,
+  ): string {
+    const userInstruction = prompt && prompt.trim() ? `Additional instructions: ${prompt.trim()}` : '';
+
+    if (hasMaskImage) {
+      return [
+        'Use the base image as the exact design template.',
+        'Use the reference image as the product subject to be inserted.',
+        'Insert the product from the reference image into the white masked area of the base image.',
+        'CRITICAL: Preserve the shape and text of the reference product faithfully.',
+        userInstruction,
+        'CRITICAL: The unmasked area (black region) must remain 100% unchanged. Do not alter the background colors, lighting, or surrounding splashes.',
+        `Target aspect ratio: ${ratio || '1:1'}.`,
+      ].filter(Boolean).join(' ');
+    }
+
+    // No mask: general product replacement (less precise)
+    return [
+      'Use the base image as the template layout.',
+      'Place the product from the reference image as the main hero product in the template.',
+      userInstruction,
+      'Keep the overall layout, background, and decorative elements of the base image as close to the original as possible.',
+      'Preserve the product appearance faithfully from the reference image.',
+      `Target aspect ratio: ${ratio || '1:1'}.`,
+    ].filter(Boolean).join(' ');
   }
 
   private buildReferenceImageEditPrompt(prompt: string, ratio?: '1:1' | '4:5' | '9:16') {
@@ -758,6 +826,47 @@ export class CreateLiteService {
     return null;
   }
 
+
+
+  private pickProxyVideoBase64(data: any): string | null {
+    const candidates: Array<unknown> = [
+      data?.bytesBase64Encoded,
+      data?.video?.bytesBase64Encoded,
+      data?.video?.data,
+      data?.videoBase64,
+      data?.data,
+    ];
+
+    if (Array.isArray(data?.videos)) {
+      for (const item of data.videos) {
+        candidates.push(item?.bytesBase64Encoded);
+        candidates.push(item?.video?.bytesBase64Encoded);
+        candidates.push(item?.data);
+        candidates.push(item?.base64);
+      }
+    }
+
+    for (const value of candidates) {
+      if (typeof value === 'string' && value.trim()) return value.trim();
+      if (Array.isArray(value) && typeof value[0] === 'string' && value[0].trim()) return value[0].trim();
+    }
+
+    return null;
+  }
+  private pickVideoBase64(video: any): string | null {
+    const candidates: Array<unknown> = [
+      video?.bytesBase64Encoded,
+      video?.video?.bytesBase64Encoded,
+      video?.bytesBase64,
+      video?.videoBytesBase64,
+    ];
+
+    for (const value of candidates) {
+      if (typeof value === 'string' && value.trim()) return value.trim();
+    }
+
+    return null;
+  }
   private pickGenerateContentImageBase64(data: any): string | null {
     const candidates: Array<unknown> = [];
     const parts = data?.candidates?.[0]?.content?.parts;
@@ -776,67 +885,101 @@ export class CreateLiteService {
     return null;
   }
 
-  private async getGoogleImageRuntimeConfig(options?: { imageEdit?: boolean }): Promise<GoogleImageRuntimeConfig> {
+
+  private async getGoogleImageRuntimeConfig(): Promise<GoogleImageRuntimeConfig> {
     const runtime = await this.adminSettingsService.getAiImageRuntimeConfig();
-    const apiKey = runtime.api_key || process.env.GOOGLE_API_KEY || '';
-    const requestedModel = runtime.model || process.env.GOOGLE_IMAGE_MODEL || process.env.GOOGLE_MODEL || '';
-    const model = options?.imageEdit
-      ? this.resolveImageEditModel(requestedModel)
-      : requestedModel || 'gemini-3.1-flash-image-preview';
+    const fallbackModel = resolveAllowedImageModel(
+      process.env.GOOGLE_IMAGE_MODEL || process.env.GOOGLE_MODEL || '',
+      DEFAULT_IMAGE_MODEL,
+    );
+    const requestedModel = resolveAllowedImageModel(runtime.model, fallbackModel);
+    const model = requestedModel || fallbackModel;
     const isEnabled = runtime.is_enabled || Boolean(process.env.GOOGLE_API_KEY);
-    const connectionMode = runtime.connection_mode || 'api_key';
 
     if (!isEnabled) {
       throw new BadRequestException('ยังไม่ได้เปิดใช้งาน AI image provider');
     }
 
-    if (connectionMode === 'cloud_run_proxy' && !options?.imageEdit) {
-      if (!runtime.provider_url?.trim()) {
-        throw new BadRequestException('ยังไม่ได้ตั้งค่า Provider URL สำหรับ Cloud Run proxy');
-      }
+    if (!runtime.provider_url?.trim()) {
+      throw new BadRequestException('ยังไม่ได้ตั้งค่า Provider URL สำหรับ Cloud Run proxy');
+    }
 
-      this.buildProxyGenerateImageEndpoint(runtime.provider_url);
-      return {
-        connection_mode: 'cloud_run_proxy',
-        provider_url: runtime.provider_url,
-        project_id: runtime.project_id,
-        location: runtime.location || 'asia-southeast1',
-        model,
-        auth_mode: 'proxy',
-      };
+    this.buildProxyGenerateImageEndpoint(runtime.provider_url);
+    return {
+      connection_mode: 'cloud_run_proxy',
+      provider_url: runtime.provider_url,
+      project_id: runtime.project_id,
+      location: this.resolveImageModelLocation(model, runtime.location || 'global'),
+      model,
+      auth_mode: 'proxy',
+    };
+  }
+
+
+
+  private async getGoogleVideoRuntimeConfig(): Promise<GoogleVideoRuntimeConfig> {
+    const runtime = await this.adminSettingsService.getAiImageRuntimeConfig();
+    const requestedVideoModel = normalizeVideoModel(runtime.video_model);
+    const fallbackVideoModel =
+      normalizeVideoModel(process.env.VERTEX_VIDEO_MODEL) ||
+      normalizeVideoModel(process.env.GOOGLE_VIDEO_MODEL) ||
+      normalizeVideoModel(process.env.VERTEX_VEO_MODEL) ||
+      DEFAULT_VIDEO_MODEL;
+    const model = requestedVideoModel || fallbackVideoModel;
+    const location = process.env.GOOGLE_VIDEO_LOCATION || runtime.location || 'us-central1';
+    const isEnabled = runtime.is_enabled || Boolean(process.env.GOOGLE_API_KEY);
+    const connectionMode = runtime.connection_mode || 'api_key';
+
+    this.assertSupportedVideoModel(model);
+
+    if (!isEnabled) {
+      throw new BadRequestException('ยังไม่ได้เปิดใช้งาน AI video provider');
     }
 
     if (!runtime.project_id) {
       throw new BadRequestException('ยังไม่ได้ตั้งค่า Project ID สำหรับ Vertex AI');
     }
 
-    if (apiKey) {
+    if (connectionMode === 'cloud_run_proxy') {
+      if (!runtime.provider_url?.trim()) {
+        throw new BadRequestException('ยังไม่ได้ตั้งค่า Provider URL สำหรับ Cloud Run proxy');
+      }
+
+      this.buildProxyGenerateVideoEndpoint(runtime.provider_url);
       return {
-        connection_mode: 'api_key',
+        connection_mode: 'cloud_run_proxy',
         provider_url: runtime.provider_url,
         project_id: runtime.project_id,
-        location: runtime.location || 'global',
+        location,
         model,
-        auth_mode: 'api_key',
-        api_key: apiKey,
+        auth_mode: 'proxy',
       };
     }
 
     const accessToken = await this.getGoogleAccessToken().catch(() => '');
     if (!accessToken) {
-      throw new BadRequestException('ยังไม่ได้ตั้งค่า Google API Key และไม่พบ Application Default Credentials (ADC)');
+      throw new BadRequestException('การสร้างวิดีโอต้องใช้ OAuth/ADC: กรุณาตั้งค่า Service Account หรือ ADC ให้พร้อมใช้งาน');
     }
 
     return {
       connection_mode: 'api_key',
       provider_url: runtime.provider_url,
       project_id: runtime.project_id,
-      location: runtime.location || 'global',
+      location,
       model,
       auth_mode: 'adc',
     };
   }
 
+  private assertSupportedVideoModel(model: string) {
+    if (isAllowedVideoModel(model)) {
+      return;
+    }
+
+    throw new BadRequestException(
+      `Unsupported video model "${model}". Allowed values: ${ALLOWED_VIDEO_MODELS.join(', ')}`,
+    );
+  }
   private buildVertexGenerateContentEndpoint(
     runtime: { project_id: string; model: string; auth_mode: 'api_key' | 'adc'; api_key?: string },
     modelLocation: string,
@@ -860,6 +1003,20 @@ export class CreateLiteService {
       : base;
   }
 
+
+  private buildVertexVideoPredictLongRunningEndpoint(runtime: GoogleVideoRuntimeConfig) {
+    const base = `https://${runtime.location}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(runtime.project_id)}/locations/${encodeURIComponent(runtime.location)}/publishers/google/models/${encodeURIComponent(runtime.model)}:predictLongRunning`;
+    return runtime.auth_mode === 'api_key' && runtime.api_key
+      ? `${base}?key=${encodeURIComponent(runtime.api_key)}`
+      : base;
+  }
+
+  private buildVertexVideoFetchOperationEndpoint(runtime: GoogleVideoRuntimeConfig) {
+    const base = `https://${runtime.location}-aiplatform.googleapis.com/v1/projects/${encodeURIComponent(runtime.project_id)}/locations/${encodeURIComponent(runtime.location)}/publishers/google/models/${encodeURIComponent(runtime.model)}:fetchPredictOperation`;
+    return runtime.auth_mode === 'api_key' && runtime.api_key
+      ? `${base}?key=${encodeURIComponent(runtime.api_key)}`
+      : base;
+  }
   private buildProxyGenerateImageEndpoint(providerUrl: string) {
     try {
       const endpoint = new URL(`${providerUrl.trim().replace(/\/+$/, '')}/generate-image`);
@@ -872,8 +1029,64 @@ export class CreateLiteService {
     }
   }
 
+  private buildProxyGenerateVideoEndpoint(providerUrl: string) {
+    try {
+      const endpoint = new URL(`${providerUrl.trim().replace(/\/+$/, '')}/generate-video`);
+      if (!['http:', 'https:'].includes(endpoint.protocol)) {
+        throw new Error('invalid protocol');
+      }
+      return endpoint.toString();
+    } catch {
+      throw new BadRequestException('Provider URL ของ Cloud Run proxy ไม่ถูกต้อง');
+    }
+  }
+
+  private async generateImageViaProxy(
+    runtime: GoogleImageRuntimeConfig,
+    payload: Record<string, any>,
+  ): Promise<{ imageDataUrl: string; promptUsed: string; model: string }> {
+    const requestId = this.createRequestId();
+    const endpoint = this.buildProxyGenerateImageEndpoint(runtime.provider_url);
+    this.logger.log(
+      `AI image provider mode=cloud_run_proxy proxy=${this.safeLogUrl(endpoint)} model=${runtime.model} location=${runtime.location} requestId=${requestId}`,
+    );
+    this.logger.log(
+      `AI image proxy payload requestId=${requestId} ${JSON.stringify(this.summarizeProxyImagePayload(payload))}`,
+    );
+
+    const response = await this.fetchImageWithRetry(
+      endpoint,
+      this.buildProxyRequestInit(
+        {
+          ...payload,
+          model: runtime.model,
+          location: runtime.location,
+        },
+        requestId,
+      ),
+      `proxy:${runtime.model}:${requestId}`,
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new BadRequestException(`Cloud Run image proxy failed (${response.status}): ${errorText || 'unknown error'}`);
+    }
+
+    const data: any = await response.json();
+    const base64 = this.pickProxyImageBase64(data);
+    if (!base64) {
+      throw new BadRequestException('Cloud Run proxy ไม่ได้ส่งรูปกลับมา');
+    }
+
+    return {
+      imageDataUrl: `data:image/png;base64,${base64}`,
+      promptUsed: String(payload.prompt || '').trim(),
+      model: runtime.model,
+    };
+  }
+
   private buildProxyRequestInit(
-    payload: { prompt: string; aspectRatio: string; sampleCount: number; model: string },
+    payload: Record<string, any>,
     requestId: string,
   ): RequestInit {
     const headers: Record<string, string> = {
@@ -892,21 +1105,45 @@ export class CreateLiteService {
     };
   }
 
-  private resolveImageEditModel(requestedModel: string) {
-    if (this.isGeminiImageModel(requestedModel)) {
-      return requestedModel;
+  private resolveImageModelLocation(model: string, fallbackLocation: string) {
+    if (this.isGeminiImageModel(model)) {
+      return 'global';
     }
 
-    const editModel = process.env.GOOGLE_IMAGE_EDIT_MODEL || process.env.GOOGLE_IMAGE_MODEL || '';
-    if (this.isGeminiImageModel(editModel)) {
-      return editModel;
-    }
-
-    return 'gemini-3.1-flash-image-preview';
+    return fallbackLocation || 'global';
   }
 
   private isGeminiImageModel(model: string) {
-    return model.toLowerCase().includes('gemini');
+    return isAllowedImageModel(model) && model.toLowerCase().includes('gemini');
+  }
+
+  private summarizeProxyImagePayload(payload: Record<string, any>) {
+    const summarizeInlineImage = (value: any) =>
+      value && typeof value === 'object'
+        ? {
+            mimeType: typeof value.mimeType === 'string' ? value.mimeType : '',
+            hasData: Boolean(typeof value.data === 'string' && value.data.length > 0),
+            bytes: typeof value.data === 'string' ? value.data.length : 0,
+          }
+        : null;
+
+    return {
+      editMode: typeof payload.editMode === 'string' ? payload.editMode : 'prompt-only',
+      aspectRatio: typeof payload.aspectRatio === 'string' ? payload.aspectRatio : '',
+      sampleCount: payload.sampleCount ?? null,
+      promptLength: typeof payload.prompt === 'string' ? payload.prompt.length : 0,
+      hasBaseImage: Boolean(payload.baseImage),
+      hasReferenceImage: Boolean(payload.referenceImage),
+      hasProductImage: Boolean(payload.productImage),
+      hasMaskImage: Boolean(payload.maskImage),
+      hasFaceReferenceImage: Boolean(payload.faceReferenceImage),
+      referenceImagesCount: Array.isArray(payload.referenceImages) ? payload.referenceImages.length : 0,
+      baseImage: summarizeInlineImage(payload.baseImage),
+      referenceImage: summarizeInlineImage(payload.referenceImage),
+      productImage: summarizeInlineImage(payload.productImage),
+      maskImage: summarizeInlineImage(payload.maskImage),
+      faceReferenceImage: summarizeInlineImage(payload.faceReferenceImage),
+    };
   }
 
   private safeLogUrl(rawUrl: string) {
@@ -922,13 +1159,6 @@ export class CreateLiteService {
     return `img_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 8)}`;
   }
 
-  private ensureDirectImageRuntime(runtime: GoogleImageRuntimeConfig): DirectImageRuntimeConfig {
-    if (runtime.auth_mode === 'proxy') {
-      throw new BadRequestException('Cloud Run proxy ยังไม่รองรับ image-edit flow');
-    }
-
-    return runtime;
-  }
 
   private async buildVertexRequestInit(
     runtime: { auth_mode: 'api_key' | 'adc' },
@@ -1049,6 +1279,42 @@ export class CreateLiteService {
   private async resolveImageToInlineData(source: string): Promise<{ data: string; mimeType: string }> {
     const { buffer, mimeType } = await this.resolveImageToBuffer(source);
     return { data: buffer.toString('base64'), mimeType };
+  }
+
+  private async resolveEditImageToInlineData(source: string): Promise<{ data: string; mimeType: string }> {
+    const { buffer, mimeType } = await this.resolveImageToBuffer(source);
+
+    if (mimeType === 'image/png' || mimeType === 'image/jpeg') {
+      return { data: buffer.toString('base64'), mimeType };
+    }
+
+    const converted = await sharp(buffer, { failOn: 'none' })
+      .rotate()
+      .png()
+      .toBuffer();
+
+    return {
+      data: converted.toString('base64'),
+      mimeType: 'image/png',
+    };
+  }
+
+  private async resolveVideoReferenceImageToInlineData(source: string): Promise<{ data: string; mimeType: string }> {
+    const { buffer, mimeType } = await this.resolveImageToBuffer(source);
+
+    if (mimeType === 'image/png' || mimeType === 'image/jpeg') {
+      return { data: buffer.toString('base64'), mimeType };
+    }
+
+    const converted = await sharp(buffer, { failOn: 'none' })
+      .rotate()
+      .png()
+      .toBuffer();
+
+    return {
+      data: converted.toString('base64'),
+      mimeType: 'image/png',
+    };
   }
 
   private async resolveFaceFocusedInlineData(source: string): Promise<{ data: string; mimeType: string }> {

@@ -1,10 +1,17 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import { GoogleAuth } from 'google-auth-library';
 import { AdminSetting } from './entities/admin-setting.entity';
 import { UpdateAiImageSettingsDto } from './dto/update-ai-image-settings.dto';
+import {
+  DEFAULT_IMAGE_MODEL,
+  isAllowedImageModel,
+  normalizeImageModel,
+  resolveAllowedImageModel,
+} from '../create-lite/image-models.constants';
+import { ALLOWED_VIDEO_MODELS, isAllowedVideoModel, normalizeVideoModel } from '../create-lite/video-models.constants';
 
 type AiImageSettingsPayload = {
   provider: 'vertex';
@@ -16,6 +23,7 @@ type AiImageSettingsPayload = {
   project_id: string;
   location: string;
   model: string;
+  video_model: string;
   api_key_encrypted: string | null;
   api_key_masked: string;
   is_enabled: boolean;
@@ -34,6 +42,7 @@ type PublicAiImageSettings = {
   project_id: string;
   location: string;
   model: string;
+  video_model: string;
   has_api_key: boolean;
   has_adc: boolean;
   auth_mode: 'api_key' | 'adc' | 'unconfigured';
@@ -56,6 +65,7 @@ export type AiImageRuntimeConfig = {
   project_id: string;
   location: string;
   model: string;
+  video_model: string;
   api_key: string;
   is_enabled: boolean;
 };
@@ -107,7 +117,8 @@ export class AdminSettingsService implements OnModuleInit {
       note: dto.note !== undefined ? dto.note.trim() : currentPayload.note,
       project_id: dto.project_id !== undefined ? dto.project_id.trim() : currentPayload.project_id,
       location: dto.location !== undefined ? dto.location.trim() : currentPayload.location,
-      model: dto.model !== undefined ? dto.model.trim() : currentPayload.model,
+      model: dto.model !== undefined ? normalizeImageModel(dto.model) : currentPayload.model,
+      video_model: dto.video_model !== undefined ? normalizeVideoModel(dto.video_model) : currentPayload.video_model,
       is_enabled: dto.is_enabled !== undefined ? Boolean(dto.is_enabled) : currentPayload.is_enabled,
       api_key_encrypted:
         dto.api_key !== undefined
@@ -118,6 +129,9 @@ export class AdminSettingsService implements OnModuleInit {
           ? nextApiKey?.masked ?? ''
           : currentPayload.api_key_masked,
     };
+
+    this.validateOptionalImageModel(nextPayload.model);
+    this.validateOptionalVideoModel(nextPayload.video_model);
 
     const saved = await this.settingsRepository.save({
       id: current?.id,
@@ -140,6 +154,9 @@ export class AdminSettingsService implements OnModuleInit {
     }
     if (!payload.location) checks.push('กรุณาตั้งค่า Region (location)');
     if (!payload.model) checks.push('กรุณาตั้งค่า Model');
+    if (payload.video_model && !isAllowedVideoModel(payload.video_model)) {
+      checks.push(`Video model ไม่รองรับ: ${payload.video_model}`);
+    }
     if (payload.connection_mode === 'api_key' && !payload.api_key_encrypted && !hasAdc) {
       checks.push('โหมด Direct API Key ต้องมี API Key หรือ ADC สำหรับทดสอบ');
     }
@@ -185,6 +202,7 @@ export class AdminSettingsService implements OnModuleInit {
       project_id: payload.project_id,
       location: payload.location,
       model: payload.model,
+      video_model: payload.video_model,
       api_key: payload.api_key_encrypted ? this.decrypt(payload.api_key_encrypted) : '',
       is_enabled: payload.is_enabled,
     };
@@ -203,7 +221,8 @@ export class AdminSettingsService implements OnModuleInit {
       note: typeof raw?.note === 'string' ? raw.note : '',
       project_id: typeof raw?.project_id === 'string' ? raw.project_id : '',
       location: typeof raw?.location === 'string' ? raw.location : 'asia-southeast1',
-      model: typeof raw?.model === 'string' ? raw.model : 'gemini-3.1-flash-image-preview',
+      model: resolveAllowedImageModel(raw?.model, DEFAULT_IMAGE_MODEL),
+      video_model: typeof raw?.video_model === 'string' ? normalizeVideoModel(raw.video_model) : '',
       api_key_encrypted: typeof raw?.api_key_encrypted === 'string' ? raw.api_key_encrypted : null,
       api_key_masked: typeof raw?.api_key_masked === 'string' ? raw.api_key_masked : '',
       is_enabled: typeof raw?.is_enabled === 'boolean' ? raw.is_enabled : false,
@@ -230,6 +249,7 @@ export class AdminSettingsService implements OnModuleInit {
       project_id: payload.project_id,
       location: payload.location,
       model: payload.model,
+      video_model: payload.video_model,
       has_api_key: Boolean(payload.api_key_encrypted),
       has_adc: hasAdc,
       auth_mode: authMode,
@@ -240,6 +260,32 @@ export class AdminSettingsService implements OnModuleInit {
       last_test_message: payload.last_test_message,
       updated_at: updatedAt,
     };
+  }
+
+  private validateOptionalImageModel(model: string) {
+    if (!model) {
+      return;
+    }
+
+    if (isAllowedImageModel(model)) {
+      return;
+    }
+
+    throw new BadRequestException(
+      `Unsupported image model "${model}". Allowed values: ${DEFAULT_IMAGE_MODEL}, gemini-2.5-flash-image-preview, imagen-3.0-generate-002`,
+    );
+  }
+
+  private validateOptionalVideoModel(model: string) {
+    if (!model) {
+      return;
+    }
+
+    if (!isAllowedVideoModel(model)) {
+      throw new BadRequestException(
+        `Unsupported video model "${model}". Allowed values: ${ALLOWED_VIDEO_MODELS.join(', ')}`,
+      );
+    }
   }
 
   private async hasApplicationDefaultCredentials(): Promise<boolean> {
