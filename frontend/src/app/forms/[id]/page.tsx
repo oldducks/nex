@@ -137,7 +137,7 @@ export default function PublicFormPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
+      <div className="public-form-nex-theme min-h-screen bg-background text-foreground flex items-center justify-center">
         <Loader2 className="animate-spin text-primary" size={32} />
       </div>
     );
@@ -145,7 +145,7 @@ export default function PublicFormPage() {
 
   if (!formConfig) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-6 text-center">
+      <div className="public-form-nex-theme min-h-screen bg-background text-foreground flex flex-col items-center justify-center px-6 text-center">
         <div className="w-16 h-16 rounded-full bg-foreground/5 flex items-center justify-center mb-4">
           <AlertCircle className="text-foreground/40" size={28} />
         </div>
@@ -165,8 +165,8 @@ export default function PublicFormPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4 py-10">
-      <div className="w-full max-w-lg bg-card-bg border border-foreground/5 rounded-[32px] p-8 shadow-2xl glass-card">
+    <div className="public-form-nex-theme min-h-screen bg-background text-foreground flex items-center justify-center px-4 py-10">
+      <div className="w-full max-w-lg bg-card-bg border border-foreground/5 rounded-[32px] p-8 surface-panel">
         <div className="mb-6">
           <h1 className="text-2xl font-black tracking-tight mb-2">
             {formConfig.name}
@@ -180,7 +180,7 @@ export default function PublicFormPage() {
 
         {success ? (
           <div className="flex flex-col items-center text-center py-10">
-            <CheckCircle2 className="text-emerald-400 mb-3" size={36} />
+            <CheckCircle2 className="nex-success mb-3" size={36} />
             <h2 className="text-lg font-semibold mb-1">
               ส่งข้อมูลเรียบร้อยแล้ว
             </h2>
@@ -211,7 +211,7 @@ export default function PublicFormPage() {
                   <label className="block text-xs font-semibold text-foreground/70">
                     {field.label}
                     {field.required && (
-                      <span className="text-red-400 ml-0.5">*</span>
+                      <span className="nex-error ml-0.5">*</span>
                     )}
                   </label>
                 )}
@@ -220,7 +220,7 @@ export default function PublicFormPage() {
             ))}
 
             {error && (
-              <p className="text-xs text-red-400 mt-1 flex items-center gap-1">
+              <p className="text-xs nex-error mt-1 flex items-center gap-1">
                 <AlertCircle size={14} />
                 <span>{error}</span>
               </p>
@@ -236,12 +236,12 @@ export default function PublicFormPage() {
             </button>
 
             <p className="mt-4 text-[10px] text-foreground/40 text-center">
-              ฟอร์มนี้สร้างด้วย{" "}
+              © NEX Solution. All rights reserved.{" "}
               <Link
                 href="/"
                 className="font-semibold text-primary hover:text-primary/80"
               >
-                NEX Solution
+                กลับหน้าแรก
               </Link>
             </p>
           </form>
@@ -295,7 +295,7 @@ function renderField(
           />
           <span>
             {field.label}
-            {field.required && <span className="text-red-400 ml-0.5">*</span>}
+            {field.required && <span className="nex-error ml-0.5">*</span>}
           </span>
         </label>
       );
@@ -318,4 +318,3 @@ function renderField(
       );
   }
 }
-

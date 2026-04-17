@@ -319,3 +319,34 @@ html[data-shell='control2'] .ambient-light {
 .manage-control-theme .pointer-events-none.absolute.inset-0.-z-10 {
   display: none;
 }
+
+/* Public Form Theme: lock /forms/[id] to NEX standard visual roles */
+.public-form-nex-theme {
+  --background: #EEF0FF;
+  --foreground: #0F172A;
+  --primary: #F97316;
+  --secondary: #050579;
+  --accent: #050579;
+  --glass: #FFFFFF;
+  --card-bg: #FFFFFF;
+  --glass-border: rgba(217, 225, 242, 0.95);
+  --glow: rgba(5, 5, 121, 0.14);
+  --nex-success: #16A34A;
+  --nex-error: #DC2626;
+  color: #0F172A;
+  background: #EEF0FF;
+}
+
+.public-form-nex-theme .surface-panel {
+  background: #FFFFFF;
+  border-color: #D9E1F2;
+  box-shadow: 0 24px 60px -42px rgba(5, 5, 121, 0.2);
+}
+
+.public-form-nex-theme .nex-success {
+  color: var(--nex-success);
+}
+
+.public-form-nex-theme .nex-error {
+  color: var(--nex-error);
+}
