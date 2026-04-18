@@ -483,7 +483,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                     {/* Gallery */}
                     {(layout_config?.show_gallery !== false && gallery?.length > 0) && (
                         <section className="mb-8">
-                            <Gallery images={gallery.map(getImageUrl)} />
+                            <Gallery images={gallery.slice(0, 20).map(getImageUrl)} />
                         </section>
                     )}
 

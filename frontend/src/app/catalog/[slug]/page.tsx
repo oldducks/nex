@@ -82,6 +82,7 @@ export default function PublicCatalog() {
   const [showQrModal, setShowQrModal] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
   const nexPageVars = {
@@ -188,6 +189,44 @@ export default function PublicCatalog() {
     return url;
   };
 
+  const downloadCatalogPdf = async () => {
+    if (!catalog?.id || downloadingPdf) return;
+
+    const livePdfUrl = `${API_URL}/catalogs/view/${catalog.id}/download-pdf`;
+    const fallbackPdfUrl = catalog.pdf_url ? getImageUrl(catalog.pdf_url) : '';
+    const safeName = (catalog.title || 'catalog')
+      .replace(/[^\w\u0E00-\u0E7F-]+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .toLowerCase();
+    const fileName = `${safeName || 'catalog'}.pdf`;
+
+    try {
+      setDownloadingPdf(true);
+      const res = await fetch(livePdfUrl);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(objectUrl);
+      void logCatalogEvent('DOWNLOAD_PDF');
+    } catch (error) {
+      console.error('catalog pdf download failed:', error);
+      if (fallbackPdfUrl) {
+        window.open(fallbackPdfUrl, '_blank', 'noopener,noreferrer');
+        void logCatalogEvent('DOWNLOAD_PDF');
+      }
+    } finally {
+      setDownloadingPdf(false);
+    }
+  };
+
   if (loading) return (
     <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
       <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
@@ -270,6 +309,7 @@ export default function PublicCatalog() {
 
     const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
     const shareUrl = `${SITE_URL}/catalog/${slug}?view=book`;
+    const catalogPdfUrl = `${API_URL}/catalogs/view/${catalog.id}/download-pdf`;
 
     return (
       <div style={styles}>
@@ -282,6 +322,8 @@ export default function PublicCatalog() {
           catalogName={catalog.title}
           products={orderedProducts}
           promoHref={referralRegisterUrl}
+          pdfUrl={catalogPdfUrl}
+          onDownloadPdf={downloadCatalogPdf}
         />
       </div>
     );
@@ -320,18 +362,18 @@ export default function PublicCatalog() {
               >
                 <Share2 size={20} />
               </button>
-              {catalog.pdf_url && (
-                <a 
-                  href={getImageUrl(catalog.pdf_url)} 
-                  target="_blank"
-                  rel="noopener noreferrer"
+              {catalog.id && (
+                <button 
+                  type="button"
                   onClick={() => {
-                    void logCatalogEvent('DOWNLOAD_PDF');
+                    void downloadCatalogPdf();
                   }}
-                  className="hidden h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 transition-colors hover:bg-foreground/10 md:flex"
+                  disabled={downloadingPdf}
+                  className="flex h-12 w-12 items-center justify-center rounded-2xl bg-foreground/5 transition-colors hover:bg-foreground/10"
+                  title={downloadingPdf ? 'กำลังเตรียมไฟล์...' : 'ดาวน์โหลด PDF ทั้ง Catalog'}
                 >
                   <Download size={20} />
-                </a>
+                </button>
               )}
               <div className="hidden md:block">
                  <CatalogLinks links={catalog.interactive_links} />

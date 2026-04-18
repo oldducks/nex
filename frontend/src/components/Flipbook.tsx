@@ -2,7 +2,7 @@
 
 import React, { useState, useRef, useCallback, forwardRef } from 'react';
 import HTMLFlipBook from 'react-pageflip';
-import { ChevronLeft, ChevronRight, Home, Grid3X3, Copy, Check, QrCode, X, Search, MoreHorizontal, Expand, Minimize2, Share2 } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Home, Grid3X3, Copy, Check, QrCode, X, Search, MoreHorizontal, Expand, Minimize2, Share2, Download } from 'lucide-react';
 import { QrCodeImage } from '@/components/QrCode';
 import { QrCodeDownloadActions } from '@/components/QrCodeDownloadActions';
 
@@ -22,6 +22,8 @@ interface FlipbookProps {
     products?: any[]; // To enable search by product name
     promoHref?: string;
     promoText?: string;
+    pdfUrl?: string;
+    onDownloadPdf?: () => void | Promise<void>;
 }
 
 // Social Media Icons as SVG components
@@ -95,6 +97,8 @@ export default function Flipbook({
     products,
     promoHref,
     promoText = 'สนใจระบบแบบที่คุณเห็นอยู่นี้ คลิกที่นี่',
+    pdfUrl,
+    onDownloadPdf,
 }: FlipbookProps) {
     const [currentPage, setCurrentPage] = useState(0);
     const [searchQuery, setSearchQuery] = useState('');
@@ -409,6 +413,34 @@ export default function Flipbook({
                         {copied ? <Check size={isMobile ? 14 : 18} /> : <Copy size={isMobile ? 14 : 18} />}
                         <span className="hidden sm:inline">{copied ? 'คัดลอกแล้ว' : 'แชร์ลิงก์'}</span>
                     </button>
+
+                    {pdfUrl && (
+                        onDownloadPdf ? (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    revealControls();
+                                    void onDownloadPdf();
+                                }}
+                                className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl transition-colors font-semibold shadow-sm ${isMobileLandscape ? 'px-2 py-1 text-[11px]' : isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm gap-2'}`}
+                                title="ดาวน์โหลด PDF"
+                            >
+                                <Download size={isMobile ? 14 : 18} />
+                                <span className="hidden sm:inline">ดาวน์โหลด PDF</span>
+                            </button>
+                        ) : (
+                            <a
+                                href={pdfUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className={`flex items-center gap-1.5 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl transition-colors font-semibold shadow-sm ${isMobileLandscape ? 'px-2 py-1 text-[11px]' : isMobile ? 'px-2.5 py-1.5 text-xs' : 'px-4 py-2 text-sm gap-2'}`}
+                                title="ดาวน์โหลด PDF"
+                            >
+                                <Download size={isMobile ? 14 : 18} />
+                                <span className="hidden sm:inline">ดาวน์โหลด PDF</span>
+                            </a>
+                        )
+                    )}
 
                     <button
                         onClick={() => {

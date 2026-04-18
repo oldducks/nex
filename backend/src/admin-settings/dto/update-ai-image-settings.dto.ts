@@ -39,6 +39,10 @@ export class UpdateAiImageSettingsDto {
 
   @IsOptional()
   @IsString()
+  video_model?: string;
+
+  @IsOptional()
+  @IsString()
   api_key?: string;
 
   @IsOptional()

@@ -26,9 +26,13 @@ export const metadata: Metadata = {
     "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI ภายใต้แบรนด์ NEX Solution",
   manifest: "/manifest.webmanifest",
   icons: {
-    icon: "/nex_logo_nobg.png",
-    shortcut: "/nex_logo_nobg.png",
-    apple: "/nex_logo_nobg.png",
+    icon: [
+      { url: "/favicon.ico" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/icons/icon-192.png",
   },
 };
 
@@ -46,21 +50,13 @@ const serviceWorkerScript = `
   if (typeof window === 'undefined') return;
   if (!('serviceWorker' in navigator)) return;
   window.addEventListener('load', function() {
-    navigator.serviceWorker.getRegistrations().then(function(registrations) {
-      return Promise.all(registrations.map(function(registration) {
-        return registration.unregister();
-      }));
-    }).catch(function() {});
-
-    if ('caches' in window) {
-      caches.keys().then(function(keys) {
-        return Promise.all(
-          keys
-            .filter(function(key) { return key.indexOf('nex-offline') === 0; })
-            .map(function(key) { return caches.delete(key); })
-        );
-      }).catch(function() {});
-    }
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .then(function(reg) {
+        console.log('[SW] Registered:', reg.scope);
+      })
+      .catch(function(err) {
+        console.warn('[SW] Registration failed:', err);
+      });
   });
 })();
 `;

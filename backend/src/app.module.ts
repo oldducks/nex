@@ -41,6 +41,11 @@ import { ConsentLog } from './pdpa/entities/consent-log.entity';
 import { AllExceptionsFilter } from './common/filters/http-exception.filter';
 import { AdminSettingsModule } from './admin-settings/admin-settings.module';
 import { AdminSetting } from './admin-settings/entities/admin-setting.entity';
+import { DigitalMediaModule } from './digital-media/digital-media.module';
+import { DigitalMediaCategory } from './digital-media/entities/category.entity';
+import { DigitalMediaTemplate } from './digital-media/entities/template.entity';
+import { DigitalMediaTemplateField } from './digital-media/entities/template-field.entity';
+import { DigitalMediaGenerationJob } from './digital-media/entities/generation-job.entity';
 
 @Module({
   imports: [
@@ -70,6 +75,10 @@ import { AdminSetting } from './admin-settings/entities/admin-setting.entity';
           QRCode,
           ConsentLog,
           AdminSetting,
+          DigitalMediaCategory,
+          DigitalMediaTemplate,
+          DigitalMediaTemplateField,
+          DigitalMediaGenerationJob,
         ],
         synchronize: process.env.TYPEORM_SYNCHRONIZE === 'true',
       }),
@@ -105,6 +114,7 @@ import { AdminSetting } from './admin-settings/entities/admin-setting.entity';
     CreateLiteModule,
     PdpaModule,
     AdminSettingsModule,
+    DigitalMediaModule,
   ],
   controllers: [],
   providers: [

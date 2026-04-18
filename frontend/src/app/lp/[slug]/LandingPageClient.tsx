@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { 
   Globe, ExternalLink, Share2, Facebook, Twitter, 
   ChevronRight, MessageSquare, Package, Layout, Image as ImageIcon,
-  Copy, Mail, MapPin, Play
+  Copy, Mail, MapPin, Play, Loader2
 } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
 import Cookies from 'js-cookie';
@@ -30,8 +30,102 @@ interface LandingPage {
     referral_code?: string | null;
 }
 
+interface FormFieldConfig {
+    id: string;
+    type: 'text' | 'email' | 'phone' | 'dropdown' | 'textarea' | 'checkbox';
+    label: string;
+    placeholder?: string;
+    required: boolean;
+    options?: string[];
+}
+
+interface PublicFormConfig {
+    id: number;
+    name: string;
+    description?: string;
+    fields: FormFieldConfig[];
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nexsolution.cloud';
+
+function renderLandingFormField(
+    field: FormFieldConfig,
+    value: any,
+    onChange: (id: string, value: any) => void,
+) {
+    const inputStyle: React.CSSProperties = {
+        width: '100%',
+        padding: '1rem 1.25rem',
+        borderRadius: '16px',
+        backgroundColor: '#F9FAFB',
+        border: '1px solid #F3F4F6',
+        fontWeight: 500,
+        fontSize: '16px',
+        lineHeight: 1.5,
+        color: '#111827',
+        outline: 'none',
+    };
+
+    switch (field.type) {
+        case 'textarea':
+            return (
+                <textarea
+                    style={{ ...inputStyle, minHeight: '120px', resize: 'vertical' }}
+                    placeholder={field.placeholder || field.label}
+                    value={value || ''}
+                    onChange={(e) => onChange(field.id, e.target.value)}
+                />
+            );
+        case 'dropdown':
+            return (
+                <select
+                    style={inputStyle}
+                    value={value || ''}
+                    onChange={(e) => onChange(field.id, e.target.value)}
+                >
+                    <option value="">-- กรุณาเลือก --</option>
+                    {(field.options || []).map((option) => (
+                        <option key={option} value={option}>
+                            {option}
+                        </option>
+                    ))}
+                </select>
+            );
+        case 'checkbox':
+            return (
+                <label style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', fontSize: '14px', color: '#475569', cursor: 'pointer' }}>
+                    <input
+                        type="checkbox"
+                        checked={!!value}
+                        onChange={(e) => onChange(field.id, e.target.checked)}
+                        style={{ marginTop: '0.2rem', width: '18px', height: '18px', accentColor: '#050579' }}
+                    />
+                    <span>
+                        {field.label}
+                        {field.required ? ' *' : ''}
+                    </span>
+                </label>
+            );
+        default: {
+            const inputType =
+                field.type === 'email'
+                    ? 'email'
+                    : field.type === 'phone'
+                    ? 'tel'
+                    : 'text';
+            return (
+                <input
+                    type={inputType}
+                    style={inputStyle}
+                    placeholder={field.placeholder || field.label}
+                    value={value || ''}
+                    onChange={(e) => onChange(field.id, e.target.value)}
+                />
+            );
+        }
+    }
+}
 
 const LineIcon = ({ size = 20 }: { size?: number }) => (
     <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
@@ -700,7 +794,12 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
             );
         case 'form':
             if (block.content?.mode === 'external') {
-                const externalUrl = typeof block.content?.url === 'string' ? block.content.url.trim() : '';
+                const externalUrl =
+                    typeof block.content?.external_url === 'string' && block.content.external_url.trim()
+                        ? block.content.external_url.trim()
+                        : typeof block.content?.url === 'string'
+                        ? block.content.url.trim()
+                        : '';
                 return (
                     <div style={{ maxWidth: '48rem', margin: '0 auto' }}>
                         <div style={{
@@ -718,12 +817,12 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                 marginBottom: '1.5rem',
                                 letterSpacing: '-0.025em',
                                 color: '#050579'
-                            }}>ติดต่อเราทันที</h3>
+                            }}>{block.content?.title || 'ติดต่อเราทันที'}</h3>
                             <p style={{ 
                                 fontSize: 'clamp(1rem, 2vw, 1.25rem)',
                                 marginBottom: '3rem',
                                 color: '#6B7280'
-                            }}>เราพร้อมเป็นส่วนหนึ่งในความสำเร็จของคุณ กรุณากรอกรายละเอียดเพื่อรับข้อเสนอพิเศษ</p>
+                            }}>{block.content?.description || 'เราพร้อมเป็นส่วนหนึ่งในความสำเร็จของคุณ กรุณากรอกรายละเอียดเพื่อรับข้อเสนอพิเศษ'}</p>
                             {externalUrl ? (
                                 <a 
                                     href={externalUrl} 
@@ -781,14 +880,90 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
 }
 
 function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { block: Block, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string }) {
-    const [name, setName] = useState('');
-    const [email, setEmail] = useState('');
-    const [phone, setPhone] = useState('');
-    const [message, setMessage] = useState('');
+    const [formConfig, setFormConfig] = useState<PublicFormConfig | null>(null);
+    const [formLoading, setFormLoading] = useState(false);
+    const [values, setValues] = useState<Record<string, any>>({});
     const [consent, setConsent] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [success, setSuccess] = useState<string | null>(null);
     const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let ignore = false;
+
+        const loadFormConfig = async () => {
+            if (block.content.mode !== 'internal' || !block.content.form_id) {
+                setFormConfig(null);
+                setValues({});
+                return;
+            }
+
+            try {
+                setFormLoading(true);
+                const res = await fetch(`${API_URL}/public/forms/${block.content.form_id}`);
+                if (!res.ok) {
+                    throw new Error('ไม่สามารถโหลดฟอร์มได้');
+                }
+                const data = await res.json();
+                if (ignore) return;
+                setFormConfig(data);
+
+                const nextValues: Record<string, any> = {};
+                (data.fields || []).forEach((field: FormFieldConfig) => {
+                    nextValues[field.id] = field.type === 'checkbox' ? false : '';
+                });
+                setValues(nextValues);
+            } catch {
+                if (ignore) return;
+                setFormConfig(null);
+                setValues({});
+            } finally {
+                if (!ignore) setFormLoading(false);
+            }
+        };
+
+        void loadFormConfig();
+        return () => {
+            ignore = true;
+        };
+    }, [block.content.form_id, block.content.mode]);
+
+    const handleValueChange = (fieldId: string, value: any) => {
+        setValues((prev) => ({
+            ...prev,
+            [fieldId]: value,
+        }));
+    };
+
+    const visibleFields: FormFieldConfig[] = formConfig?.fields?.length
+        ? formConfig.fields
+        : [
+            { id: 'name', type: 'text', label: 'ชื่อ-นามสกุล', placeholder: 'กรอกชื่อ-นามสกุล', required: true },
+            { id: 'email', type: 'email', label: 'อีเมล', placeholder: 'กรอกอีเมล', required: false },
+            { id: 'phone', type: 'phone', label: 'เบอร์โทรศัพท์', placeholder: 'กรอกเบอร์โทรศัพท์', required: false },
+            { id: 'message', type: 'textarea', label: 'รายละเอียด', placeholder: 'กรอกรายละเอียดที่ต้องการสอบถาม', required: false },
+        ];
+
+    const validateDynamicFields = () => {
+        for (const field of visibleFields) {
+            const currentValue = values[field.id];
+            if (field.required) {
+                if (field.type === 'checkbox') {
+                    if (!currentValue) return `กรุณายืนยัน "${field.label}"`;
+                } else if (currentValue === undefined || currentValue === null || String(currentValue).trim() === '') {
+                    return `กรุณากรอก "${field.label}" ให้ครบถ้วน`;
+                }
+            }
+
+            if (field.type === 'email' && currentValue) {
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                if (!emailRegex.test(String(currentValue))) {
+                    return 'รูปแบบอีเมลไม่ถูกต้อง';
+                }
+            }
+        }
+        return null;
+    };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -799,37 +974,31 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
             return;
         }
 
+        const validationError = validateDynamicFields();
+        if (validationError) {
+            setError(validationError);
+            return;
+        }
+
         if (!consent) {
             setError('กรุณายืนยันการยินยอมให้จัดเก็บข้อมูล (PDPA)');
             return;
         }
+
         setSubmitting(true);
         setError(null);
         try {
-            const endpoint = block.content.mode === 'internal' 
-                ? `${API_URL}/public/forms/${block.content.form_id}/submit`
-                : `${API_URL}/contact/${ownerUid}`;
-
-            const submissionData = block.content.mode === 'internal'
-                ? {
-                    data: { name, email, phone, message },
-                    source: { referrer: pageSlug, utm_source: 'landing_page' }
-                  }
-                : {
-                    name, email, phone, message,
-                    pdpa_consent: true,
-                    source_type: 'landing_page',
-                    source_id: pageId,
-                    source_url: pageSlug,
-                };
-
+            const endpoint = `${API_URL}/public/forms/${block.content.form_id}/submit`;
             const res = await fetch(endpoint, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(submissionData),
+                body: JSON.stringify({
+                    data: values,
+                    source: { referrer: pageSlug, utm_source: 'landing_page' },
+                }),
             });
             if (!res.ok) throw new Error('ส่งข้อมูลไม่สำเร็จ');
-            
+
             try {
                 let vid = Cookies.get('vid');
                 if (!vid) {
@@ -840,14 +1009,21 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        uid: ownerUid, action: 'SUBMIT_LANDING_FORM', visitorId: vid,
+                        uid: ownerUid,
+                        action: 'SUBMIT_LANDING_FORM',
+                        visitorId: vid,
                         metadata: { type: 'landing_page_form', pageId, slug: pageSlug },
                     }),
                 });
             } catch {}
 
             setSuccess(block.content.thank_you_message || 'ขอบคุณสำหรับการติดต่อ ทีมงานจะติดต่อกลับโดยเร็วที่สุด');
-            setName(''); setEmail(''); setPhone(''); setMessage(''); setConsent(false);
+            const resetValues: Record<string, any> = {};
+            visibleFields.forEach((field) => {
+                resetValues[field.id] = field.type === 'checkbox' ? false : '';
+            });
+            setValues(resetValues);
+            setConsent(false);
 
             if (block.content.redirect_url) {
                 const delaySec = typeof block.content.redirect_delay === 'number' ? block.content.redirect_delay : 3;
@@ -888,16 +1064,28 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                 boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)'
             }}>
                 <MessageSquare size={48} style={{ margin: '0 auto 2rem', color: '#050579' }} />
-                <h3 style={{ 
+                <h3 style={{
                     fontSize: 'clamp(1.5rem, 4vw, 3rem)',
                     fontWeight: 900,
                     marginBottom: '1.5rem',
                     letterSpacing: '-0.025em',
                     textAlign: 'center',
                     color: '#050579'
-                }}>ติดต่อเราทันที</h3>
+                }}>{block.content.title || formConfig?.name || 'ติดต่อเราทันที'}</h3>
+                {(block.content.description || formConfig?.description) ? (
+                    <p style={{
+                        fontSize: 'clamp(1rem, 2vw, 1.125rem)',
+                        marginBottom: '1.5rem',
+                        color: '#6B7280',
+                        textAlign: 'center',
+                        lineHeight: 1.7
+                    }}>
+                        {block.content.description || formConfig?.description}
+                    </p>
+                ) : null}
+
                 {success ? (
-                    <p style={{ 
+                    <p style={{
                         fontSize: 'clamp(1rem, 2vw, 1.25rem)',
                         textAlign: 'center',
                         color: '#16A34A',
@@ -907,102 +1095,44 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                     </p>
                 ) : (
                     <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                        <div style={{ 
-                            display: 'grid', 
-                            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-                            gap: '1rem'
-                        }}>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>ชื่อ-นามสกุล *</label>
-                                <input
-                                    required value={name} onChange={(e) => setName(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '1rem 1.25rem',
-                                        borderRadius: '16px',
-                                        backgroundColor: '#F9FAFB',
-                                        border: '1px solid #F3F4F6',
-                                        fontWeight: 500,
-                                        fontSize: '16px',
-                                        lineHeight: 1.5,
-                                        color: '#111827',
-                                        outline: 'none'
-                                    }}
-                                    placeholder="กรอกชื่อ-นามสกุล"
-                                />
+                        {formLoading ? (
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.75rem', color: '#64748B', padding: '2rem 0' }}>
+                                <Loader2 className="animate-spin" size={18} />
+                                <span>กำลังโหลดฟอร์ม...</span>
                             </div>
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                                <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>อีเมล *</label>
-                                <input
-                                    required type="email" value={email} onChange={(e) => setEmail(e.target.value)}
-                                    style={{
-                                        width: '100%',
-                                        padding: '1rem 1.25rem',
-                                        borderRadius: '16px',
-                                        backgroundColor: '#F9FAFB',
-                                        border: '1px solid #F3F4F6',
-                                        fontWeight: 500,
-                                        fontSize: '16px',
-                                        lineHeight: 1.5,
-                                        color: '#111827',
-                                        outline: 'none'
-                                    }}
-                                    placeholder="กรอกอีเมล"
-                                />
+                        ) : (
+                            <div style={{ display: 'grid', gap: '1rem' }}>
+                                {visibleFields.map((field) => (
+                                    <div key={field.id} style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
+                                        {field.type !== 'checkbox' ? (
+                                            <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>
+                                                {field.label}
+                                                {field.required ? ' *' : ''}
+                                            </label>
+                                        ) : null}
+                                        {renderLandingFormField(field, values[field.id], handleValueChange)}
+                                    </div>
+                                ))}
                             </div>
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>เบอร์โทรศัพท์</label>
-                            <input
-                                value={phone} onChange={(e) => setPhone(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem 1.25rem',
-                                    borderRadius: '16px',
-                                    backgroundColor: '#F9FAFB',
-                                    border: '1px solid #F3F4F6',
-                                    fontWeight: 500,
-                                    fontSize: '16px',
-                                    lineHeight: 1.5,
-                                    color: '#111827',
-                                    outline: 'none'
-                                }}
-                                placeholder="กรอกเบอร์โทรศัพท์"
-                            />
-                        </div>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                            <label style={{ fontSize: '14px', fontWeight: 700, color: '#0F172A', marginLeft: '4px' }}>รายละเอียด *</label>
-                            <textarea
-                                required value={message} onChange={(e) => setMessage(e.target.value)} rows={4}
-                                style={{
-                                    width: '100%',
-                                    padding: '1rem 1.25rem',
-                                    borderRadius: '16px',
-                                    backgroundColor: '#F9FAFB',
-                                    border: '1px solid #F3F4F6',
-                                    fontWeight: 500,
-                                    fontSize: '16px',
-                                    lineHeight: 1.5,
-                                    color: '#111827',
-                                    outline: 'none',
-                                    resize: 'none'
-                                }}
-                                placeholder="กรอกรายละเอียดที่ต้องการสอบถาม"
-                            />
-                        </div>
+                        )}
+
                         <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem', padding: '0.5rem' }}>
                             <input
-                                id="pdpa-consent" type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)}
+                                id={`pdpa-consent-${block.id}`}
+                                type="checkbox"
+                                checked={consent}
+                                onChange={(e) => setConsent(e.target.checked)}
                                 style={{ marginTop: '4px', width: '1.25rem', height: '1.25rem', accentColor: '#050579' }}
                             />
-                            <label htmlFor="pdpa-consent" style={{ fontSize: '13px', fontWeight: 500, color: '#475569', lineHeight: 1.5 }}>
+                            <label htmlFor={`pdpa-consent-${block.id}`} style={{ fontSize: '13px', fontWeight: 500, color: '#475569', lineHeight: 1.5 }}>
                                 ฉันยินยอมให้จัดเก็บและใช้ข้อมูลนี้เพื่อการติดต่อกลับตามนโยบายความเป็นส่วนตัว (PDPA)
                             </label>
                         </div>
-                        {error && <p style={{ fontSize: '14px', color: '#DC2626', fontWeight: 700, textAlign: 'center' }}>{error}</p>}
+                        {error ? <p style={{ fontSize: '14px', color: '#DC2626', fontWeight: 700, textAlign: 'center' }}>{error}</p> : null}
                         <div style={{ paddingTop: '1rem' }}>
                             <button
-                                type="submit" disabled={submitting || !ownerUid}
+                                type="submit"
+                                disabled={submitting || formLoading || !ownerUid}
                                 style={{
                                     width: '100%',
                                     padding: '1.25rem',
@@ -1012,8 +1142,8 @@ function InternalLandingForm({ block, isLight, ownerUid, pageId, pageSlug }: { b
                                     backgroundColor: '#050579',
                                     color: 'white',
                                     border: 'none',
-                                    cursor: submitting || !ownerUid ? 'not-allowed' : 'pointer',
-                                    opacity: submitting || !ownerUid ? 0.5 : 1,
+                                    cursor: submitting || formLoading || !ownerUid ? 'not-allowed' : 'pointer',
+                                    opacity: submitting || formLoading || !ownerUid ? 0.5 : 1,
                                     boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)'
                                 }}
                             >

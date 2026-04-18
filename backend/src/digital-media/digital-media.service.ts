@@ -23,6 +23,24 @@ const COVER_MAX_EDGE = 1600;
 const COVER_WEBP_QUALITY = 80;
 const COVER_THUMB_MAX_EDGE = 420;
 const COVER_THUMB_WEBP_QUALITY = 72;
+const PRODUCT_IMAGE_FIELD_KEYS = new Set([
+  'product_image',
+  'ref_product',
+  'product',
+  'item_image',
+  'product_photo',
+  'product_ref',
+]);
+
+const REFERENCE_IMAGE_FIELD_KEYS = new Set([
+  'reference_image',
+  'reference_image_url',
+  'ref_image',
+  'person_image',
+  'face_image',
+  'source_image',
+]);
+
 
 @Injectable()
 export class DigitalMediaService implements OnModuleInit {
@@ -83,7 +101,7 @@ export class DigitalMediaService implements OnModuleInit {
   }
 
   async listPublicTemplates(
-    query: { category?: string; search?: string },
+    query: { category?: string; search?: string; media_type?: 'image' | 'video' },
     options?: { includeDetails?: boolean },
   ) {
     const includeDetails = options?.includeDetails === true;
@@ -102,6 +120,8 @@ export class DigitalMediaService implements OnModuleInit {
         'template.slug',
         'template.description',
         'template.cover_image_url',
+        'template.media_type',
+        'template.preview_video_url',
         'template.aspect_ratio',
         'template.status',
         'template.sort_order',
@@ -117,6 +137,10 @@ export class DigitalMediaService implements OnModuleInit {
 
     if (query.category) {
       qb.andWhere('category.slug = :category', { category: query.category });
+    }
+
+    if (query.media_type && ['image', 'video'].includes(query.media_type)) {
+      qb.andWhere('template.media_type = :media_type', { media_type: query.media_type });
     }
 
     if (query.search?.trim()) {
@@ -150,7 +174,7 @@ export class DigitalMediaService implements OnModuleInit {
     return this.toPublicTemplate(template);
   }
 
-  async listAdminTemplates(query: { category_id?: number; search?: string }) {
+  async listAdminTemplates(query: { category_id?: number; search?: string; media_type?: 'image' | 'video' }) {
     const qb = this.templateRepository
       .createQueryBuilder('template')
       .leftJoinAndSelect('template.category', 'category')
@@ -162,6 +186,10 @@ export class DigitalMediaService implements OnModuleInit {
 
     if (query.category_id) {
       qb.andWhere('template.category_id = :category_id', { category_id: query.category_id });
+    }
+
+    if (query.media_type && ['image', 'video'].includes(query.media_type)) {
+      qb.andWhere('template.media_type = :media_type', { media_type: query.media_type });
     }
 
     if (query.search?.trim()) {
@@ -198,6 +226,8 @@ export class DigitalMediaService implements OnModuleInit {
         category_id: categoryId,
         description: dto.description?.trim() || '',
         cover_image_url: dto.cover_image_url?.trim() || '',
+        media_type: dto.media_type || 'image',
+        preview_video_url: dto.preview_video_url?.trim() || '',
         enable_product_replace: Boolean(dto.enable_product_replace),
         product_mask_url: dto.product_mask_url?.trim() || '',
         prompt_template: dto.prompt_template,
@@ -237,6 +267,8 @@ export class DigitalMediaService implements OnModuleInit {
       category_id: categoryId,
       description: dto.description !== undefined ? dto.description.trim() : template.description,
       cover_image_url: dto.cover_image_url !== undefined ? dto.cover_image_url.trim() : template.cover_image_url,
+      media_type: dto.media_type !== undefined ? dto.media_type : template.media_type,
+      preview_video_url: dto.preview_video_url !== undefined ? dto.preview_video_url.trim() : template.preview_video_url,
       enable_product_replace:
         dto.enable_product_replace !== undefined ? Boolean(dto.enable_product_replace) : template.enable_product_replace,
       product_mask_url: dto.product_mask_url !== undefined ? dto.product_mask_url.trim() : template.product_mask_url,
@@ -316,15 +348,19 @@ export class DigitalMediaService implements OnModuleInit {
     return this.getAdminTemplateById(field.template_id);
   }
 
+
   async generateFromTemplate(dto: GenerateFromTemplateDto) {
     const { job, template, finalPrompt, finalNegativePrompt, aspectRatio } = await this.createGenerationJob(dto);
 
     try {
       const generated = await this.runGenerationJob(job.id, template, dto, finalPrompt, aspectRatio);
+      const mediaType = (template.media_type || 'image') as 'image' | 'video';
       return {
         job_id: job.id,
         status: 'success',
-        output_image_url: generated.imageDataUrl,
+        media_type: mediaType,
+        output_image_url: mediaType === 'image' ? generated.output_image_url : '',
+        output_video_url: mediaType === 'video' ? generated.output_video_url : '',
         final_prompt: finalPrompt,
         final_negative_prompt: finalNegativePrompt,
         aspect_ratio: aspectRatio,
@@ -347,6 +383,7 @@ export class DigitalMediaService implements OnModuleInit {
     return {
       job_id: job.id,
       status: 'pending',
+      media_type: (template.media_type || 'image') as 'image' | 'video',
       final_prompt: finalPrompt,
       final_negative_prompt: finalNegativePrompt,
       aspect_ratio: aspectRatio,
@@ -364,6 +401,7 @@ export class DigitalMediaService implements OnModuleInit {
       job_id: job.id,
       status: job.status,
       output_image_url: job.output_image_url || '',
+      output_video_url: job.output_video_url || '',
       error_message: job.error_message || '',
       final_prompt: job.final_prompt,
       final_negative_prompt: job.final_negative_prompt,
@@ -419,6 +457,269 @@ export class DigitalMediaService implements OnModuleInit {
     };
   }
 
+
+  async generateVideoDirect(input: {
+    reference_image_url: string;
+    prompt: string;
+    aspect_ratio?: '9:16' | '16:9';
+  }) {
+    const normalized = this.normalizeDirectVideoInput(input);
+    const result = await this.generateDirectVideoOutput(normalized);
+
+    return {
+      status: 'success',
+      output_video_url: result.output_video_url,
+      aspect_ratio: normalized.aspect_ratio,
+      duration_seconds: 8,
+      model: result.model,
+    };
+  }
+
+  async startGenerateVideoDirect(input: {
+    reference_image_url: string;
+    prompt: string;
+    aspect_ratio?: '9:16' | '16:9';
+  }) {
+    const normalized = this.normalizeDirectVideoInput(input);
+    const directVideoTemplateId = await this.getDirectVideoJobTemplateId();
+    const job = await this.jobRepository.save(
+      this.jobRepository.create({
+        template_id: directVideoTemplateId,
+        user_input_json: {
+          reference_image_url: normalized.reference_image_url,
+          prompt: normalized.prompt,
+        },
+        final_prompt: normalized.prompt,
+        final_negative_prompt: '',
+        aspect_ratio: normalized.aspect_ratio,
+        status: 'pending',
+        output_image_url: '',
+        output_video_url: '',
+        error_message: '',
+      }),
+    );
+
+    void this.runDirectVideoJob(job.id, normalized).catch((error) => {
+      this.logger.error(
+        `digital media async direct video failed (job ${job.id}): ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    });
+
+    return {
+      job_id: job.id,
+      status: 'pending',
+      media_type: 'video' as const,
+      aspect_ratio: normalized.aspect_ratio,
+      final_prompt: normalized.prompt,
+      message: 'queued',
+    };
+  }
+
+  async startGenerateImageDirect(input: {
+    prompt: string;
+    reference_image_urls?: string[];
+    aspect_ratio?: '1:1' | '4:5' | '9:16' | '16:9';
+  }) {
+    const normalized = this.normalizeDirectImageInput(input);
+    const directImageTemplateId = await this.getDirectVideoJobTemplateId();
+    const job = await this.jobRepository.save(
+      this.jobRepository.create({
+        template_id: directImageTemplateId,
+        user_input_json: {
+          prompt: normalized.prompt,
+          reference_image_urls: normalized.reference_image_urls,
+        },
+        final_prompt: normalized.prompt,
+        final_negative_prompt: '',
+        aspect_ratio: normalized.aspect_ratio,
+        status: 'pending',
+        output_image_url: '',
+        output_video_url: '',
+        error_message: '',
+      }),
+    );
+
+    void this.runDirectImageJob(job.id, normalized).catch((error) => {
+      this.logger.error(
+        `digital media async direct image failed (job ${job.id}): ${error instanceof Error ? error.message : 'unknown error'}`,
+      );
+    });
+
+    return {
+      job_id: job.id,
+      status: 'pending',
+      media_type: 'image' as const,
+      aspect_ratio: normalized.aspect_ratio,
+      final_prompt: normalized.prompt,
+      message: 'queued',
+    };
+  }
+
+  private async getDirectVideoJobTemplateId(): Promise<number> {
+    const template = await this.templateRepository.findOne({
+      where: {},
+      order: { id: 'ASC' },
+      select: { id: true },
+    });
+
+    if (!template?.id) {
+      throw new BadRequestException('ยังไม่มี template ในระบบสำหรับอ้างอิงการสร้าง video job');
+    }
+
+    return template.id;
+  }
+
+  private normalizeDirectVideoInput(input: {
+    reference_image_url: string;
+    prompt: string;
+    aspect_ratio?: '9:16' | '16:9';
+  }): {
+    reference_image_url: string;
+    prompt: string;
+    aspect_ratio: '9:16' | '16:9';
+  } {
+    const reference_image_url = String(input.reference_image_url || '').trim();
+    const prompt = String(input.prompt || '').trim();
+    const aspect_ratio = input.aspect_ratio === '16:9' ? '16:9' : '9:16';
+
+    if (!reference_image_url) {
+      throw new BadRequestException('กรุณาอัปโหลดรูปอ้างอิงก่อนสร้างวิดีโอ');
+    }
+    if (!prompt) {
+      throw new BadRequestException('กรุณากรอกบทพูดหรือ Prompt ก่อนสร้างวิดีโอ');
+    }
+
+    return {
+      reference_image_url,
+      prompt,
+      aspect_ratio,
+    };
+  }
+
+  private normalizeDirectImageInput(input: {
+    prompt: string;
+    reference_image_urls?: string[];
+    aspect_ratio?: '1:1' | '4:5' | '9:16' | '16:9';
+  }): {
+    prompt: string;
+    reference_image_urls: string[];
+    aspect_ratio: '1:1' | '4:5' | '9:16' | '16:9';
+  } {
+    const prompt = String(input.prompt || '').trim();
+    const reference_image_urls = Array.isArray(input.reference_image_urls)
+      ? input.reference_image_urls
+          .map((value) => String(value || '').trim())
+          .filter(Boolean)
+          .slice(0, 6)
+      : [];
+    const aspect_ratio = input.aspect_ratio === '4:5' || input.aspect_ratio === '9:16' || input.aspect_ratio === '16:9'
+      ? input.aspect_ratio
+      : '1:1';
+
+    if (!prompt) {
+      throw new BadRequestException('กรุณากรอก prompt');
+    }
+
+    return {
+      prompt,
+      reference_image_urls,
+      aspect_ratio,
+    };
+  }
+
+  private async generateDirectVideoOutput(input: {
+    reference_image_url: string;
+    prompt: string;
+    aspect_ratio: '9:16' | '16:9';
+  }) {
+    const generated = await this.createLiteService.generateVideoFromReferenceImage({
+      prompt: input.prompt,
+      ratio: input.aspect_ratio,
+      referenceImageUrl: input.reference_image_url,
+      durationSeconds: 8,
+    });
+
+    const output_video_url = await this.persistGeneratedVideoBase64(generated.videoBase64, generated.mimeType);
+
+    return {
+      output_video_url,
+      model: generated.model,
+    };
+  }
+
+  private async runDirectVideoJob(
+    jobId: number,
+    input: {
+      reference_image_url: string;
+      prompt: string;
+      aspect_ratio: '9:16' | '16:9';
+    },
+  ) {
+    try {
+      const result = await this.generateDirectVideoOutput(input);
+      await this.jobRepository.update(
+        { id: jobId },
+        {
+          status: 'success',
+          output_image_url: '',
+          output_video_url: result.output_video_url,
+          error_message: '',
+        },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'generate failed';
+      await this.jobRepository.update(
+        { id: jobId },
+        {
+          status: 'failed',
+          output_image_url: '',
+          output_video_url: '',
+          error_message: message,
+        },
+      );
+      throw error;
+    }
+  }
+
+  private async runDirectImageJob(
+    jobId: number,
+    input: {
+      prompt: string;
+      reference_image_urls: string[];
+      aspect_ratio: '1:1' | '4:5' | '9:16' | '16:9';
+    },
+  ) {
+    try {
+      const result = await this.createLiteService.generateImageFromDirectPrompt({
+        prompt: input.prompt,
+        ratio: input.aspect_ratio,
+        referenceImageUrls: input.reference_image_urls,
+      });
+
+      await this.jobRepository.update(
+        { id: jobId },
+        {
+          status: 'success',
+          output_image_url: result.imageDataUrl,
+          output_video_url: '',
+          error_message: '',
+        },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'generate failed';
+      await this.jobRepository.update(
+        { id: jobId },
+        {
+          status: 'failed',
+          output_image_url: '',
+          output_video_url: '',
+          error_message: message,
+        },
+      );
+      throw error;
+    }
+  }
+
   private async createGenerationJob(dto: GenerateFromTemplateDto) {
     const template = await this.templateRepository.findOne({
       where: { slug: dto.template_slug, status: 'active' },
@@ -430,22 +731,58 @@ export class DigitalMediaService implements OnModuleInit {
       throw new NotFoundException('Template not found');
     }
 
-    const missingRequired = validateRequiredFields(dto.input || {}, template.fields || []);
-    if (missingRequired.length > 0) {
-      throw new BadRequestException(`กรอกข้อมูลไม่ครบ: ${missingRequired.join(', ')}`);
+    const mediaType = (template.media_type || 'image') as 'image' | 'video';
+    const input = dto.input || {};
+
+    let finalPrompt = dto.prompt_override?.trim()
+      ? dto.prompt_override.trim()
+      : buildPromptFromTemplate(template.prompt_template, input, template.fields || []);
+
+    if (mediaType === 'video') {
+      const promptCandidates = [
+        input.video_prompt,
+        input.prompt,
+        input.script,
+        input.speech_script,
+      ];
+      const promptFromInput = promptCandidates.find((value) => typeof value === 'string' && value.trim()) as
+        | string
+        | undefined;
+      if (promptFromInput?.trim()) {
+        finalPrompt = promptFromInput.trim();
+      }
     }
 
-    const finalPrompt = dto.prompt_override?.trim()
-      ? dto.prompt_override.trim()
-      : buildPromptFromTemplate(template.prompt_template, dto.input || {}, template.fields || []);
-
     const finalNegativePrompt = template.negative_prompt || '';
-    const aspectRatio = dto.aspect_ratio || template.aspect_ratio || '1:1';
+
+    const aspectRatio =
+      mediaType === 'video'
+        ? dto.aspect_ratio === '16:9' || dto.aspect_ratio === '9:16'
+          ? dto.aspect_ratio
+          : template.aspect_ratio === '16:9' || template.aspect_ratio === '9:16'
+            ? template.aspect_ratio
+            : '9:16'
+        : dto.aspect_ratio || template.aspect_ratio || '1:1';
+
+    if (mediaType === 'image') {
+      const missingRequired = validateRequiredFields(input, template.fields || []);
+      if (missingRequired.length > 0) {
+        throw new BadRequestException(`กรอกข้อมูลไม่ครบ: ${missingRequired.join(', ')}`);
+      }
+    } else {
+      const referenceImageUrl = this.extractVideoReferenceImageUrl(input, template.fields || []);
+      if (!referenceImageUrl) {
+        throw new BadRequestException('กรุณาอัปโหลดรูปอ้างอิงก่อนสร้างวิดีโอ');
+      }
+      if (!finalPrompt?.trim()) {
+        throw new BadRequestException('กรุณากรอกบทพูดหรือ Prompt ก่อนสร้างวิดีโอ');
+      }
+    }
 
     const job = await this.jobRepository.save(
       this.jobRepository.create({
         template_id: template.id,
-        user_input_json: dto.input || {},
+        user_input_json: input,
         final_prompt: finalPrompt,
         final_negative_prompt: finalNegativePrompt,
         aspect_ratio: aspectRatio,
@@ -456,6 +793,7 @@ export class DigitalMediaService implements OnModuleInit {
     return {
       job,
       template,
+      mediaType,
       finalPrompt,
       finalNegativePrompt,
       aspectRatio,
@@ -468,17 +806,48 @@ export class DigitalMediaService implements OnModuleInit {
     dto: GenerateFromTemplateDto,
     finalPrompt: string,
     aspectRatio: string,
-  ) {
+  ): Promise<{ output_image_url: string; output_video_url: string }> {
     try {
+      const mediaType = (template.media_type || 'image') as 'image' | 'video';
+
+      if (mediaType === 'video') {
+        const referenceImageUrl = this.extractVideoReferenceImageUrl(dto.input || {}, template.fields || []);
+        if (!referenceImageUrl) {
+          throw new BadRequestException('กรุณาอัปโหลดรูปอ้างอิงก่อนสร้างวิดีโอ');
+        }
+
+        const generated = await this.createLiteService.generateVideoFromReferenceImage({
+          prompt: finalPrompt,
+          ratio: aspectRatio === '16:9' ? '16:9' : '9:16',
+          referenceImageUrl,
+          durationSeconds: 8,
+        });
+
+        const outputVideoUrl = await this.persistGeneratedVideoBase64(generated.videoBase64, generated.mimeType);
+        await this.jobRepository.update(
+          { id: jobId },
+          {
+            status: 'success',
+            output_image_url: '',
+            output_video_url: outputVideoUrl,
+            error_message: '',
+          },
+        );
+
+        return {
+          output_image_url: '',
+          output_video_url: outputVideoUrl,
+        };
+      }
+
       const imageFields = (template.fields || []).filter((field) => field.field_type === 'image');
-      const preferredProductImage = (dto.input || {})['product_image'];
+      const preferredProductImage = this.extractProductImageUrl(dto.input || {}, template.fields || []);
       const firstImageValue = imageFields
         .map((field) => (dto.input || {})[field.field_key])
         .find((value) => typeof value === 'string' && value.trim());
+      const productImageField = imageFields.find((field) => PRODUCT_IMAGE_FIELD_KEYS.has(this.normalizeFieldKey(field.field_key)));
       const referenceImageField = imageFields.find((field) =>
-        ['reference_image', 'ref_image', 'person_image', 'face_image', 'source_image'].includes(
-          this.normalizeFieldKey(field.field_key),
-        ),
+        REFERENCE_IMAGE_FIELD_KEYS.has(this.normalizeFieldKey(field.field_key)),
       );
       const referenceImageUrl = referenceImageField
         ? (dto.input || {})[referenceImageField.field_key] || (dto.input || {})[this.normalizeFieldKey(referenceImageField.field_key)]
@@ -490,8 +859,9 @@ export class DigitalMediaService implements OnModuleInit {
             ? firstImageValue.trim()
             : '';
 
+      const shouldPreferProductReplace = template.enable_product_replace || Boolean(productImageField);
       const useReplaceProductFlow =
-        template.enable_product_replace &&
+        shouldPreferProductReplace &&
         Boolean(template.cover_image_url?.trim()) &&
         Boolean(productImageUrl);
 
@@ -501,6 +871,7 @@ export class DigitalMediaService implements OnModuleInit {
             ratio: aspectRatio as '1:1' | '4:5' | '9:16',
             baseImageUrl: template.cover_image_url,
             productImageUrl,
+            maskImageUrl: template.product_mask_url?.trim() || undefined,
           })
         : typeof referenceImageUrl === 'string' && referenceImageUrl.trim()
           ? await this.createLiteService.generateImageWithReferenceImage({
@@ -508,22 +879,26 @@ export class DigitalMediaService implements OnModuleInit {
               ratio: aspectRatio as '1:1' | '4:5' | '9:16',
               referenceImageUrl: referenceImageUrl.trim(),
             })
-        : await this.createLiteService.generateImageFromPrompt({
-            prompt: finalPrompt,
-            templateId: template.slug,
-            ratio: aspectRatio as '1:1' | '4:5' | '9:16',
-          });
+          : await this.createLiteService.generateImageFromPrompt({
+              prompt: finalPrompt,
+              templateId: template.slug,
+              ratio: aspectRatio as '1:1' | '4:5' | '9:16',
+            });
 
       await this.jobRepository.update(
         { id: jobId },
         {
           status: 'success',
           output_image_url: generated.imageDataUrl,
+          output_video_url: '',
           error_message: '',
         },
       );
 
-      return generated;
+      return {
+        output_image_url: generated.imageDataUrl,
+        output_video_url: '',
+      };
     } catch (error) {
       const message = error instanceof Error ? error.message : 'generate failed';
       await this.jobRepository.update(
@@ -537,6 +912,84 @@ export class DigitalMediaService implements OnModuleInit {
     }
   }
 
+  private extractProductImageUrl(
+    input: Record<string, any>,
+    fields: DigitalMediaTemplateField[],
+  ): string {
+    const directCandidates = [
+      input.product_image,
+      input.ref_product,
+      input.product,
+      input.item_image,
+      input.product_photo,
+      input.product_ref,
+    ];
+
+    const direct = directCandidates.find((value) => typeof value === 'string' && value.trim());
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct.trim();
+    }
+
+    const imageField = (fields || []).find((field) => {
+      if (field.field_type !== 'image') return false;
+      return PRODUCT_IMAGE_FIELD_KEYS.has(this.normalizeFieldKey(field.field_key));
+    });
+
+    if (!imageField) return '';
+
+    const value = input[imageField.field_key] || input[this.normalizeFieldKey(imageField.field_key)];
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private extractVideoReferenceImageUrl(
+    input: Record<string, any>,
+    fields: DigitalMediaTemplateField[],
+  ): string {
+    const directCandidates = [
+      input.reference_image,
+      input.reference_image_url,
+      input.ref_image,
+      input.source_image,
+      input.image,
+      input.photo,
+      input.person_image,
+    ];
+
+    const direct = directCandidates.find((value) => typeof value === 'string' && value.trim());
+    if (typeof direct === 'string' && direct.trim()) {
+      return direct.trim();
+    }
+
+    const imageField = (fields || []).find((field) => {
+      if (field.field_type !== 'image') return false;
+      const key = this.normalizeFieldKey(field.field_key);
+      return ['reference_image', 'reference_image_url', 'ref_image', 'person_image', 'source_image'].includes(key);
+    });
+
+    if (!imageField) return '';
+
+    const value = input[imageField.field_key] || input[this.normalizeFieldKey(imageField.field_key)];
+    return typeof value === 'string' ? value.trim() : '';
+  }
+
+  private async persistGeneratedVideoBase64(videoBase64: string, mimeType?: string): Promise<string> {
+    const cleaned = String(videoBase64 || '').trim();
+    if (!cleaned) {
+      throw new BadRequestException('ไม่พบข้อมูลวิดีโอจาก Veo');
+    }
+
+    const normalizedMime = (mimeType || 'video/mp4').toLowerCase();
+    const extension = normalizedMime.includes('quicktime') ? 'mov' : 'mp4';
+
+    this.ensureDigitalMediaUploadDir();
+    const timestamp = Date.now();
+    const random = Math.random().toString(36).slice(2, 9);
+    const filename = `dm-video-${timestamp}-${random}.${extension}`;
+    const filePath = join(digitalMediaUploadPath, filename);
+
+    await fsPromises.writeFile(filePath, Buffer.from(cleaned, 'base64'));
+    return `/api/uploads/digital-media/${filename}`;
+  }
   private normalizeOptions(raw?: Array<{ label: string; value: string }>) {
     if (!Array.isArray(raw)) return [];
     return raw
@@ -750,6 +1203,8 @@ export class DigitalMediaService implements OnModuleInit {
       description: template.description,
       cover_image_url: template.cover_image_url,
       cover_thumb_url: coverThumbUrl,
+      media_type: template.media_type || 'image',
+      preview_video_url: template.preview_video_url || '',
       enable_product_replace: Boolean(template.enable_product_replace),
       product_mask_url: template.product_mask_url,
       category: template.category
@@ -792,6 +1247,8 @@ export class DigitalMediaService implements OnModuleInit {
       description: template.description,
       cover_image_url: template.cover_image_url,
       cover_thumb_url: coverThumbUrl,
+      media_type: template.media_type || 'image',
+      preview_video_url: template.preview_video_url || '',
       category: template.category
         ? {
             id: template.category.id,
@@ -814,6 +1271,8 @@ export class DigitalMediaService implements OnModuleInit {
       description: template.description,
       cover_image_url: normalizedCover.cover_image_url,
       cover_thumb_url: normalizedCover.cover_thumb_url,
+      media_type: template.media_type || 'image',
+      preview_video_url: template.preview_video_url || '',
       category: template.category
         ? {
             id: template.category.id,
@@ -970,6 +1429,8 @@ export class DigitalMediaService implements OnModuleInit {
         category_id INT NOT NULL REFERENCES categories(id) ON DELETE RESTRICT,
         description TEXT NOT NULL DEFAULT '',
         cover_image_url TEXT NOT NULL DEFAULT '',
+        media_type VARCHAR(16) NOT NULL DEFAULT 'image',
+        preview_video_url TEXT NOT NULL DEFAULT '',
         enable_product_replace BOOLEAN NOT NULL DEFAULT FALSE,
         product_mask_url TEXT NOT NULL DEFAULT '',
         prompt_template TEXT NOT NULL,
@@ -993,6 +1454,16 @@ export class DigitalMediaService implements OnModuleInit {
       ADD COLUMN IF NOT EXISTS product_mask_url TEXT NOT NULL DEFAULT '';
     `);
 
+    await this.templateRepository.query(`
+      ALTER TABLE templates
+      ADD COLUMN IF NOT EXISTS media_type VARCHAR(16) NOT NULL DEFAULT 'image';
+    `);
+
+    await this.templateRepository.query(`
+      ALTER TABLE templates
+      ADD COLUMN IF NOT EXISTS preview_video_url TEXT NOT NULL DEFAULT '';
+    `);
+
     await this.fieldRepository.query(`
       CREATE TABLE IF NOT EXISTS template_fields (
         id SERIAL PRIMARY KEY,
@@ -1011,6 +1482,7 @@ export class DigitalMediaService implements OnModuleInit {
       );
     `);
 
+
     await this.jobRepository.query(`
       CREATE TABLE IF NOT EXISTS generation_jobs (
         id SERIAL PRIMARY KEY,
@@ -1021,10 +1493,16 @@ export class DigitalMediaService implements OnModuleInit {
         aspect_ratio VARCHAR(10) NOT NULL DEFAULT '1:1',
         status VARCHAR(16) NOT NULL DEFAULT 'pending',
         output_image_url TEXT NOT NULL DEFAULT '',
+        output_video_url TEXT NOT NULL DEFAULT '',
         error_message TEXT NOT NULL DEFAULT '',
         created_at TIMESTAMP NOT NULL DEFAULT NOW(),
         updated_at TIMESTAMP NOT NULL DEFAULT NOW()
       );
+    `);
+
+    await this.jobRepository.query(`
+      ALTER TABLE generation_jobs
+      ADD COLUMN IF NOT EXISTS output_video_url TEXT NOT NULL DEFAULT '';
     `);
   }
 

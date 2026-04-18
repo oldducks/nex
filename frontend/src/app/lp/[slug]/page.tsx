@@ -24,6 +24,7 @@ interface LandingPage {
     theme_config: any;
     seo_metadata: any;
     owner_uid?: string;
+    referral_code?: string | null;
     is_published: boolean;
 }
 

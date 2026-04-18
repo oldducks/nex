@@ -6,16 +6,16 @@ import Cookies from 'js-cookie';
 import {
   Plus, ArrowLeft, Trash2, GripVertical, Image as ImageIcon,
   Package, Settings, Globe, ShoppingCart, Facebook,
-  Palette, Type, RefreshCw, Eye, Save, QrCode as QrIcon,
-  ExternalLink, Download, FileJson, Layers, Sparkles, Loader2, X, Pencil, User, LayoutDashboard, Share2, Twitter, MessageCircle
+  Palette, RefreshCw, Eye, Save, QrCode as QrIcon,
+  ExternalLink, Download, FileJson, Sparkles, Loader2, X, Pencil, Share2, Twitter, MessageCircle
 } from 'lucide-react';
 import Link from 'next/link';
 import { QrCodeImage } from '../../../../components/QrCode';
+import { QrCodeDownloadActions } from '../../../../components/QrCodeDownloadActions';
 import { VideoUpload } from '@/components/VideoUpload';
 import ProductImageUpload from '@/components/ProductImageUpload';
 import { Toast, type ToastType } from '@/components/Toast';
 import { Video } from 'lucide-react';
-import ManageTopBar from '@/components/ManageTopBar';
 
 interface VideoConfig {
     url: string;
@@ -60,6 +60,15 @@ interface Catalog {
     video_config?: VideoConfig;
 }
 
+interface MeProfile {
+    subscription_tier?: string;
+}
+
+interface FormOption {
+    id: number;
+    name: string;
+}
+
 export default function CatalogDetail() {
     const router = useRouter();
     const params = useParams();
@@ -67,10 +76,13 @@ export default function CatalogDetail() {
 
     const [catalog, setCatalog] = useState<Catalog | null>(null);
     const [products, setProducts] = useState<Product[]>([]);
+    const [forms, setForms] = useState<FormOption[]>([]);
+    const [currentPlanLabel, setCurrentPlanLabel] = useState('แผนพื้นฐาน');
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState(false);
     const [showProductModal, setShowProductModal] = useState(false);
     const [showSettingsModal, setShowSettingsModal] = useState(false);
+    const [showAdvancedSettings, setShowAdvancedSettings] = useState(false);
     const [saving, setSaving] = useState(false);
     const [showQrModal, setShowQrModal] = useState(false);
     const [showShareModal, setShowShareModal] = useState(false);
@@ -111,6 +123,21 @@ export default function CatalogDetail() {
         setToast({ message, type, isVisible: true });
     };
 
+    const openSettingsModal = () => {
+        setShowAdvancedSettings(false);
+        setShowSettingsModal(true);
+    };
+
+    const closeSettingsModal = () => {
+        setShowSettingsModal(false);
+        setShowAdvancedSettings(false);
+    };
+
+    const resolvePlanLabel = (tier?: string) => {
+        if (tier === 'premium') return 'แผนพรีเมียม';
+        return 'แผนพื้นฐาน';
+    };
+
     useEffect(() => {
         if (!token) {
             router.push('/login');
@@ -122,9 +149,18 @@ export default function CatalogDetail() {
     const fetchData = async () => {
         setLoading(true);
         try {
-            const [catRes, prodRes] = await Promise.all([
+            const profileRes = await fetch(`${API_URL}/profile/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            if (profileRes.ok) {
+                const profileData: MeProfile = await profileRes.json();
+                setCurrentPlanLabel(resolvePlanLabel(profileData.subscription_tier));
+            }
+
+            const [catRes, prodRes, formsRes] = await Promise.all([
                 fetch(`${API_URL}/catalogs/user/${id}`, { headers: { Authorization: `Bearer ${token}` } }),
-                fetch(`${API_URL}/products?catalog_id=${id}`, { headers: { Authorization: `Bearer ${token}` } })
+                fetch(`${API_URL}/products?catalog_id=${id}`, { headers: { Authorization: `Bearer ${token}` } }),
+                fetch(`${API_URL}/forms`, { headers: { Authorization: `Bearer ${token}` } })
             ]);
             
             if (catRes.ok) {
@@ -148,6 +184,9 @@ export default function CatalogDetail() {
                 setProducts(await prodRes.json());
                 setImageLoadErrorIds({});
             }
+            if (formsRes.ok) {
+                setForms(await formsRes.json());
+            }
         } catch (error) {
             console.error(error);
         } finally {
@@ -165,7 +204,7 @@ export default function CatalogDetail() {
                     if (parsedUrl.pathname.startsWith('/uploads')) {
                         return `${API_URL}${parsedUrl.pathname}`;
                     }
-                } catch (e) {
+                } catch {
                     // Ignore URL parsing errors
                 }
             }
@@ -200,6 +239,8 @@ export default function CatalogDetail() {
         }
         return index + 1;
     };
+
+    const getPublicFormUrl = (formId: number | string) => `${SITE_URL}/forms/${formId}`;
 
     const saveSettings = async () => {
         setSaving(true);
@@ -410,143 +451,190 @@ export default function CatalogDetail() {
                }
             }, 5000);
             setTimeout(() => { clearInterval(interval); setGenerating(false); }, 60000);
-        } catch (error) {
+        } catch {
             setGenerating(false);
             showToast('เริ่มสร้าง PDF ไม่สำเร็จ กรุณาลองใหม่', 'error');
         }
     };
 
     if (loading) return (
-        <div className="min-h-screen bg-background text-foreground flex flex-col items-center justify-center">
-             <Loader2 className="w-12 h-12 text-primary animate-spin mb-6" />
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] flex flex-col items-center justify-center">
+             <Loader2 className="w-12 h-12 text-[#F97316] animate-spin mb-6" />
              <p className="text-[#64748B] font-black uppercase tracking-[0.3em] text-[10px]">กำลังโหลดข้อมูลแคตตาล็อก...</p>
         </div>
     );
 
     const publicUrl = `${SITE_URL}/catalog/${catalog?.custom_slug || catalog?.id}`;
+    const publicBookUrl = `${publicUrl}?view=book`;
     return (
-        <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-            <ManageTopBar
-                backHref="/manage"
-                subtitle="CATALOG MANAGER"
-                title={catalog?.title || 'Catalog'}
-                actions={(
-                    <>
-                        <div className="h-6 w-[1px] bg-[#D9E1F2] mx-1 hidden md:block"></div>
-                        <Link
-                            href={`/catalog/${catalog?.custom_slug || catalog?.id}`}
-                            target="_blank"
-                            className="border border-[#D9E1F2] bg-[#F6F8FF] hover:bg-white px-4 py-2.5 rounded-xl transition-colors flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#475569] hover:text-[#0F172A]"
-                        >
-                            <Eye size={16} />
-                            <span className="hidden lg:block">ดูหน้าสาธารณะ</span>
-                        </Link>
-                        <button
-                            onClick={() => setShowSettingsModal(true)}
-                            className="bg-[#050579] hover:bg-[#07079A] text-white px-4 py-2.5 rounded-xl transition-colors shadow-[0_18px_40px_-26px_rgba(5,5,121,0.5)] flex items-center gap-2 text-xs font-black uppercase tracking-widest active:scale-95"
-                        >
-                            <Settings size={16} />
-                            <span className="hidden lg:block">ปรับแต่งธีม</span>
-                        </button>
-                    </>
-                )}
-            />
+        <div className="relative min-h-screen bg-[#EEF0FF] pb-16 text-[#0F172A]">
+            <div className="pointer-events-none absolute inset-0">
+                <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_32%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.34),transparent_40%)]" />
+            </div>
 
-            <main className="max-w-6xl mx-auto px-6 py-12">
-                {/* Stats & Tools Bar */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-16">
-                    <div className="bg-card-bg border border-glass-border p-8 rounded-[32px] flex items-center gap-6 glass-card shadow-2xl">
-                        <div className="w-16 h-16 bg-primary/10 rounded-2xl flex items-center justify-center text-primary shadow-inner">
-                            <Layers size={28} />
+            <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/85 backdrop-blur-md">
+                <div className="relative mx-auto flex h-24 w-full max-w-md items-center px-4 md:max-w-6xl md:px-6">
+                    <Link
+                        href="/manage"
+                        className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group md:left-6"
+                        title="ย้อนกลับ"
+                    >
+                        <ArrowLeft size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
+                    </Link>
+
+                    <div className="mx-auto flex min-w-0 flex-col items-center text-center">
+                        <div className="mb-0.5 text-[11px] font-black uppercase leading-none tracking-[0.18em] text-[#94A3B8]">
+                            NEX Catalog
                         </div>
-                        <div>
-                            <div className="text-3xl font-black">{products.length}</div>
-                            <div className="text-[10px] text-[#475569] font-black uppercase tracking-[0.16em]">จำนวนสินค้า</div>
+                        <div className="flex max-w-[250px] items-center justify-center gap-2 md:max-w-xl">
+                            <div className="truncate text-base font-black text-[#050579]">
+                                {catalog?.title || 'Catalog'}
+                            </div>
+                            <button
+                                onClick={openSettingsModal}
+                                className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:border-[#BCCBE8] hover:text-[#050579]"
+                                title="แก้ชื่อแคตตาล็อก"
+                            >
+                                <Pencil size={14} />
+                            </button>
+                        </div>
+                        <div className="mt-2 inline-flex items-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-1 text-xs font-bold text-[#64748B]">
+                            <span className="mr-1.5 text-[#94A3B8]">แผนปัจจุบัน</span>
+                            <span className="text-[#050579]">{currentPlanLabel}</span>
                         </div>
                     </div>
-                    
-                    <div className="bg-card-bg border border-glass-border p-8 rounded-[32px] flex items-center justify-between glass-card shadow-2xl group">
-                         <div className="flex items-center gap-6">
-                            <div className="w-16 h-16 bg-[#F97316]/10 rounded-2xl flex items-center justify-center text-[#F97316] shadow-inner">
-                                <QrIcon size={28} />
-                            </div>
-                            <div>
-                                <div className="text-sm font-black tracking-tight text-[#0F172A]">QR Access Point</div>
-                                <div className="text-[10px] text-[#475569] font-black uppercase tracking-[0.16em]">แชร์ทันที</div>
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                            <button 
-                                onClick={() => setShowQrModal(true)}
-                                className="w-10 h-10 rounded-xl text-[#64748B] hover:text-primary hover:bg-primary/10 border border-[#E2E8F0] transition-all flex items-center justify-center bg-[#F8FAFC]"
-                                title="QR Code"
-                            >
-                                <QrIcon size={16} />
-                            </button>
-                            <button 
-                                onClick={() => setShowShareModal(true)}
-                                className="w-10 h-10 rounded-xl text-[#64748B] hover:text-primary hover:bg-primary/10 border border-[#E2E8F0] transition-all flex items-center justify-center bg-[#F8FAFC]"
-                                title="Share"
-                            >
-                                <Share2 size={16} />
-                            </button>
-                            <div className="w-16 h-16 bg-white rounded-xl p-2 border border-[#E2E8F0] shadow-sm flex items-center justify-center overflow-hidden">
-                                <QrCodeImage
-                                    url={publicUrl}
-                                    size={48}
-                                    className="p-0 border-0 rounded-none shadow-none drop-shadow-none hover:scale-100"
-                                />
-                            </div>
-                        </div>
-                    </div>
+
                 </div>
+            </nav>
 
-                {/* Products List Header */}
-                <div className="flex flex-col md:flex-row items-center justify-between mb-10 gap-6">
-                    <div>
-                        <h2 className="text-4xl font-black tracking-tighter text-[#050579]">สินค้าในเล่ม</h2>
-                        <p className="text-[#334155] text-lg font-semibold">จัดการรายการ Multimedia และปุ่ม Interactive สำหรับสินค้าแต่ละชิ้น</p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-3">
-                        <input
-                            ref={csvInputRef}
-                            type="file"
-                            accept=".csv,text/csv"
-                            className="hidden"
-                            onChange={importCsv}
-                        />
-                        <button
-                            onClick={openCsvPicker}
-                            disabled={importingCsv}
-                            className="border border-[#D9E1F2] bg-white hover:bg-[#F8FAFC] text-[#334155] px-6 py-4 rounded-2xl font-black flex items-center gap-3 transition-colors uppercase tracking-[0.12em] text-xs disabled:opacity-60"
-                        >
-                            <FileJson size={18} className={importingCsv ? 'animate-pulse' : ''} />
-                            {importingCsv ? 'กำลังนำเข้า...' : 'Import CSV'}
-                        </button>
+            <main className="relative z-10 mx-auto mt-6 w-full max-w-md px-4 pb-8 md:max-w-6xl md:px-6">
+                <section className="mb-6 rounded-3xl border border-[#D9E1F2] bg-white p-4 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.16)] md:p-6">
+                    <div className="flex flex-col gap-4">
                         <button
                             onClick={() => setShowProductModal(true)}
-                            className="bg-[#F97316] hover:bg-[#EA580C] text-white px-8 py-4 rounded-2xl font-black flex items-center gap-3 transition-colors active:scale-95 shadow-[0_18px_40px_-26px_rgba(249,115,22,0.5)] uppercase tracking-[0.12em] text-xs"
+                            className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#F97316] px-7 py-4 text-base font-black text-white shadow-[0_20px_45px_-20px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-95"
                         >
-                            <Plus size={20} /> เพิ่มสินค้าใหม่
+                            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/22">
+                                <Plus size={22} strokeWidth={3} />
+                            </span>
+                            <span>เพิ่มสินค้าใหม่</span>
                         </button>
+
+                        <div className="rounded-[28px] border border-[#D9E1F2] bg-[#F6F8FF] p-4 md:p-5">
+                            <div className="flex items-start justify-between gap-3">
+                                <div>
+                                    <div className="text-sm font-black text-[#050579]">เครื่องมือแคตตาล็อก</div>
+                                    <div className="mt-1 text-[11px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">นำเข้า แชร์ ตั้งค่า และสร้าง PDF จากหน้าเดียว</div>
+                                </div>
+                                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-[#F97316] shadow-[0_10px_24px_-20px_rgba(249,115,22,0.22)]">
+                                    <QrIcon size={20} />
+                                </div>
+                            </div>
+
+                            <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+                                <div className="space-y-3">
+                                    <input
+                                        ref={csvInputRef}
+                                        type="file"
+                                        accept=".csv,text/csv"
+                                        className="hidden"
+                                        onChange={importCsv}
+                                    />
+                                    <button
+                                        onClick={openCsvPicker}
+                                        disabled={importingCsv}
+                                        className="flex min-h-12 w-full items-center justify-center gap-3 rounded-2xl border border-[#D1DBEF] bg-white px-5 py-3 text-xs font-black uppercase tracking-[0.12em] text-[#334155] transition-colors hover:border-[#BCCBE8] disabled:opacity-60"
+                                    >
+                                        <FileJson size={18} className={importingCsv ? 'animate-pulse' : ''} />
+                                        {importingCsv ? 'กำลังนำเข้า...' : 'Import CSV'}
+                                    </button>
+
+                                    <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                                        <Link
+                                            href={publicBookUrl}
+                                            target="_blank"
+                                            className="flex items-center justify-between rounded-2xl border border-[#D1DBEF] bg-white px-4 py-3 text-sm font-semibold text-[#0F172A] transition hover:border-[#BCCBE8]"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Eye size={15} className="text-[#64748B]" />
+                                                ดูหน้าสาธารณะ
+                                            </span>
+                                            <ExternalLink size={15} className="text-[#475569]" />
+                                        </Link>
+                                        <button
+                                            onClick={() => setShowQrModal(true)}
+                                            className="flex items-center justify-between rounded-2xl border border-[#D1DBEF] bg-white px-4 py-3 text-sm font-semibold text-[#0F172A] transition hover:border-[#BCCBE8]"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <QrIcon size={15} className="text-[#64748B]" />
+                                                QR
+                                            </span>
+                                            <ExternalLink size={15} className="text-[#475569]" />
+                                        </button>
+                                        <button
+                                            onClick={() => setShowShareModal(true)}
+                                            className="flex items-center justify-between rounded-2xl border border-[#D1DBEF] bg-white px-4 py-3 text-sm font-semibold text-[#0F172A] transition hover:border-[#BCCBE8]"
+                                        >
+                                            <span className="flex items-center gap-2">
+                                                <Share2 size={15} className="text-[#64748B]" />
+                                                แชร์
+                                            </span>
+                                            <ExternalLink size={15} className="text-[#475569]" />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    {catalog?.pdf_url && !generating ? (
+                                        <a
+                                            href={getImageUrl(catalog.pdf_url)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex min-h-11 items-center justify-center gap-3 rounded-2xl bg-[#050579] px-4 py-3 text-sm font-black text-white transition-all hover:bg-[#07079A] active:scale-95"
+                                        >
+                                            <Download size={18} />
+                                            ดาวน์โหลด PDF
+                                        </a>
+                                    ) : (
+                                        <button
+                                            onClick={generatePdf}
+                                            disabled={generating}
+                                            className="flex min-h-11 w-full items-center justify-center gap-3 rounded-2xl bg-[#050579] px-4 py-3 text-sm font-black text-white transition-all hover:bg-[#07079A] active:scale-95 disabled:opacity-50"
+                                        >
+                                            <RefreshCw size={18} className={generating ? "animate-spin" : ""} />
+                                            {generating ? 'กำลังประมวลผล...' : 'สร้างแคตตาล็อก PDF'}
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                {/* Products List Header */}
+                <section className="rounded-3xl border border-[#D9E1F2] bg-white p-4 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.12)] md:p-6">
+                <div className="flex flex-col md:flex-row items-start justify-between mb-6 gap-4">
+                    <div>
+                        <h2 className="text-2xl font-black tracking-tight text-[#050579] md:text-3xl">สินค้าในเล่ม</h2>
+                        <p className="mt-2 text-sm leading-6 text-[#64748B]">จัดการรายการสินค้า พร้อมลิงก์ Interactive และข้อมูลสำคัญของแต่ละชิ้น</p>
                     </div>
                 </div>
 
                 {/* Products List */}
                 {products.length === 0 ? (
-                    <div className="text-center py-40 border-2 border-dashed border-foreground/10 rounded-[48px] bg-foreground/5 glass-card">
-                        <div className="w-28 h-28 bg-foreground/5 rounded-full flex items-center justify-center mx-auto mb-10">
-                            <Package size={56} className="text-foreground/10" />
+                    <div className="rounded-[28px] border-2 border-dashed border-[#D9E1F2] bg-[#F9FBFF] px-6 py-16 text-center">
+                        <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-[#EEF4FF]">
+                            <Package size={36} className="text-[#94A3B8]" />
                         </div>
-                        <h3 className="text-3xl font-black mb-4 tracking-tight">ยังไม่พบรายการสินค้า</h3>
-                        <p className="text-[#64748B] max-w-md mx-auto mb-12 text-lg font-medium leading-relaxed">
-                            เริ่มต้นสร้างประสบการณ์ช้อปปิ้งออนไลน์ด้วยการเพิ่มสินค้าชิ้นแรก พร้อมปุ่มคำสั่งอัจฉริยะ (Interactive Buttons)
+                        <h3 className="text-2xl font-black tracking-tight text-[#050579]">ยังไม่พบรายการสินค้า</h3>
+                        <p className="mx-auto mt-3 max-w-md text-sm leading-6 text-[#64748B]">
+                            เริ่มต้นสร้างแคตตาล็อกที่พร้อมแชร์ ด้วยการเพิ่มสินค้าชิ้นแรกของคุณในหน้านี้
                         </p>
                         <button 
                             onClick={() => setShowProductModal(true)} 
-                            className="bg-primary hover:bg-primary/90 text-white px-10 py-5 rounded-[24px] font-black shadow-2xl shadow-primary/20 transition-all hover:-translate-y-1 active:scale-95 uppercase tracking-widest text-sm"
+                            className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#F97316] px-6 py-3 text-sm font-black text-white shadow-[0_18px_40px_-26px_rgba(249,115,22,0.45)] transition-colors hover:bg-[#EA580C]"
                         >
-                            <Plus size={24} className="inline-block mr-2" /> เข้าสู่โหมดพรีเซนต์สินค้า
+                            เพิ่มสินค้าแรกตอนนี้
                         </button>
                     </div>
                 ) : (
@@ -560,169 +648,166 @@ export default function CatalogDetail() {
                                     </span>
                                 </div>
 
-                                <div className="bg-card-bg border border-foreground/5 p-6 rounded-[32px] hover:border-primary/20 hover:bg-foreground/[0.02] transition-all flex flex-col md:flex-row md:items-center gap-6 md:gap-8 glass-card flex-1">
-                                <div className="text-foreground/10 cursor-grab group-hover:text-primary transition-colors active:cursor-grabbing hidden md:block">
-                                    <GripVertical size={24} />
-                                </div>
-                                <div className="w-24 h-24 bg-background rounded-[24px] flex items-center justify-center overflow-hidden border border-foreground/5 shadow-inner">
-                                    {product.images_json?.[0] && !imageLoadErrorIds[product.id] ? (
-                                        <img
-                                            src={getImageUrl(product.images_json[0])}
-                                            alt={product.name}
-                                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
-                                            onError={() => setImageLoadErrorIds((prev) => ({ ...prev, [product.id]: true }))}
-                                        />
-                                    ) : (
-                                        <ImageIcon size={40} className="text-foreground/5" />
-                                    )}
-                                </div>
-                                <div className="flex-grow min-w-0">
-                                    <div className="flex flex-col gap-3">
-                                        <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3">
-                                            <div className="min-w-0">
-                                                {product.brand && (
-                                                    <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#64748B] mb-1 line-clamp-1">
-                                                        แบรนด์: {product.brand}
-                                                    </p>
-                                                )}
-                                                <h3 className="font-black text-2xl leading-tight mb-1 group-hover:text-primary transition-colors tracking-tight line-clamp-1">{product.name}</h3>
-                                                <p className="text-sm text-[#475569] font-medium leading-relaxed line-clamp-2 max-w-2xl">
-                                                    {getShortDescription(product.description)}
-                                                </p>
-                                            </div>
-                                            <div className="shrink-0 rounded-2xl border border-[#C7D2FE] bg-[#EEF2FF] px-4 py-3 min-w-[150px]">
-                                                <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#475569]">ราคา</p>
-                                                <p className="text-3xl font-black text-[#050579] leading-none mt-1">฿{formatPrice(product.price)}</p>
+                                <div className="flex flex-1 flex-col gap-4 rounded-[28px] border border-[#C7D2E5] bg-[#F3F6FF] p-4 transition-all hover:border-[#B8C7E6] md:flex-row md:items-center md:gap-6 md:p-5">
+                                    <div className="hidden cursor-grab text-[#CBD5E1] transition-colors group-hover:text-[#050579] active:cursor-grabbing md:block">
+                                        <GripVertical size={24} />
+                                    </div>
+
+                                    <div className="flex items-start gap-3 md:flex-1 md:items-center md:gap-6">
+                                        <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-[22px] border border-[#D9E1F2] bg-white shadow-[0_10px_24px_-20px_rgba(5,5,121,0.22)] flex items-center justify-center md:h-24 md:w-24">
+                                            {product.images_json?.[0] && !imageLoadErrorIds[product.id] ? (
+                                                <img
+                                                    src={getImageUrl(product.images_json[0])}
+                                                    alt={product.name}
+                                                    className="h-full w-full object-cover"
+                                                    onError={() => setImageLoadErrorIds((prev) => ({ ...prev, [product.id]: true }))}
+                                                />
+                                            ) : (
+                                                <ImageIcon size={32} className="text-[#CBD5E1]" />
+                                            )}
+                                            <div className="absolute left-2 top-2 rounded-full bg-white/92 px-2 py-1 text-[10px] font-black text-[#050579] shadow-sm md:hidden">
+                                                #{getDisplayOrder(product, index)}
                                             </div>
                                         </div>
 
-                                        <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
-                                            {product.interactive_links?.order_form && (
-                                                <span className="flex items-center gap-2 text-[#16A34A] bg-[#16A34A]/5 px-3 py-1 rounded-lg border border-[#16A34A]/15"><ShoppingCart size={14} /> Order Link</span>
-                                            )}
-                                            {product.interactive_links?.website && (
-                                                <span className="flex items-center gap-2 text-primary bg-primary/5 px-3 py-1 rounded-lg border border-primary/15"><Globe size={14} /> Web Link Active</span>
-                                            )}
-                                            {product.interactive_links?.facebook && (
-                                                <span className="flex items-center gap-2 text-[#1D4ED8] bg-[#1D4ED8]/5 px-3 py-1 rounded-lg border border-[#1D4ED8]/15"><Facebook size={14} /> Social Link</span>
-                                            )}
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex flex-col gap-3">
+                                                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                                                    <div className="min-w-0">
+                                                        {product.brand && (
+                                                            <p className="mb-1 line-clamp-1 text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">
+                                                                แบรนด์: {product.brand}
+                                                            </p>
+                                                        )}
+                                                        <h3 className="mb-1 line-clamp-2 text-lg font-black leading-tight tracking-tight text-[#050579] md:text-2xl">
+                                                            {product.name}
+                                                        </h3>
+                                                        <p className="line-clamp-2 max-w-2xl text-sm font-medium leading-6 text-[#64748B]">
+                                                            {getShortDescription(product.description)}
+                                                        </p>
+                                                    </div>
+
+                                                    <div className="w-full rounded-2xl border border-[#D9E1F2] bg-white px-4 py-3 md:min-w-[150px] md:w-auto md:shrink-0">
+                                                        <p className="text-[10px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">ราคา</p>
+                                                        <p className="mt-1 text-2xl font-black leading-none text-[#050579] md:text-3xl">฿{formatPrice(product.price)}</p>
+                                                    </div>
+                                                </div>
+
+                                                <div className="flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-widest">
+                                                    {product.interactive_links?.order_form && (
+                                                        <span className="flex items-center gap-2 rounded-lg border border-[#16A34A]/15 bg-[#16A34A]/5 px-3 py-1 text-[#16A34A]"><ShoppingCart size={14} /> Order</span>
+                                                    )}
+                                                    {product.interactive_links?.website && (
+                                                        <span className="flex items-center gap-2 rounded-lg border border-primary/15 bg-primary/5 px-3 py-1 text-primary"><Globe size={14} /> Website</span>
+                                                    )}
+                                                    {product.interactive_links?.facebook && (
+                                                        <span className="flex items-center gap-2 rounded-lg border border-[#1D4ED8]/15 bg-[#1D4ED8]/5 px-3 py-1 text-[#1D4ED8]"><Facebook size={14} /> Facebook</span>
+                                                    )}
+                                                </div>
+
+                                                <div className="grid grid-cols-2 gap-2 md:hidden">
+                                                    <button
+                                                        onClick={() => openEditModal(product)}
+                                                        className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[#CBD5E1] bg-white px-4 py-3 text-sm font-semibold text-[#050579] shadow-sm transition-all hover:bg-[#050579] hover:text-white"
+                                                        title="แก้ไขสินค้า"
+                                                    >
+                                                        <Pencil size={16} />
+                                                        แก้ไข
+                                                    </button>
+                                                    <button
+                                                        onClick={() => setDeletingProduct(product)}
+                                                        className="flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[#FECACA] bg-white px-4 py-3 text-sm font-semibold text-[#DC2626] shadow-sm transition-all hover:bg-[#DC2626] hover:text-white"
+                                                        title="ลบสินค้า"
+                                                    >
+                                                        <Trash2 size={16} />
+                                                        ลบ
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
-                                
-                                <div className="flex items-center gap-2 self-end md:self-center">
-                                    <button
-                                        onClick={() => openEditModal(product)}
-                                        className="w-12 h-12 flex items-center justify-center text-[#050579] hover:text-white hover:bg-[#050579] rounded-2xl transition-all bg-[#EEF0FF] border border-[#CBD5E1] shadow-sm"
-                                        title="แก้ไขสินค้า"
-                                    >
-                                        <Pencil size={20} />
-                                    </button>
-                                    <button
-                                        onClick={() => setDeletingProduct(product)}
-                                        className="w-12 h-12 flex items-center justify-center text-[#DC2626] hover:text-white hover:bg-[#DC2626] rounded-2xl transition-all bg-[#FEF2F2] border border-[#FECACA] shadow-sm"
-                                        title="ลบสินค้า"
-                                    >
-                                        <Trash2 size={20} />
-                                    </button>
-                                </div>
+
+                                    <div className="hidden items-center gap-2 self-end md:flex md:self-center">
+                                        <button
+                                            onClick={() => openEditModal(product)}
+                                            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#CBD5E1] bg-white text-[#050579] shadow-sm transition-all hover:bg-[#050579] hover:text-white"
+                                            title="แก้ไขสินค้า"
+                                        >
+                                            <Pencil size={20} />
+                                        </button>
+                                        <button
+                                            onClick={() => setDeletingProduct(product)}
+                                            className="flex h-12 w-12 items-center justify-center rounded-2xl border border-[#FECACA] bg-white text-[#DC2626] shadow-sm transition-all hover:bg-[#DC2626] hover:text-white"
+                                            title="ลบสินค้า"
+                                        >
+                                            <Trash2 size={20} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
+                </section>
 
-                {/* PDF Generation Tool */}
-                <div className="mt-20 p-10 bg-gradient-to-br from-primary/5 via-[#050579]/[0.03] to-[#EEF0FF] border border-primary/10 rounded-[48px] flex flex-col lg:flex-row items-center justify-between gap-10 relative overflow-hidden group">
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-primary/10 blur-[100px] rounded-full -translate-y-1/2 translate-x-1/2 group-hover:bg-primary/20 transition-colors" />
-                    <div className="relative z-10">
-                        <h3 className="text-3xl font-black mb-4 flex items-center gap-4 tracking-tighter">
-                            <Download className="text-primary" size={32} /> การประมวลผล PDF
-                        </h3>
-                        <p className="text-[#475569] text-lg max-w-xl leading-relaxed font-medium">
-                            สร้างไฟล์แคตตาล็อกรูปแบบทางการ เพื่อให้ลูกค้าสามารถเปิดดูได้ทุกที่แม้ไม่มีอินเทอร์เน็ต ระบบรองรับปุ่มกดใน PDF อย่างสมบูรณ์
-                        </p>
-                    </div>
-                    <div className="flex flex-col sm:flex-row gap-4 relative z-10">
-                        <button 
-                            onClick={generatePdf}
-                            disabled={generating}
-                            className="bg-primary text-white px-10 py-5 rounded-[24px] font-black flex items-center gap-4 hover:bg-[#07079A] transition-all shadow-3xl shadow-primary/20 active:scale-95 uppercase tracking-widest text-sm disabled:opacity-50"
-                        >
-                            <RefreshCw size={20} className={generating ? "animate-spin" : ""} />
-                            {generating ? 'กำลังประมวลผล...' : (catalog?.pdf_url ? 'สร้าง PDF ใหม่' : 'สร้างแคตตาล็อก PDF')}
-                        </button>
-                        
-                        {catalog?.pdf_url && (
-                            <a 
-                                href={getImageUrl(catalog.pdf_url)} 
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="bg-primary text-white px-10 py-5 rounded-[24px] font-black flex items-center gap-4 hover:opacity-90 transition-all shadow-3xl shadow-primary/20 active:scale-95 uppercase tracking-widest text-sm"
-                            >
-                                <Download size={20} />
-                                Download PDF
-                            </a>
-                        )}
-                    </div>
-                </div>
             </main>
 
             {/* PRODUCT MODAL */}
             {showProductModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-xl animate-in fade-in transition-all" onClick={() => setShowProductModal(false)} />
-                    <div className="bg-card-bg border border-glass-border rounded-[48px] p-12 w-full max-w-3xl relative z-10 shadow-3xl animate-in zoom-in-95 duration-300 glass-card">
-                        <button onClick={() => setShowProductModal(false)} className="absolute top-8 right-8 w-12 h-12 rounded-full hover:bg-foreground/5 flex items-center justify-center transition-all bg-foreground/[0.02] text-foreground/20 hover:text-foreground">
-                            <X size={24} />
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
+                    <div className="absolute inset-0 bg-[#050579]/40 backdrop-blur-md" onClick={() => setShowProductModal(false)} />
+                    <div className="relative z-10 w-full max-w-md rounded-[26px] border border-[#D9E1F2] bg-white p-4 shadow-2xl sm:max-w-3xl sm:rounded-[32px] sm:p-8">
+                        <button onClick={() => setShowProductModal(false)} className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-[#F6F8FF] text-[#94A3B8] transition-all hover:bg-white hover:text-[#64748B] sm:right-6 sm:top-6 sm:h-12 sm:w-12">
+                            <X size={20} />
                         </button>
                         
-                        <div className="flex items-center justify-between mb-12">
+                        <div className="mb-4 flex items-start justify-between gap-3 pr-10 sm:mb-8 sm:gap-4 sm:pr-14">
                             <div>
-                                <h2 className="text-4xl font-black tracking-tighter">เพิ่มสินค้าใหม่</h2>
-                                <p className="text-[#475569] text-lg mt-2 font-medium">ป้อนข้อมูลพื้นฐานสินค้าและตั้งค่าระบบอัจฉริยะ</p>
+                                <h2 className="text-[1.85rem] font-black leading-none tracking-tight text-[#050579] sm:text-3xl">เพิ่มสินค้าใหม่</h2>
+                                <p className="mt-2 text-[13px] font-medium leading-6 text-[#64748B] sm:text-base sm:leading-7">ป้อนข้อมูลพื้นฐานสินค้าให้พร้อมใช้งานบนมือถือ</p>
                             </div>
-                            <div className="w-20 h-20 bg-primary/5 rounded-[32px] flex items-center justify-center text-primary border border-primary/10">
-                                <Package size={40} />
+                            <div className="hidden h-16 w-16 items-center justify-center rounded-[24px] bg-[#F97316]/8 text-[#F97316] sm:flex">
+                                <Package size={28} />
                             </div>
                         </div>
 
-                        <form onSubmit={createProduct} className="space-y-10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="space-y-6">
-                                    <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ชื่อสินค้าและรุ่น</label>
+                        <form onSubmit={createProduct} className="space-y-4 sm:space-y-6">
+                            <div className="custom-scrollbar max-h-[70vh] overflow-y-auto pr-1 sm:max-h-[72vh] sm:pr-2">
+                            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 md:gap-8">
+                                <div className="space-y-4 sm:space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">ชื่อสินค้าและรุ่น</label>
                                         <input
                                             required
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
+                                            className="w-full rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3.5 text-[15px] font-bold text-[#050579] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20 sm:px-5 sm:py-4 sm:text-base"
                                             placeholder="Ex. Rolex Submariner..."
                                             value={newProduct.name}
                                             onChange={e => setNewProduct({ ...newProduct, name: e.target.value })}
                                         />
                                     </div>
-                                    <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แบรนด์ (ไม่บังคับ)</label>
+                                    <div className="space-y-2">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">แบรนด์ (ไม่บังคับ)</label>
                                         <input
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold text-base"
+                                            className="w-full rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3.5 text-[15px] font-semibold text-[#334155] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20 sm:px-5 sm:py-4 sm:text-base"
                                             placeholder="Ex. Samsung, Apple, Xiaomi..."
                                             value={newProduct.brand}
                                             onChange={e => setNewProduct({ ...newProduct, brand: e.target.value })}
                                         />
                                     </div>
-                                    <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ราคาสินค้า (บาท)</label>
+                                    <div className="space-y-2">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">ราคาสินค้า (บาท)</label>
                                         <input
                                             type="number"
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-primary font-black text-2xl tracking-tight"
+                                            className="w-full rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3.5 text-[2rem] font-black leading-none tracking-tight text-[#050579] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20 sm:px-5 sm:py-4"
                                             placeholder="0.00"
                                             value={newProduct.price}
                                             onChange={e => setNewProduct({ ...newProduct, price: e.target.value })}
                                         />
                                     </div>
-                                    <div className="space-y-3">
-                                        <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แคปชั่น / รายละเอียด</label>
+                                    <div className="space-y-2">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">แคปชั่น / รายละเอียด</label>
                                         <textarea
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 resize-none font-medium leading-relaxed"
+                                            className="h-24 w-full resize-none rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3.5 text-[15px] font-medium leading-6 text-[#0F172A] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20 sm:h-32 sm:px-5 sm:py-4 sm:text-base sm:leading-relaxed"
                                             placeholder="อธิบายสรรพสินค้าของคุณ..."
                                             value={newProduct.description}
                                             onChange={e => setNewProduct({ ...newProduct, description: e.target.value })}
@@ -730,38 +815,57 @@ export default function CatalogDetail() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-6">
+                                <div className="space-y-4 sm:space-y-6">
                                     <ProductImageUpload
                                         images={newProduct.images}
                                         onChange={(images) => setNewProduct({ ...newProduct, images })}
                                         maxImages={5}
                                     />
 
-                                    <div className="pt-6 border-t border-foreground/5 space-y-6">
-                                        <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2rem] ml-1">Interactive Command Buttons</label>
-                                        <div className="space-y-4">
-                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
-                                                <ShoppingCart size={18} className="text-foreground/20 mr-4" />
+                                    <div className="space-y-4 border-t border-foreground/5 pt-4 sm:space-y-6 sm:pt-6">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-primary">Interactive Command Buttons</label>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-[#F97316]/20 sm:px-5">
+                                                <ShoppingCart size={18} className="mr-4 text-[#94A3B8]" />
                                                 <input 
-                                                    className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold" 
+                                                    className="w-full border-none bg-transparent text-[13px] font-bold outline-none focus:ring-0 sm:text-sm" 
                                                     placeholder="ลิงก์สั่งซื้อตรง / Add to cart"
                                                     value={newProduct.order_form}
                                                     onChange={e => setNewProduct({...newProduct, order_form: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
-                                                <Globe size={18} className="text-foreground/20 mr-4" />
+                                            {forms.length > 0 && (
+                                                <div className="rounded-2xl border border-[#D9E1F2] bg-white px-4 py-3">
+                                                    <div className="mb-2 text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">เลือกฟอร์มจากระบบ</div>
+                                                    <select
+                                                        className="w-full rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-sm font-bold outline-none"
+                                                        defaultValue=""
+                                                        onChange={e => {
+                                                            const value = e.target.value;
+                                                            if (!value) return;
+                                                            setNewProduct({ ...newProduct, order_form: getPublicFormUrl(value) });
+                                                        }}
+                                                    >
+                                                        <option value="">เลือกฟอร์มเพื่อใส่ลิงก์อัตโนมัติ</option>
+                                                        {forms.map((form) => (
+                                                            <option key={form.id} value={form.id}>{form.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-[#F97316]/20 sm:px-5">
+                                                <Globe size={18} className="mr-4 text-[#94A3B8]" />
                                                 <input 
-                                                    className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold" 
+                                                    className="w-full border-none bg-transparent text-[13px] font-bold outline-none focus:ring-0 sm:text-sm" 
                                                     placeholder="ลิงก์เว็บไซต์ดูรายละเอียด"
                                                     value={newProduct.website}
                                                     onChange={e => setNewProduct({...newProduct, website: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
-                                                <Facebook size={18} className="text-blue-500/50 mr-4" />
+                                            <div className="flex items-center rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3 transition-all focus-within:ring-2 focus-within:ring-[#F97316]/20 sm:px-5">
+                                                <Facebook size={18} className="mr-4 text-[#94A3B8]" />
                                                 <input 
-                                                    className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold" 
+                                                    className="w-full border-none bg-transparent text-[13px] font-bold outline-none focus:ring-0 sm:text-sm" 
                                                     placeholder="ลิงก์ Social Media"
                                                     value={newProduct.facebook}
                                                     onChange={e => setNewProduct({...newProduct, facebook: e.target.value})}
@@ -771,10 +875,11 @@ export default function CatalogDetail() {
                                     </div>
                                 </div>
                             </div>
+                            </div>
                             
-                            <div className="flex gap-6 pt-6">
-                                <button type="button" onClick={() => setShowProductModal(false)} className="flex-1 py-5 text-[#64748B] font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">ยกเลิก</button>
-                                <button className="flex-[2] bg-primary hover:bg-[#07079A] text-white font-black py-5 rounded-[24px] shadow-3xl shadow-primary/20 transition-all active:scale-95 uppercase tracking-widest text-xs">บันทึกสินค้าเข้ารายการ</button>
+                            <div className="flex gap-3 pt-2 sm:gap-4 sm:pt-4">
+                                <button type="button" onClick={() => setShowProductModal(false)} className="flex-1 rounded-2xl border border-[#D9E1F2] py-3.5 text-[11px] font-black uppercase tracking-[0.14rem] text-[#64748B] transition-colors hover:bg-gray-50 sm:py-4 sm:text-xs sm:tracking-widest">ยกเลิก</button>
+                                <button className="flex-[1.8] rounded-2xl bg-[#F97316] py-3.5 text-[11px] font-black uppercase tracking-[0.14rem] text-white shadow-md transition-all hover:bg-[#EA580C] active:scale-95 sm:py-4 sm:text-xs sm:tracking-widest">บันทึกสินค้าเข้ารายการ</button>
                             </div>
                         </form>
                     </div>
@@ -783,31 +888,31 @@ export default function CatalogDetail() {
 
             {/* EDIT PRODUCT MODAL */}
             {editingProduct && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
                     <div className="absolute inset-0 bg-background/80 backdrop-blur-xl animate-in fade-in transition-all" onClick={closeEditModal} />
-                    <div className="bg-card-bg border border-glass-border rounded-[48px] p-12 w-full max-w-3xl relative z-10 shadow-3xl animate-in zoom-in-95 duration-300 glass-card">
-                        <button onClick={closeEditModal} className="absolute top-8 right-8 w-12 h-12 rounded-full hover:bg-foreground/5 flex items-center justify-center transition-all bg-foreground/[0.02] text-foreground/20 hover:text-foreground">
-                            <X size={24} />
+                    <div className="relative z-10 w-full max-w-3xl overflow-hidden rounded-[32px] border border-glass-border bg-card-bg p-5 shadow-3xl animate-in zoom-in-95 duration-300 glass-card sm:rounded-[40px] sm:p-8 md:p-10">
+                        <button onClick={closeEditModal} className="absolute right-5 top-5 flex h-11 w-11 items-center justify-center rounded-full bg-foreground/[0.02] text-foreground/20 transition-all hover:bg-foreground/5 hover:text-foreground sm:right-6 sm:top-6 sm:h-12 sm:w-12">
+                            <X size={22} />
                         </button>
 
-                        <div className="flex items-center justify-between mb-12">
+                        <div className="mb-6 flex items-start justify-between gap-4 pr-12 sm:mb-8 sm:pr-14">
                             <div>
-                                <h2 className="text-4xl font-black tracking-tighter">แก้ไขสินค้า</h2>
-                                <p className="text-[#475569] text-lg mt-2 font-medium">อัพเดทข้อมูลสินค้าและตั้งค่าระบบ</p>
+                                <h2 className="text-2xl font-black tracking-tight sm:text-3xl md:text-4xl">แก้ไขสินค้า</h2>
+                                <p className="mt-2 text-sm font-medium text-[#475569] sm:text-base md:text-lg">อัพเดทข้อมูลสินค้าให้พร้อมแสดงผลบนมือถือ</p>
                             </div>
-                            <div className="w-20 h-20 bg-[#F97316]/5 rounded-[32px] flex items-center justify-center text-[#F97316] border border-[#F97316]/15">
-                                <Pencil size={40} />
+                            <div className="hidden h-16 w-16 items-center justify-center rounded-[28px] border border-[#F97316]/15 bg-[#F97316]/5 text-[#F97316] sm:flex md:h-20 md:w-20 md:rounded-[32px]">
+                                <Pencil size={32} className="md:h-10 md:w-10" />
                             </div>
                         </div>
 
-                        <form onSubmit={updateProduct} className="space-y-10">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-                                <div className="space-y-6">
+                        <form onSubmit={updateProduct} className="custom-scrollbar max-h-[78vh] space-y-6 overflow-y-auto pr-1 sm:max-h-[74vh] sm:space-y-8 sm:pr-3">
+                            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 md:gap-8">
+                                <div className="space-y-5 sm:space-y-6">
                                     <div className="space-y-3">
                                         <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ชื่อสินค้าและรุ่น</label>
                                         <input
                                             required
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-bold text-lg"
+                                            className="w-full rounded-2xl border border-foreground/10 bg-foreground/5 px-5 py-4 text-base font-bold transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 sm:px-6 sm:text-lg"
                                             placeholder="Ex. Rolex Submariner..."
                                             value={editProduct.name}
                                             onChange={e => setEditProduct({ ...editProduct, name: e.target.value })}
@@ -816,7 +921,7 @@ export default function CatalogDetail() {
                                     <div className="space-y-3">
                                         <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แบรนด์ (ไม่บังคับ)</label>
                                         <input
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all font-semibold text-base"
+                                            className="w-full rounded-2xl border border-foreground/10 bg-foreground/5 px-5 py-4 text-base font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 sm:px-6"
                                             placeholder="Ex. Samsung, Apple, Xiaomi..."
                                             value={editProduct.brand}
                                             onChange={e => setEditProduct({ ...editProduct, brand: e.target.value })}
@@ -826,7 +931,7 @@ export default function CatalogDetail() {
                                         <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">ราคาสินค้า (บาท)</label>
                                         <input
                                             type="number"
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-primary font-black text-2xl tracking-tight"
+                                            className="w-full rounded-2xl border border-foreground/10 bg-foreground/5 px-5 py-4 text-2xl font-black tracking-tight text-primary transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 sm:px-6"
                                             placeholder="0.00"
                                             value={editProduct.price}
                                             onChange={e => setEditProduct({ ...editProduct, price: e.target.value })}
@@ -835,7 +940,7 @@ export default function CatalogDetail() {
                                     <div className="space-y-3">
                                         <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">แคปชั่น / รายละเอียด</label>
                                         <textarea
-                                            className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-4 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all h-32 resize-none font-medium leading-relaxed"
+                                            className="h-28 w-full resize-none rounded-2xl border border-foreground/10 bg-foreground/5 px-5 py-4 font-medium leading-relaxed transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 sm:h-32 sm:px-6"
                                             placeholder="อธิบายสรรพสินค้าของคุณ..."
                                             value={editProduct.description}
                                             onChange={e => setEditProduct({ ...editProduct, description: e.target.value })}
@@ -843,17 +948,17 @@ export default function CatalogDetail() {
                                     </div>
                                 </div>
 
-                                <div className="space-y-6">
+                                <div className="space-y-5 sm:space-y-6">
                                     <ProductImageUpload
                                         images={editProduct.images}
                                         onChange={(images) => setEditProduct({ ...editProduct, images })}
                                         maxImages={5}
                                     />
 
-                                    <div className="pt-6 border-t border-foreground/5 space-y-6">
+                                    <div className="space-y-5 border-t border-foreground/5 pt-5 sm:space-y-6 sm:pt-6">
                                         <label className="block text-[10px] font-black text-primary uppercase tracking-[0.2rem] ml-1">Interactive Command Buttons</label>
                                         <div className="space-y-4">
-                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
+                                            <div className="flex items-center rounded-2xl border border-foreground/10 bg-background px-4 py-3 shadow-sm transition-all hover:border-primary focus-within:ring-2 focus-within:ring-primary/20 sm:px-5">
                                                 <ShoppingCart size={18} className="text-foreground/20 mr-4" />
                                                 <input
                                                     className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold"
@@ -862,7 +967,26 @@ export default function CatalogDetail() {
                                                     onChange={e => setEditProduct({...editProduct, order_form: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
+                                            {forms.length > 0 && (
+                                                <div className="rounded-2xl border border-foreground/10 bg-background px-4 py-3 shadow-sm">
+                                                    <div className="mb-2 text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">เลือกฟอร์มจากระบบ</div>
+                                                    <select
+                                                        className="w-full rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-sm font-bold outline-none"
+                                                        defaultValue=""
+                                                        onChange={e => {
+                                                            const value = e.target.value;
+                                                            if (!value) return;
+                                                            setEditProduct({ ...editProduct, order_form: getPublicFormUrl(value) });
+                                                        }}
+                                                    >
+                                                        <option value="">เลือกฟอร์มเพื่อใส่ลิงก์อัตโนมัติ</option>
+                                                        {forms.map((form) => (
+                                                            <option key={form.id} value={form.id}>{form.name}</option>
+                                                        ))}
+                                                    </select>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center rounded-2xl border border-foreground/10 bg-background px-4 py-3 shadow-sm transition-all hover:border-primary focus-within:ring-2 focus-within:ring-primary/20 sm:px-5">
                                                 <Globe size={18} className="text-foreground/20 mr-4" />
                                                 <input
                                                     className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold"
@@ -871,7 +995,7 @@ export default function CatalogDetail() {
                                                     onChange={e => setEditProduct({...editProduct, website: e.target.value})}
                                                 />
                                             </div>
-                                            <div className="flex items-center bg-background border border-foreground/10 rounded-2xl px-5 py-3 hover:border-primary transition-all focus-within:ring-2 focus-within:ring-primary/20 shadow-sm">
+                                            <div className="flex items-center rounded-2xl border border-foreground/10 bg-background px-4 py-3 shadow-sm transition-all hover:border-primary focus-within:ring-2 focus-within:ring-primary/20 sm:px-5">
                                                 <Facebook size={18} className="text-blue-500/50 mr-4" />
                                                 <input
                                                     className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold"
@@ -885,9 +1009,9 @@ export default function CatalogDetail() {
                                 </div>
                             </div>
 
-                            <div className="flex gap-6 pt-6">
-                                <button type="button" onClick={closeEditModal} className="flex-1 py-5 text-[#64748B] font-black uppercase tracking-widest text-xs hover:text-foreground transition-all">ยกเลิก</button>
-                                <button className="flex-[2] bg-[#F97316] hover:bg-[#EA580C] text-white font-black py-5 rounded-[24px] shadow-3xl shadow-[#F97316]/20 transition-all active:scale-95 uppercase tracking-widest text-xs">อัพเดทสินค้า</button>
+                            <div className="sticky bottom-0 flex gap-3 border-t border-foreground/5 bg-card-bg/95 pt-4 backdrop-blur sm:gap-4 sm:pt-5">
+                                <button type="button" onClick={closeEditModal} className="flex-1 rounded-[20px] border border-[#D9E1F2] bg-white px-4 py-4 text-xs font-black uppercase tracking-[0.16rem] text-[#64748B] transition-all hover:text-foreground sm:py-5">ยกเลิก</button>
+                                <button className="flex-[1.4] rounded-[20px] bg-[#F97316] px-4 py-4 text-xs font-black uppercase tracking-[0.16rem] text-white shadow-3xl shadow-[#F97316]/20 transition-all hover:bg-[#EA580C] active:scale-95 sm:py-5">อัพเดทสินค้า</button>
                             </div>
                         </form>
                     </div>
@@ -896,136 +1020,159 @@ export default function CatalogDetail() {
 
             {/* SETTINGS MODAL */}
             {showSettingsModal && (
-                <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-                    <div className="absolute inset-0 bg-background/80 backdrop-blur-3xl animate-in fade-in transition-all" onClick={() => setShowSettingsModal(false)} />
-                    <div className="bg-card-bg border border-glass-border rounded-[48px] p-12 w-full max-w-xl relative z-10 shadow-3xl animate-in slide-in-from-right-10 duration-500 glass-card">
-                        <div className="flex items-center justify-between mb-10">
-                             <h2 className="text-3xl font-black tracking-tighter flex items-center gap-4">
-                                <Palette className="text-primary" size={32} /> การออกแบบ
+                <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
+                    <div className="absolute inset-0 bg-background/80 backdrop-blur-3xl animate-in fade-in transition-all" onClick={closeSettingsModal} />
+                    <div className="relative z-10 w-full max-w-xl overflow-hidden rounded-[32px] border border-glass-border bg-card-bg p-5 shadow-3xl animate-in slide-in-from-right-10 duration-500 glass-card sm:rounded-[40px] sm:p-8 md:p-10">
+                        <div className="mb-6 flex items-start justify-between gap-4 sm:mb-8">
+                             <h2 className="flex items-center gap-3 text-2xl font-black leading-none tracking-tight sm:gap-4 sm:text-3xl">
+                                <Pencil className="text-primary" size={24} /> แก้ชื่อแคตตาล็อก
                              </h2>
-                             <button onClick={() => setShowSettingsModal(false)} className="w-12 h-12 rounded-full hover:bg-foreground/5 flex items-center justify-center bg-foreground/[0.02] text-foreground/20 hover:text-foreground"><X size={24} /></button>
+                             <button
+                                onClick={closeSettingsModal}
+                                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-foreground/[0.02] text-foreground/20 transition-colors hover:bg-foreground/5 hover:text-foreground sm:h-12 sm:w-12"
+                             >
+                                <X size={22} />
+                             </button>
                         </div>
 
-                        <div className="space-y-10 max-h-[65vh] overflow-y-auto pr-4 custom-scrollbar">
-                            <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">TITLE & BRANDING</label>
+                        <div className="custom-scrollbar max-h-[78vh] space-y-7 overflow-y-auto pr-1 sm:max-h-[72vh] sm:space-y-9 sm:pr-3">
+                            <div className="space-y-3">
+                                <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">CATALOG NAME</label>
                                 <input
-                                    className="w-full bg-foreground/5 border border-foreground/10 rounded-2xl px-6 py-5 focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-2xl font-black tracking-tight"
+                                    className="w-full rounded-[24px] border border-foreground/10 bg-foreground/5 px-5 py-4 text-xl font-black tracking-tight transition-all focus:outline-none focus:ring-2 focus:ring-primary/20 sm:px-6 sm:py-5 sm:text-2xl"
                                     value={settings.title}
                                     onChange={e => setSettings({ ...settings, title: e.target.value })}
                                 />
                             </div>
 
-                            <div className="space-y-6">
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">THEME ARCHITECTURE</label>
-                                <div className="grid grid-cols-2 gap-4">
-                                    {[
-                                        { id: 'standard', name: 'ธุรกิจทั่วไป', icon: Package },
-                                        { id: 'jewelry', name: 'ความงามหรูหรา', icon: Sparkles },
-                                        { id: 'cosmetic', name: 'สายคลีน-มินิมอล', icon: Palette },
-                                        { id: 'resort', name: 'Lifestyle & Travel', icon: Globe }
-                                    ].map(temp => (
-                                        <button 
-                                            key={temp.id}
-                                            onClick={() => setSettings({...settings, template_id: temp.id})}
-                                            className={`p-6 rounded-[24px] border-2 transition-all flex flex-col items-center gap-4 group ${settings.template_id === temp.id ? 'bg-primary/5 border-primary text-primary shadow-xl shadow-primary/5' : 'bg-background border-foreground/5 text-[#64748B] hover:border-foreground/10 hover:text-[#475569]'}`}
-                                        >
-                                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-all ${settings.template_id === temp.id ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'bg-foreground/5 group-hover:bg-foreground/10'}`}>
-                                                <temp.icon size={24} />
+                            <button
+                                type="button"
+                                onClick={() => setShowAdvancedSettings((prev) => !prev)}
+                                className="flex w-full items-center justify-between rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3 text-left text-sm font-black text-[#050579] transition-colors hover:border-[#BCCBE8]"
+                            >
+                                <span className="flex items-center gap-2">
+                                    <Settings size={16} />
+                                    ตั้งค่าขั้นสูง
+                                </span>
+                                <span className="text-xs font-black uppercase tracking-[0.16rem] text-[#64748B]">
+                                    {showAdvancedSettings ? 'ซ่อน' : 'แสดง'}
+                                </span>
+                            </button>
+
+                            {showAdvancedSettings && (
+                                <>
+                                    <div className="space-y-4 sm:space-y-5">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">THEME ARCHITECTURE</label>
+                                        <div className="grid grid-cols-2 gap-3 sm:gap-4">
+                                            {[
+                                                { id: 'standard', name: 'ธุรกิจทั่วไป', icon: Package },
+                                                { id: 'jewelry', name: 'ความงามหรูหรา', icon: Sparkles },
+                                                { id: 'cosmetic', name: 'สายคลีน-มินิมอล', icon: Palette },
+                                                { id: 'resort', name: 'Lifestyle & Travel', icon: Globe }
+                                            ].map(temp => (
+                                                <button 
+                                                    key={temp.id}
+                                                    onClick={() => setSettings({...settings, template_id: temp.id})}
+                                                    className={`group flex min-h-[168px] flex-col items-center justify-center gap-3 rounded-[24px] border-2 px-3 py-5 text-center transition-all sm:min-h-[190px] sm:gap-4 sm:p-6 ${settings.template_id === temp.id ? 'bg-primary/5 border-primary text-primary shadow-xl shadow-primary/5' : 'bg-background border-foreground/5 text-[#64748B] hover:border-foreground/10 hover:text-[#475569]'}`}
+                                                >
+                                                    <div className={`flex h-12 w-12 items-center justify-center rounded-2xl transition-all sm:h-14 sm:w-14 ${settings.template_id === temp.id ? 'bg-primary text-white shadow-xl shadow-primary/30' : 'bg-foreground/5 group-hover:bg-foreground/10'}`}>
+                                                        <temp.icon size={22} />
+                                                    </div>
+                                                    <span className="text-sm font-black leading-tight sm:text-xs sm:uppercase sm:tracking-widest">{temp.name}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-4">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">EMPHASIS STICKERS</label>
+                                        <div className="flex flex-wrap gap-3">
+                                            {['🔥 HOT DEAL', '✨ NEW ARRIVAL', '💎 PREMIUM', '🚀 SALE', '🎯 RECOMMENDED'].map(sticker => (
+                                                <button 
+                                                    key={sticker}
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const exists = settings.stickers.includes(sticker);
+                                                        setSettings({
+                                                            ...settings, 
+                                                            stickers: exists 
+                                                                ? settings.stickers.filter(s => s !== sticker) 
+                                                                : [...settings.stickers, sticker]
+                                                        });
+                                                    }}
+                                                    className={`rounded-xl border px-4 py-2 text-[10px] font-black tracking-widest transition-all ${settings.stickers.includes(sticker) ? 'scale-105 border-[#F97316] bg-[#F97316] text-white shadow-xl shadow-[#F97316]/20' : 'border-transparent bg-foreground/5 text-[#64748B] hover:border-foreground/10'}`}
+                                                >
+                                                    {sticker}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 md:gap-8">
+                                        <div className="space-y-3 sm:space-y-4">
+                                            <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">PRIMARY COLOR</label>
+                                            <div className="flex items-center gap-3 rounded-2xl border border-foreground/10 bg-foreground/5 p-4 sm:gap-4">
+                                                <input
+                                                    type="color"
+                                                    className="w-10 h-10 rounded-xl bg-transparent border-none cursor-pointer p-0 sr-only"
+                                                    id="accent-color-set"
+                                                    value={settings.primary_color}
+                                                    onChange={e => setSettings({ ...settings, primary_color: e.target.value })}
+                                                />
+                                                <label htmlFor="accent-color-set" className="w-10 h-10 rounded-xl border-4 border-background cursor-pointer shadow-xl" style={{ backgroundColor: settings.primary_color }} />
+                                                <input
+                                                    className="flex-1 bg-transparent border-none text-[10px] font-black font-mono uppercase tracking-[0.16rem] outline-none focus:ring-0"
+                                                    value={settings.primary_color}
+                                                    onChange={e => setSettings({ ...settings, primary_color: e.target.value })}
+                                                />
                                             </div>
-                                            <span className="text-xs font-black uppercase tracking-widest text-center leading-tight">{temp.name}</span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
+                                        </div>
+                                        <div className="space-y-3 sm:space-y-4">
+                                            <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">CUSTOM SLUG URL</label>
+                                            <div className="flex items-center rounded-2xl border border-foreground/10 bg-foreground/5 p-4 text-sm font-black transition-all focus-within:ring-2 focus-within:ring-primary/20">
+                                                <span className="opacity-20 mr-1 font-mono">/</span>
+                                                <input
+                                                    className="bg-transparent border-none focus:ring-0 w-full outline-none font-black text-primary"
+                                                    placeholder="Ex. 2026-special"
+                                                    value={settings.custom_slug}
+                                                    onChange={e => setSettings({ ...settings, custom_slug: e.target.value })}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
 
-                            <div className="space-y-4">
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">EMPHASIS STICKERS</label>
-                                <div className="flex flex-wrap gap-3">
-                                    {['🔥 HOT DEAL', '✨ NEW ARRIVAL', '💎 PREMIUM', '🚀 SALE', '🎯 RECOMMENDED'].map(sticker => (
-                                        <button 
-                                            key={sticker}
-                                            type="button"
-                                            onClick={() => {
-                                                const exists = settings.stickers.includes(sticker);
-                                                setSettings({
-                                                    ...settings, 
-                                                    stickers: exists 
-                                                        ? settings.stickers.filter(s => s !== sticker) 
-                                                        : [...settings.stickers, sticker]
-                                                });
-                                            }}
-                                            className={`px-4 py-2 rounded-xl border text-[10px] font-black tracking-widest transition-all ${settings.stickers.includes(sticker) ? 'bg-[#F97316] border-[#F97316] text-white shadow-xl shadow-[#F97316]/20 scale-105' : 'bg-foreground/5 border-transparent text-[#64748B] hover:border-foreground/10'}`}
-                                        >
-                                            {sticker}
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                                <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">PRIMARY COLOR</label>
-                                    <div className="flex items-center gap-4 bg-foreground/5 p-4 rounded-2xl border border-foreground/10">
-                                        <input
-                                            type="color"
-                                            className="w-10 h-10 rounded-xl bg-transparent border-none cursor-pointer p-0 sr-only"
-                                            id="accent-color-set"
-                                            value={settings.primary_color}
-                                            onChange={e => setSettings({ ...settings, primary_color: e.target.value })}
-                                        />
-                                        <label htmlFor="accent-color-set" className="w-10 h-10 rounded-xl border-4 border-background cursor-pointer shadow-xl" style={{ backgroundColor: settings.primary_color }} />
-                                        <input
-                                            className="flex-1 bg-transparent border-none text-[10px] font-black font-mono uppercase tracking-[0.2rem] focus:ring-0 outline-none"
-                                            value={settings.primary_color}
-                                            onChange={e => setSettings({ ...settings, primary_color: e.target.value })}
+                                    <div className="space-y-5 border-t border-foreground/5 pt-5 sm:space-y-6 sm:pt-6">
+                                        <label className="ml-1 flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">
+                                            <Video size={16} className="text-primary" /> VIDEO SHOWCASE
+                                        </label>
+                                        <p className="text-xs text-[#475569] -mt-2">อัพโหลดวิดีโอแนะนำแคตตาล็อก สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
+                                        <VideoUpload
+                                            value={settings.video_config}
+                                            onChange={(config) => setSettings({ ...settings, video_config: config })}
                                         />
                                     </div>
-                                </div>
-                                <div className="space-y-4">
-                                    <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">CUSTOM SLUG URL</label>
-                                    <div className="flex items-center bg-foreground/5 p-4 rounded-2xl border border-foreground/10 focus-within:ring-2 focus-within:ring-primary/20 transition-all font-black text-sm">
-                                        <span className="opacity-20 mr-1 font-mono">/</span>
-                                        <input
-                                            className="bg-transparent border-none focus:ring-0 w-full outline-none font-black text-primary"
-                                            placeholder="Ex. 2026-special"
-                                            value={settings.custom_slug}
-                                            onChange={e => setSettings({ ...settings, custom_slug: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-                            </div>
 
-                            <div className="space-y-6 pt-6 border-t border-foreground/5">
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1 flex items-center gap-2">
-                                    <Video size={16} className="text-primary" /> VIDEO SHOWCASE
-                                </label>
-                                <p className="text-xs text-[#475569] -mt-2">อัพโหลดวิดีโอแนะนำแคตตาล็อก สามารถตั้งค่าเล่นอัตโนมัติและแนบลิงก์ได้</p>
-                                <VideoUpload
-                                    value={settings.video_config}
-                                    onChange={(config) => setSettings({ ...settings, video_config: config })}
-                                />
-                            </div>
-
-                            <div className="space-y-6 pt-6 border-t border-foreground/5">
-                                <label className="block text-[10px] font-black text-[#64748B] uppercase tracking-[0.2rem] ml-1">CATALOG MASTER LINKS</label>
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div className="flex items-center bg-foreground/[0.02] border border-foreground/10 rounded-[20px] px-5 py-4 focus-within:ring-2 focus-within:ring-primary/20 transition-all group">
-                                        <Globe size={20} className="text-foreground/20 group-focus-within:text-primary transition-colors mr-4" />
-                                        <input className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold" placeholder="Official Website" value={settings.catalog_ws} onChange={e => setSettings({...settings, catalog_ws: e.target.value})} />
+                                    <div className="space-y-5 border-t border-foreground/5 pt-5 sm:space-y-6 sm:pt-6">
+                                        <label className="ml-1 block text-[10px] font-black uppercase tracking-[0.18rem] text-[#64748B]">CATALOG MASTER LINKS</label>
+                                        <div className="grid grid-cols-1 gap-4">
+                                            <div className="group flex items-center rounded-[20px] border border-foreground/10 bg-foreground/[0.02] px-4 py-4 transition-all focus-within:ring-2 focus-within:ring-primary/20 sm:px-5">
+                                                <Globe size={20} className="text-foreground/20 group-focus-within:text-primary transition-colors mr-4" />
+                                                <input className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold" placeholder="Official Website" value={settings.catalog_ws} onChange={e => setSettings({...settings, catalog_ws: e.target.value})} />
+                                            </div>
+                                            <div className="group flex items-center rounded-[20px] border border-foreground/10 bg-foreground/[0.02] px-4 py-4 transition-all focus-within:ring-2 focus-within:ring-primary/20 sm:px-5">
+                                                <ShoppingCart size={20} className="text-foreground/20 group-focus-within:text-primary transition-colors mr-4" />
+                                                <input className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold" placeholder="Main Checkout Form" value={settings.catalog_order} onChange={e => setSettings({...settings, catalog_order: e.target.value})} />
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center bg-foreground/[0.02] border border-foreground/10 rounded-[20px] px-5 py-4 focus-within:ring-2 focus-within:ring-primary/20 transition-all group">
-                                        <ShoppingCart size={20} className="text-foreground/20 group-focus-within:text-primary transition-colors mr-4" />
-                                        <input className="bg-transparent border-none focus:ring-0 text-sm w-full outline-none font-bold" placeholder="Main Checkout Form" value={settings.catalog_order} onChange={e => setSettings({...settings, catalog_order: e.target.value})} />
-                                    </div>
-                                </div>
-                            </div>
+                                </>
+                            )}
 
-                            <div className="pt-10">
+                            <div className="pt-6 sm:pt-8">
                                 <button 
                                     onClick={saveSettings}
                                     disabled={saving}
-                                    className="w-full bg-primary hover:opacity-90 text-white font-black py-5 rounded-[24px] flex items-center justify-center gap-4 transition-all active:scale-95 shadow-3xl shadow-primary/20 uppercase tracking-[0.2rem] text-xs"
+                                    className="flex w-full items-center justify-center gap-3 rounded-[24px] bg-primary py-4 text-xs font-black uppercase tracking-[0.16rem] text-white shadow-3xl shadow-primary/20 transition-all hover:opacity-90 active:scale-95 sm:gap-4 sm:py-5"
                                 >
                                     {saving ? <Loader2 className="animate-spin" size={20} /> : <Save size={20} />}
                                     {saving ? 'Synchronizing...' : 'Save Catalog Architecture'}
@@ -1119,32 +1266,45 @@ export default function CatalogDetail() {
 
 function QrCodeModal({ url, title, onClose }: { url: string, title: string, onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="absolute inset-0 bg-[#050579]/40 backdrop-blur-md" onClick={onClose} />
       
-      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
-          <ArrowLeft size={24} />
+      <div className="relative z-10 w-full max-w-md rounded-[28px] border border-[#D9E1F2] bg-white p-5 text-[#0F172A] shadow-2xl sm:rounded-[32px] sm:p-8">
+        <button onClick={onClose} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:bg-white sm:right-6 sm:top-6 sm:h-12 sm:w-12">
+          <ArrowLeft size={22} />
         </button>
 
-        <div className="p-8 text-center">
-          <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <QrIcon size={40} className="text-primary" />
+        <div className="text-center">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[20px] bg-primary/10 sm:mb-5 sm:h-16 sm:w-16 sm:rounded-2xl">
+            <QrIcon size={28} className="text-primary sm:h-8 sm:w-8" />
           </div>
           
-          <h3 className="text-2xl font-black mb-4">QR Code</h3>
-          <p className="text-[#475569] mb-8">สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ</p>
+          <h3 className="text-2xl font-black leading-tight text-[#111B3A] sm:text-3xl">QR Code</h3>
+          <p className="mx-auto mt-3 max-w-xs text-sm font-medium leading-6 text-[#64748B] sm:mt-4 sm:max-w-sm sm:text-base sm:leading-7">
+            สแกนเพื่อเปิดแคตตาล็อกนี้บนมือถือ
+          </p>
           
-          <div className="bg-white p-6 rounded-2xl mb-6">
+          <div className="mx-auto mt-5 w-full max-w-[320px] rounded-[28px] border border-[#D9E1F2] bg-[#F8FAFF] p-4 shadow-[0_18px_34px_-24px_rgba(15,23,42,0.24)] sm:mt-6 sm:p-5">
+            <div className="mb-3 text-[11px] font-black uppercase tracking-[0.18em] text-[#94A3B8]">QR Code</div>
             <QrCodeImage 
               url={url}
-              size={256}
+              size={220}
               className="w-full h-auto"
             />
+            <div className="mt-4 space-y-2">
+              <p className="text-sm font-semibold text-[#475569] sm:text-base">{title}</p>
+              <p className="break-all text-[11px] leading-5 text-[#64748B] sm:text-xs sm:leading-6">{url}</p>
+            </div>
+            <QrCodeDownloadActions
+              qrValue={url}
+              fileBaseName={`catalog-${title.replace(/\s+/g, '-').toLowerCase() || 'qr'}`}
+              titleLine="QR Code"
+              nameLine={title}
+              bottomLabel="URL"
+              bottomLine={url}
+              className="mt-5 sm:mt-6"
+            />
           </div>
-          
-          <p className="text-sm text-[#475569] mb-2">{title}</p>
-          <p className="text-xs text-[#64748B]">{url}</p>
         </div>
       </div>
     </div>
@@ -1198,45 +1358,53 @@ function ShareModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-[#0F172A]/32 backdrop-blur-xl animate-in fade-in duration-300" onClick={onClose} />
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4">
+      <div className="absolute inset-0 bg-[#050579]/40 backdrop-blur-md" onClick={onClose} />
       
-      <div className="bg-white border border-[#D9E1F2] text-[#0F172A] rounded-[40px] w-full max-w-md relative z-10 overflow-hidden shadow-[0_34px_100px_-48px_rgba(15,23,42,0.32)] animate-in zoom-in slide-in-from-bottom-10 duration-500">
-        <button onClick={onClose} className="absolute top-6 right-6 z-20 w-12 h-12 bg-[#F6F8FF] hover:bg-[#EEF0FF] rounded-full flex items-center justify-center text-[#64748B] transition-colors border border-[#D9E1F2]">
-          <ArrowLeft size={24} />
+      <div className="relative z-10 w-full max-w-md rounded-[28px] border border-[#D9E1F2] bg-white p-5 text-[#0F172A] shadow-2xl sm:rounded-[32px] sm:p-8">
+        <button onClick={onClose} className="absolute right-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:bg-white sm:right-6 sm:top-6 sm:h-12 sm:w-12">
+            <ArrowLeft size={22} />
         </button>
 
-        <div className="p-8">
-          <div className="w-20 h-20 bg-primary/10 rounded-2xl flex items-center justify-center mx-auto mb-6">
-            <Share2 size={40} className="text-primary" />
+        <div>
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-[20px] bg-primary/10 sm:mb-5 sm:h-16 sm:w-16 sm:rounded-2xl">
+            <Share2 size={28} className="text-primary sm:h-8 sm:w-8" />
           </div>
           
-          <h3 className="text-2xl font-black mb-4">แชร์แคตตาล็อก</h3>
-          <p className="text-[#475569] mb-8">เชิญเพื่อนๆ มาชมสินค้าในแคตตาล็อกของคุณ</p>
+          <div className="text-center">
+            <h3 className="text-2xl font-black leading-tight text-[#111B3A] sm:text-3xl">แชร์แคตตาล็อก</h3>
+            <p className="mx-auto mt-3 max-w-xs text-sm font-medium leading-6 text-[#64748B] sm:mt-4 sm:max-w-sm sm:text-base sm:leading-7">
+              เชิญเพื่อนๆ มาชมสินค้าในแคตตาล็อกของคุณ
+            </p>
+          </div>
           
-          <div className="space-y-3 mb-6">
+          <div className="mt-5 space-y-3 sm:mt-6">
             {shareLinks.map((link) => (
               <a
                 key={link.name}
                 href={link.href}
                 target="_blank"
-                className="w-full flex items-center gap-4 p-4 bg-white/5 hover:bg-white/10 rounded-2xl transition-all group"
+                rel="noopener noreferrer"
+                className="group flex w-full items-center gap-4 rounded-[22px] border border-[#D9E1F2] bg-[#F7FAFF] px-4 py-4 transition-all hover:border-[#BCCBE8] hover:bg-white"
               >
-                <div className={`w-12 h-12 ${link.color} rounded-xl flex items-center justify-center text-white`}>
+                <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-[14px] ${link.color} text-white shadow-sm sm:h-12 sm:w-12 sm:rounded-[16px]`}>
                   <link.icon size={20} />
                 </div>
-                <span className="font-medium group-hover:text-primary transition-colors">{link.name}</span>
+                <span className="min-w-0 flex-1 text-lg font-semibold text-[#0F172A] transition-colors group-hover:text-primary">{link.name}</span>
+                <ExternalLink size={18} className="text-[#64748B] transition-transform group-hover:translate-x-0.5" />
               </a>
             ))}
           </div>
           
-          <button
-            onClick={copyToClipboard}
-            className="w-full bg-primary hover:bg-primary/90 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-3"
-          >
-            <ExternalLink size={20} />
-            คัดลอกลิงก์
-          </button>
+          <div className="mt-5 sm:mt-6">
+            <button
+              onClick={copyToClipboard}
+              className="flex min-h-12 w-full items-center justify-center gap-3 rounded-[20px] bg-primary px-6 py-4 text-base font-black text-white shadow-[0_20px_45px_-24px_rgba(5,5,121,0.42)] transition-all hover:bg-primary/90"
+            >
+              <ExternalLink size={20} />
+              คัดลอกลิงก์
+            </button>
+          </div>
         </div>
       </div>
     </div>

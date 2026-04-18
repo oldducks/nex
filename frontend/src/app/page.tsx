@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ArrowRight, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 
 type QuickAction = {
   label: string;
@@ -11,11 +11,11 @@ type QuickAction = {
 };
 
 const quickActions = [
+  { label: "เข้าสู่ระบบ", href: "/login", primary: true },
   { label: "NEX Control Your Future", href: "/nex-control-your-future-preview" },
   { label: "NEX Solution เครื่องมือการตลาด", href: "/what-is-nex-preview" },
   { label: "NEX Digital Asset สินทรัพย์ดิจิทัล", href: "/nex-digital-asset-partner-preview" },
   { label: "NEX MOS โซลูชั่นสำหรับองค์กร", href: "https://nexsolution.cloud/enterprise-mos-preview" },
-  { label: "เข้าสู่ระบบ", href: "/login", primary: true },
 ] satisfies QuickAction[];
 
 export default function LandingPage() {
@@ -64,17 +64,19 @@ export default function LandingPage() {
         <div className="flex flex-1 items-center justify-center">
           <section className="w-full max-w-md pt-8 text-center sm:pt-10">
             <div className="mx-auto w-full max-w-sm">
-              <div className="relative mx-auto h-[150px] w-full overflow-visible sm:h-[200px] lg:h-[224px]">
+              <div className="relative mx-auto h-[120px] w-full overflow-visible sm:h-[200px] lg:h-[224px]">
                 {/* สี่เหลี่ยมโปร่งแสงหลังโลโก้แบบภาพตัวอย่าง - ขนาดปรับได้ responsive */}
                 <div 
-                  className="absolute left-1/2 top-1/2 z-[8] w-[calc(100vw-40px)] max-w-[385px] h-[295px] sm:w-[950px] sm:h-[400px] sm:max-w-none -translate-x-1/2 -translate-y-1/2 rounded-[20px] border border-white/10 backdrop-blur-[8px] shadow-[0_8px_32px_rgba(59,130,246,0.1),inset_0_1px_0_rgba(255,255,255,0.2)]"
+                  className="absolute left-1/2 top-1/2 z-[8] w-[calc(100vw-40px)] max-w-[385px] h-[190px] sm:w-[950px] sm:h-[400px] sm:max-w-none -translate-x-1/2 -translate-y-1/2 rounded-[20px] border backdrop-blur-[8px] shadow-[0_8px_32px_rgba(59,130,246,0.1),inset_0_1px_0_rgba(255,255,255,0.2)]"
                   style={{
+                    borderColor: "white",
+                    marginTop: "8px",
                     background: 'linear-gradient(135deg, rgba(59, 130, 246, 0.04) 0%, rgba(147, 197, 253, 0.06) 50%, rgba(219, 234, 254, 0.03) 100%)',
                   }}
                 />
                 {/* เพิ่มแสงเรืองแสง - ขนาดตามสี่เหลี่ยม responsive */}
                 <div 
-                  className="absolute left-1/2 top-1/2 z-[7] w-[calc(100vw-20px)] max-w-[435px] h-[315px] sm:w-[1000px] sm:h-[420px] sm:max-w-none -translate-x-1/2 -translate-y-1/2 blur-[20px]"
+                  className="absolute left-1/2 top-1/2 z-[7] w-[calc(100vw-20px)] max-w-[435px] h-[210px] sm:w-[1000px] sm:h-[420px] sm:max-w-none -translate-x-1/2 -translate-y-1/2 blur-[20px]"
                   style={{
                     background: 'radial-gradient(ellipse at center, rgba(147, 197, 253, 0.4) 0%, transparent 70%)',
                   }}
@@ -91,7 +93,7 @@ export default function LandingPage() {
               </div>
             </div>
 
-            <div className="mt-32 grid gap-4 sm:mt-36">
+            <div className="mt-[3.5rem] grid gap-4 sm:mt-36">
               {quickActions.map((item) => {
                 const actionLabel = item.label?.trim() || "เมนู";
                 return (
@@ -105,13 +107,9 @@ export default function LandingPage() {
                     }`}
                   >
                     <span className="relative flex items-center justify-center gap-3">
-                      <span className={item.primary ? "text-lg sm:text-[1.2rem]" : undefined}>
-                        {actionLabel}
-                      </span>
-                      <ArrowRight
-                        size={18}
-                        className="absolute right-0 top-1/2 shrink-0 -translate-y-1/2"
-                      />
+                    <span className={item.primary ? "text-lg sm:text-[1.2rem]" : undefined}>
+                      {actionLabel}
+                    </span>
                     </span>
                   </a>
                 );

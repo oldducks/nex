@@ -14,10 +14,12 @@ export class LandingPagesController {
 
         // ส่ง uid ของเจ้าของเพจออกไปด้วย เพื่อใช้กับ Analytics / Form Integration ฝั่ง frontend
         const ownerUid = (page as any).user?.uid ?? null;
+        const referralCode = (page as any).user?.referral_code ?? null;
 
         return {
             ...page,
             owner_uid: ownerUid,
+            referral_code: referralCode,
         };
     }
 

@@ -5,9 +5,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, usePathname, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import Link from "next/link";
 import {
-  ArrowLeft,
   Bold,
   ChevronDown,
   ChevronUp,
@@ -17,6 +15,7 @@ import {
   Loader2,
   MapPin,
   MousePointer2,
+  Pencil,
   Plus,
   Save,
   Settings2,
@@ -25,6 +24,7 @@ import {
   Video,
   MessageSquare,
 } from "lucide-react";
+import ManageTopBar from "@/components/ManageTopBar";
 import { VideoUpload } from "@/components/VideoUpload";
 import { Toast, type ToastType } from "@/components/Toast";
 import { getEmbedUrl, isEmbedableVideo } from "@/lib/videoUtils";
@@ -32,6 +32,8 @@ import { getEmbedUrl, isEmbedableVideo } from "@/lib/videoUtils";
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://nexsolution.cloud";
 const TEXT_FONT_OPTIONS = ["Arial", "Georgia", "Tahoma", "Verdana", "Trebuchet MS", "Times New Roman", "Courier New"];
+const MAX_LANDING_PAGE_IMAGE_BLOCKS = 20;
+const MAX_LANDING_PAGE_VIDEO_BLOCKS = 20;
 
 interface Block {
   id: string;
@@ -50,9 +52,20 @@ interface LandingPage {
   seo_metadata: any;
 }
 
+interface FormFieldConfig {
+  id: string;
+  type: "text" | "email" | "phone" | "dropdown" | "textarea" | "checkbox";
+  label: string;
+  placeholder?: string;
+  required: boolean;
+  options?: string[];
+}
+
 interface FormOption {
   id: number;
   name: string;
+  description?: string;
+  fields?: FormFieldConfig[];
   submission_count?: number;
 }
 
@@ -233,16 +246,19 @@ function BlockTypeButton({
   icon: Icon,
   label,
   onClick,
+  disabled = false,
 }: {
   icon: any;
   label: string;
   onClick: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-[#D9E1F2] bg-white px-3 py-4 text-center shadow-[0_12px_30px_-24px_rgba(5,5,121,0.24)] transition-all active:scale-[0.98]"
+      disabled={disabled}
+      className="flex min-h-28 flex-col items-center justify-center rounded-2xl border border-[#D9E1F2] bg-white px-3 py-4 text-center shadow-[0_12px_30px_-24px_rgba(5,5,121,0.24)] transition-all active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-55"
     >
       <span className="mb-3 flex h-11 w-11 items-center justify-center rounded-2xl bg-[#EEF2FF] text-[#4F46E5]">
         <Icon size={22} />
@@ -544,9 +560,11 @@ function RenderBlockEditor({
 function RenderPreviewBlock({
   block,
   theme,
+  forms,
 }: {
   block: Block;
   theme: any;
+  forms: FormOption[];
 }) {
   const primary = theme?.primary_color || "#4F46E5";
 
@@ -641,19 +659,120 @@ function RenderPreviewBlock({
       );
     }
     case "form":
+      if (block.content.mode === "external") {
+        const externalUrl = normalizeUrl(block.content.external_url || block.content.url);
+        return (
+          <section className="px-5 py-8">
+            <div className="rounded-3xl border border-[#E2E8F0] bg-[#F8FAFF] p-5 text-center">
+              <h3 className="text-center text-2xl font-black text-[var(--primary)]" style={{ ["--primary" as any]: primary }}>
+                {block.content.title || "แบบฟอร์มภายนอก"}
+              </h3>
+              <p className="mt-2 text-center text-sm leading-6 text-[#64748B]">
+                {block.content.description || "ผู้ใช้งานจะถูกพาไปกรอกฟอร์มภายนอก"}
+              </p>
+              <div className="mt-5">
+                {externalUrl ? (
+                  <a
+                    href={externalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex rounded-2xl px-6 py-4 text-base font-bold text-white shadow-[0_18px_40px_-24px_rgba(5,5,121,0.45)]"
+                    style={{ backgroundColor: primary }}
+                  >
+                    เปิดฟอร์มภายนอก
+                  </a>
+                ) : (
+                  <div className="inline-flex rounded-2xl bg-[#CBD5E1] px-6 py-4 text-base font-bold text-white">
+                    ยังไม่ได้ใส่ลิงก์ฟอร์ม
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+        );
+      }
+
+      const selectedForm = forms.find((form) => String(form.id) === String(block.content.form_id));
+      const previewFields: FormFieldConfig[] = selectedForm?.fields?.length
+        ? selectedForm.fields
+        : [
+            { id: "name", type: "text", label: "ชื่อ-นามสกุล", placeholder: "กรอกชื่อ-นามสกุล", required: true },
+            { id: "email", type: "email", label: "อีเมล", placeholder: "you@example.com", required: false },
+            { id: "message", type: "textarea", label: "ข้อความ", placeholder: "พิมพ์ข้อความเพิ่มเติม...", required: false },
+          ];
+
       return (
         <section className="px-5 py-8">
           <div className="rounded-3xl border border-[#E2E8F0] bg-[#F8FAFF] p-5">
             <h3 className="text-center text-2xl font-black text-[var(--primary)]" style={{ ["--primary" as any]: primary }}>
-              {block.content.title || "ติดต่อเรา"}
+              {block.content.title || selectedForm?.name || "ติดต่อเรา"}
             </h3>
             <p className="mt-2 text-center text-sm leading-6 text-[#64748B]">
-              {block.content.description || "กรอกข้อมูลเพื่อติดต่อกลับ"}
+              {block.content.description || selectedForm?.description || "กรอกข้อมูลเพื่อติดต่อกลับ"}
             </p>
+            {!selectedForm && block.content.form_id ? (
+              <p className="mt-3 rounded-2xl border border-[#FDE68A] bg-[#FFFBEB] px-4 py-3 text-xs font-semibold text-[#92400E]">
+                ไม่พบรายละเอียดฟอร์มที่เลือกในตัวอย่าง แต่ข้อมูลจะยังถูกบันทึกไว้เมื่อกดเซฟ
+              </p>
+            ) : null}
             <div className="mt-5 space-y-3">
-              <input placeholder="ชื่อ" className="h-12 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm" />
-              <input placeholder="อีเมล" className="h-12 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm" />
-              <textarea placeholder="ข้อความ" className="min-h-28 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm" />
+              {previewFields.map((field) => {
+                if (field.type === "textarea") {
+                  return (
+                    <div key={field.id} className="space-y-1">
+                      <div className="text-xs font-bold text-[#475569]">
+                        {field.label}
+                        {field.required ? " *" : ""}
+                      </div>
+                      <textarea
+                        placeholder={field.placeholder || field.label}
+                        disabled
+                        className="min-h-28 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm"
+                      />
+                    </div>
+                  );
+                }
+
+                if (field.type === "dropdown") {
+                  return (
+                    <div key={field.id} className="space-y-1">
+                      <div className="text-xs font-bold text-[#475569]">
+                        {field.label}
+                        {field.required ? " *" : ""}
+                      </div>
+                      <select disabled className="h-12 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm">
+                        <option>{field.options?.[0] || "เลือกตัวเลือก"}</option>
+                      </select>
+                    </div>
+                  );
+                }
+
+                if (field.type === "checkbox") {
+                  return (
+                    <label key={field.id} className="flex items-start gap-2 rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm text-[#475569]">
+                      <input type="checkbox" disabled className="mt-1" />
+                      <span>
+                        {field.label}
+                        {field.required ? " *" : ""}
+                      </span>
+                    </label>
+                  );
+                }
+
+                return (
+                  <div key={field.id} className="space-y-1">
+                    <div className="text-xs font-bold text-[#475569]">
+                      {field.label}
+                      {field.required ? " *" : ""}
+                    </div>
+                    <input
+                      placeholder={field.placeholder || field.label}
+                      disabled
+                      className="h-12 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm"
+                    />
+                  </div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -710,6 +829,7 @@ export default function LandingPageEditorV2() {
   const token = Cookies.get("token");
   const lastSavedSnapshotRef = useRef("");
   const autoSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const titleInputRef = useRef<HTMLInputElement | null>(null);
   const listPath = pathname?.startsWith("/manage/landing-pages-v2")
     ? "/manage/landing-pages-v2"
     : "/manage/landing-pages";
@@ -718,6 +838,7 @@ export default function LandingPageEditorV2() {
   const [forms, setForms] = useState<FormOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [isMetaEditorOpen, setIsMetaEditorOpen] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [autoSaving, setAutoSaving] = useState(false);
   const [saveStatus, setSaveStatus] = useState<{ type: "success" | "error" | null; message: string }>({
@@ -729,6 +850,9 @@ export default function LandingPageEditorV2() {
     type: "info",
     isVisible: false,
   });
+
+  const imageBlockCount = page?.content_blocks.filter((block) => block.type === "image").length || 0;
+  const videoBlockCount = page?.content_blocks.filter((block) => block.type === "video").length || 0;
 
   useEffect(() => {
     if (!token) {
@@ -775,6 +899,23 @@ export default function LandingPageEditorV2() {
 
   const doSave = async (options?: { silent?: boolean }) => {
     if (!page) return;
+
+    if (imageBlockCount > MAX_LANDING_PAGE_IMAGE_BLOCKS) {
+      const message = `ใส่รูปภาพได้ไม่เกิน ${MAX_LANDING_PAGE_IMAGE_BLOCKS} อัน`;
+      if (!options?.silent) {
+        setSaveStatus({ type: "error", message });
+      }
+      setToast({ message, type: "error", isVisible: true });
+      return;
+    }
+    if (videoBlockCount > MAX_LANDING_PAGE_VIDEO_BLOCKS) {
+      const message = `ใส่วิดีโอได้ไม่เกิน ${MAX_LANDING_PAGE_VIDEO_BLOCKS} อัน`;
+      if (!options?.silent) {
+        setSaveStatus({ type: "error", message });
+      }
+      setToast({ message, type: "error", isVisible: true });
+      return;
+    }
 
     try {
       setSaving(true);
@@ -849,6 +990,22 @@ export default function LandingPageEditorV2() {
 
   const addBlock = (type: Block["type"]) => {
     if (!page) return;
+    if (type === "image" && imageBlockCount >= MAX_LANDING_PAGE_IMAGE_BLOCKS) {
+      setToast({
+        message: `ใส่รูปภาพได้ไม่เกิน ${MAX_LANDING_PAGE_IMAGE_BLOCKS} อัน`,
+        type: "error",
+        isVisible: true,
+      });
+      return;
+    }
+    if (type === "video" && videoBlockCount >= MAX_LANDING_PAGE_VIDEO_BLOCKS) {
+      setToast({
+        message: `ใส่วิดีโอได้ไม่เกิน ${MAX_LANDING_PAGE_VIDEO_BLOCKS} อัน`,
+        type: "error",
+        isVisible: true,
+      });
+      return;
+    }
     const newBlock: Block = {
       id: Date.now().toString(),
       type,
@@ -931,23 +1088,32 @@ export default function LandingPageEditorV2() {
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.16),transparent_32%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.34),transparent_40%)]" />
       </div>
 
-      <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/85 backdrop-blur-md">
-        <div className="relative mx-auto flex h-20 w-full max-w-md items-center px-4">
-          <Link
-            href={listPath}
-            className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-xl text-[#64748B] transition-all hover:bg-[#F6F8FF] hover:text-[#050579]"
+      <ManageTopBar
+        backHref={listPath}
+        title={page.title?.trim() || "ยังไม่ได้ตั้งชื่อเพจ"}
+        subtitle="NEX Sale page"
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              if (isMetaEditorOpen) {
+                setIsMetaEditorOpen(false);
+                return;
+              }
+              setIsMetaEditorOpen(true);
+              setTimeout(() => {
+                titleInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
+                titleInputRef.current?.focus();
+              }, 140);
+            }}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-xl border border-[#FDBA74] bg-[#FFF7ED] text-[#EA580C] transition hover:bg-[#FFEDD5]"
+            title={isMetaEditorOpen ? "ซ่อนช่องแก้ไข" : "แก้ชื่อเพจ"}
+            aria-label={isMetaEditorOpen ? "ซ่อนช่องแก้ไข" : "แก้ชื่อเพจ"}
           >
-            <ArrowLeft size={20} />
-          </Link>
-
-          <div className="mx-auto text-center">
-            <div className="text-[11px] font-black uppercase tracking-[0.18em] text-[#94A3B8]">
-              NEX Sale Page Builder
-            </div>
-            <div className="mt-0.5 text-sm font-bold text-[#050579]">สร้างหน้าแบบเลือก section ทีละส่วน</div>
-          </div>
-        </div>
-      </nav>
+            <Pencil size={15} />
+          </button>
+        }
+      />
 
       <main className="relative z-10 mx-auto mt-6 w-full max-w-md px-4">
         <section className="rounded-3xl border border-[#D9E1F2] bg-white p-4 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.16)]">
@@ -979,20 +1145,55 @@ export default function LandingPageEditorV2() {
           </div>
 
           <div className="mt-4 space-y-3">
-            <input
-              value={page.title}
-              onChange={(e) => setPage({ ...page, title: e.target.value })}
-              placeholder="ชื่อหน้า"
-              className="h-12 w-full rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 text-base font-bold text-[#050579] outline-none"
-            />
-            <textarea
-              value={page.description || ""}
-              onChange={(e) => setPage({ ...page, description: e.target.value })}
-              placeholder="คำอธิบายสั้น ๆ ของหน้า"
-              className="min-h-24 w-full rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-sm text-[#0F172A] outline-none"
-            />
+            {isMetaEditorOpen ? (
+              <>
+                <input
+                  ref={titleInputRef}
+                  value={page.title}
+                  onChange={(e) => setPage({ ...page, title: e.target.value })}
+                  placeholder="ชื่อหน้า"
+                  className="h-12 w-full rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 text-base font-bold text-[#050579] outline-none"
+                />
+                <textarea
+                  value={page.description || ""}
+                  onChange={(e) => setPage({ ...page, description: e.target.value })}
+                  placeholder="คำอธิบายสั้น ๆ ของหน้า"
+                  className="min-h-24 w-full rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-sm text-[#0F172A] outline-none"
+                />
+              </>
+            ) : null}
             <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-sm font-semibold text-[#64748B]">
               {saveStatus.message || (autoSaving ? "กำลังบันทึกอัตโนมัติ..." : "ระบบจะบันทึกอัตโนมัติระหว่างแก้ไข")}
+            </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div
+                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                  imageBlockCount >= MAX_LANDING_PAGE_IMAGE_BLOCKS
+                    ? "border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]"
+                    : "border-[#D9E1F2] bg-[#F8FAFF] text-[#64748B]"
+                }`}
+              >
+                รูปภาพ {imageBlockCount}/{MAX_LANDING_PAGE_IMAGE_BLOCKS}
+                <div className="mt-1 text-xs font-medium">
+                  {imageBlockCount >= MAX_LANDING_PAGE_IMAGE_BLOCKS
+                    ? `ครบแล้ว เพิ่มได้ไม่เกิน ${MAX_LANDING_PAGE_IMAGE_BLOCKS} รูป`
+                    : `ใส่ได้ไม่เกิน ${MAX_LANDING_PAGE_IMAGE_BLOCKS} รูป`}
+                </div>
+              </div>
+              <div
+                className={`rounded-2xl border px-4 py-3 text-sm font-semibold ${
+                  videoBlockCount >= MAX_LANDING_PAGE_VIDEO_BLOCKS
+                    ? "border-[#FECACA] bg-[#FEF2F2] text-[#B91C1C]"
+                    : "border-[#D9E1F2] bg-[#F8FAFF] text-[#64748B]"
+                }`}
+              >
+                วิดีโอ {videoBlockCount}/{MAX_LANDING_PAGE_VIDEO_BLOCKS}
+                <div className="mt-1 text-xs font-medium">
+                  {videoBlockCount >= MAX_LANDING_PAGE_VIDEO_BLOCKS
+                    ? `ครบแล้ว เพิ่มได้ไม่เกิน ${MAX_LANDING_PAGE_VIDEO_BLOCKS} วิดีโอ`
+                    : `ใส่ได้ไม่เกิน ${MAX_LANDING_PAGE_VIDEO_BLOCKS} วิดีโอ`}
+                </div>
+              </div>
             </div>
           </div>
         </section>
@@ -1076,7 +1277,7 @@ export default function LandingPageEditorV2() {
 
                     <div className="flex justify-center">
                       <div className="w-full max-w-[375px] overflow-hidden rounded-[24px] border border-[#D9E1F2] bg-white shadow-[0_20px_40px_-28px_rgba(15,23,42,0.35)]">
-                        <RenderPreviewBlock block={block} theme={page.theme_config} />
+                        <RenderPreviewBlock block={block} theme={page.theme_config} forms={forms} />
                       </div>
                     </div>
                   </div>
@@ -1099,8 +1300,18 @@ export default function LandingPageEditorV2() {
 
               <div className="mt-4 grid grid-cols-2 gap-3">
                 <BlockTypeButton icon={Type} label="ข้อความ" onClick={() => addBlock("text")} />
-                <BlockTypeButton icon={ImageIcon} label="รูปภาพ" onClick={() => addBlock("image")} />
-                <BlockTypeButton icon={Video} label="วิดีโอ" onClick={() => addBlock("video")} />
+                <BlockTypeButton
+                  icon={ImageIcon}
+                  label={imageBlockCount >= MAX_LANDING_PAGE_IMAGE_BLOCKS ? "รูปภาพครบ 20" : "รูปภาพ"}
+                  onClick={() => addBlock("image")}
+                  disabled={imageBlockCount >= MAX_LANDING_PAGE_IMAGE_BLOCKS}
+                />
+                <BlockTypeButton
+                  icon={Video}
+                  label={videoBlockCount >= MAX_LANDING_PAGE_VIDEO_BLOCKS ? "วิดีโอครบ 20" : "วิดีโอ"}
+                  onClick={() => addBlock("video")}
+                  disabled={videoBlockCount >= MAX_LANDING_PAGE_VIDEO_BLOCKS}
+                />
                 <BlockTypeButton icon={MousePointer2} label="ปุ่ม" onClick={() => addBlock("button")} />
                 <BlockTypeButton icon={MessageSquare} label="ฟอร์ม" onClick={() => addBlock("form")} />
                 <BlockTypeButton icon={MapPin} label="ที่ตั้ง" onClick={() => addBlock("location")} />
@@ -1110,17 +1321,29 @@ export default function LandingPageEditorV2() {
         </section>
 
         <section className="mt-4 rounded-3xl border border-[#D9E1F2] bg-white p-4 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.16)]">
-          <button
-            type="button"
-            onClick={() => setShowSettings((prev) => !prev)}
-            className="flex w-full items-center justify-between gap-3 text-left"
-          >
-            <div className="min-w-0 flex-1">
-              <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">Settings</div>
-              <h2 className="mt-1 text-lg font-black text-[#050579]">สถานะการเผยแพร่และธีม</h2>
-            </div>
-            <Settings2 className="shrink-0 text-[#64748B]" size={18} />
-          </button>
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowSettings((prev) => !prev)}
+              className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+            >
+              <div className="min-w-0 flex-1">
+                <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">Settings</div>
+                <h2 className="mt-1 text-lg font-black text-[#050579]">สถานะการเผยแพร่และธีม</h2>
+              </div>
+              <Settings2 className="shrink-0 text-[#64748B]" size={18} />
+            </button>
+
+            <button
+              type="button"
+              onClick={() => void doSave()}
+              className="inline-flex h-11 shrink-0 items-center justify-center gap-2 rounded-2xl bg-[#F97316] px-4 text-sm font-black text-white shadow-[0_18px_40px_-24px_rgba(249,115,22,0.72)]"
+              title="บันทึก"
+            >
+              {saving ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+              <span>{saving ? "กำลังบันทึก..." : "บันทึก"}</span>
+            </button>
+          </div>
 
           {showSettings ? (
             <div className="mt-4 space-y-4">

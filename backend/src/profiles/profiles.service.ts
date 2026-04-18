@@ -47,6 +47,7 @@ export class ProfilesService {
         is_active: user.is_active,
         expiration_date: user.expiration_date,
         feature_config: user.feature_config,
+        referral_code: user.referral_code,
         profile: null
       }
     }
@@ -57,6 +58,7 @@ export class ProfilesService {
       is_active: user.is_active,
       expiration_date: user.expiration_date,
       feature_config: user.feature_config,
+      referral_code: user.referral_code,
       ...user.profile
     };
   }

@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import {
-  ArrowLeft,
   Calendar,
   FileSpreadsheet,
   Loader2,
   Filter,
 } from "lucide-react";
 import Link from "next/link";
+import ManageTopBar from "@/components/ManageTopBar";
 
 interface FormSubmission {
   id: number;
@@ -107,47 +107,26 @@ export default function FormSubmissionsPage() {
 
   return (
     <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
-      {/* Header */}
-      <header className="border-b border-foreground/5 bg-background/50 backdrop-blur-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Link
-              href={`/manage/forms/${formId}`}
-              className="w-10 h-10 rounded-xl hover:bg-foreground/5 flex items-center justify-center transition-all group"
+      <ManageTopBar
+        backHref={`/manage/forms/${formId}`}
+        subtitle="NEX FORMS"
+        title="ข้อมูลที่ส่งมาจากฟอร์ม"
+        actions={
+          submissions.length > 0 ? (
+            <button
+              onClick={handleDownloadCsv}
+              disabled={downloading}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#F97316] px-4 py-2 text-[11px] font-black uppercase tracking-[0.18em] text-white shadow-lg shadow-[#F97316]/25 transition-all disabled:opacity-60"
             >
-              <ArrowLeft
-                size={18}
-                className="text-foreground/40 group-hover:text-foreground transition-colors"
-              />
-            </Link>
-            <h1 className="font-bold text-xl tracking-tight flex items-center gap-2">
-              <FileSpreadsheet size={20} className="text-primary" /> ข้อมูลที่ส่งมา{" "}
-              <span className="text-foreground/20 font-normal hidden sm:inline">
-                (Form Submissions)
-              </span>
-            </h1>
-          </div>
-          <div className="flex items-center gap-4">
-            {submissions.length > 0 && (
-              <button
-                onClick={handleDownloadCsv}
-                disabled={downloading}
-                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-foreground bg-foreground/10 px-3 py-2 rounded-xl hover:bg-foreground/20 disabled:opacity-60 transition-all"
-              >
-                {downloading ? (
-                  <Loader2 className="animate-spin" size={14} />
-                ) : (
-                  <FileSpreadsheet size={14} />
-                )}
-                ดาวน์โหลด CSV
-              </button>
-            )}
-          </div>
-        </div>
-      </header>
+              {downloading ? <Loader2 className="animate-spin" size={14} /> : <FileSpreadsheet size={14} />}
+              CSV
+            </button>
+          ) : null
+        }
+      />
 
-      <main className="max-w-6xl mx-auto px-6 py-10 space-y-8">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <main className="mx-auto max-w-6xl space-y-6 px-4 py-6 md:px-6 md:py-10 md:space-y-8">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
             <h2 className="text-2xl font-black tracking-tight">
               รายการข้อมูลที่ลูกค้าส่งมา
@@ -157,10 +136,10 @@ export default function FormSubmissionsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <div className="relative">
+            <div className="relative w-full md:w-auto">
               <Filter className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground/30" size={14} />
               <input
-                className="pl-8 pr-3 py-2 bg-background border border-foreground/10 rounded-xl text-xs focus:outline-none focus:ring-2 focus:ring-primary/20"
+                className="w-full rounded-xl border border-foreground/10 bg-background py-2 pl-8 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 md:w-[260px]"
                 placeholder="ค้นหาในข้อมูลที่ลูกค้ากรอก..."
                 value={filterText}
                 onChange={(e) => setFilterText(e.target.value)}
@@ -191,7 +170,7 @@ export default function FormSubmissionsPage() {
             {filtered.map((s) => (
               <div
                 key={s.id}
-                className="bg-card-bg border border-foreground/5 rounded-[28px] p-6 flex flex-col gap-4 hover:border-primary/30 transition-all"
+                className="rounded-[24px] border border-foreground/5 bg-card-bg p-4 transition-all hover:border-primary/30 md:rounded-[28px] md:p-6"
               >
                 <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                   <div className="flex items-center gap-3 text-[11px] text-foreground/40 uppercase tracking-[0.18em]">
@@ -231,7 +210,7 @@ export default function FormSubmissionsPage() {
                   )}
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+                <div className="grid grid-cols-1 gap-3 text-sm md:grid-cols-2 md:gap-4">
                   {Object.entries(s.data || {}).map(([key, value]) => (
                     <div
                       key={key}
@@ -254,4 +233,3 @@ export default function FormSubmissionsPage() {
     </div>
   );
 }
-

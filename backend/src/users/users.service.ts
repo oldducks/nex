@@ -325,6 +325,18 @@ export class UsersService {
     return this.findOne(id);
   }
 
+  async updateRole(id: number, role: string) {
+    const user = await this.findOne(id);
+    if (!user) return null;
+
+    if (!Object.values(UserRole).includes(role as UserRole)) {
+        throw new BadRequestException('Invalid user role');
+    }
+
+    await this.usersRepository.update(id, { role: role as UserRole });
+    return this.findOne(id);
+  }
+
   async disableExpiredUsers() {
     const now = new Date();
     const result = await this.usersRepository

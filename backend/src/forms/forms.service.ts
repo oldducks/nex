@@ -27,10 +27,29 @@ export class FormsService {
   }
 
   async findAll(ownerId: number) {
-    return this.formsRepository.find({
+    const forms = await this.formsRepository.find({
       where: { owner_id: ownerId },
       order: { created_at: 'DESC' },
     });
+
+    if (!forms.length) return forms;
+
+    const rawCounts = await this.submissionsRepository
+      .createQueryBuilder('submission')
+      .select('submission.form_id', 'form_id')
+      .addSelect('COUNT(submission.id)', 'count')
+      .where('submission.owner_id = :ownerId', { ownerId })
+      .groupBy('submission.form_id')
+      .getRawMany<{ form_id: string; count: string }>();
+
+    const countMap = new Map<number, number>(
+      rawCounts.map((row) => [Number(row.form_id), Number(row.count)]),
+    );
+
+    return forms.map((form) => ({
+      ...form,
+      submission_count: countMap.get(form.id) || 0,
+    }));
   }
 
   /**
@@ -58,7 +77,15 @@ export class FormsService {
     if (form.owner_id !== ownerId) {
       throw new ForbiddenException('You do not have access to this form');
     }
-    return form;
+
+    const submissionCount = await this.submissionsRepository.count({
+      where: { form_id: id, owner_id: ownerId },
+    });
+
+    return {
+      ...form,
+      submission_count: submissionCount,
+    };
   }
 
   async update(id: number, ownerId: number, dto: UpdateFormDto) {
@@ -149,4 +176,3 @@ export class FormsService {
     return [header.join(','), ...rows].join('\n');
   }
 }
-

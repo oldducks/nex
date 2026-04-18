@@ -93,12 +93,12 @@ export class CreateProfileDto {
 
     @IsArray()
     @IsOptional()
-    @ArrayMaxSize(10)
+    @ArrayMaxSize(20)
     backgrounds?: ImageWithPosition[];
 
     @IsArray()
     @IsOptional()
-    @ArrayMaxSize(10)
+    @ArrayMaxSize(20)
     banners?: ImageWithPosition[];
 
     @IsString()
@@ -108,7 +108,7 @@ export class CreateProfileDto {
     // Website links (multiple)
     @IsArray()
     @IsOptional()
-    @ArrayMaxSize(10)
+    @ArrayMaxSize(20)
     websites?: WebsiteLink[];
 
     // About Me / Interests
@@ -142,4 +142,9 @@ export class CreateProfileDto {
     @IsObject()
     @IsOptional()
     video_config?: VideoConfig;
+
+    @IsArray()
+    @IsOptional()
+    @ArrayMaxSize(20)
+    gallery?: string[];
 }

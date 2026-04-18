@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart as ReLineChart, Line } from 'recharts';
 import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, Database, Loader2, LineChart, QrCode } from 'lucide-react';
@@ -17,6 +18,7 @@ export default function AnalyticsDashboard() {
     const [profile, setProfile] = useState<any>(null);
     const [landingPages, setLandingPages] = useState<any[]>([]);
     const [landingViews, setLandingViews] = useState<Record<number, number>>({});
+    const [forms, setForms] = useState<any[]>([]);
     const [landingLoading, setLandingLoading] = useState(false);
     const [dailyStats, setDailyStats] = useState<any[]>([]);
     const [isMobile, setIsMobile] = useState(false);
@@ -70,9 +72,14 @@ export default function AnalyticsDashboard() {
 
             // Fetch landing pages + views (for owner dashboard)
             setLandingLoading(true);
-            const lpRes = await fetch(`${API_URL}/landing-pages`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            const [lpRes, formsRes] = await Promise.all([
+                fetch(`${API_URL}/landing-pages`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                }),
+                fetch(`${API_URL}/forms`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                })
+            ]);
             if (lpRes.ok) {
                 const pages = await lpRes.json();
                 setLandingPages(pages || []);
@@ -94,6 +101,9 @@ export default function AnalyticsDashboard() {
                     })
                 );
                 setLandingViews(viewMap);
+            }
+            if (formsRes.ok) {
+                setForms(await formsRes.json());
             }
         } catch (error) {
             console.error('Error fetching dashboard data:', error);
@@ -119,14 +129,16 @@ export default function AnalyticsDashboard() {
     };
 
     const chartData = stats ? [
-        { name: 'ยอดดูโปรไฟล์', shortName: 'โปรไฟล์', value: stats.VIEW_PROFILE, color: '#6366F1' },
+        { name: 'ยอดเข้าดูนามบัตร', shortName: 'นามบัตร', value: stats.VIEW_PROFILE, color: '#6366F1' },
         { name: 'บันทึก VCF', shortName: 'VCF', value: stats.DOWNLOAD_VCF, color: '#10B981' },
         { name: 'ยอดดูแคตตาล็อก', shortName: 'แคตตาล็อก', value: stats.VIEW_CATALOG, color: '#F59E0B' },
         { name: 'ดาวน์โหลด PDF', shortName: 'PDF', value: stats.DOWNLOAD_PDF, color: '#EC4899' },
-        { name: 'ดู Landing Page', shortName: 'Landing', value: stats.VIEW_LANDING_PAGE, color: '#22C55E' },
-        { name: 'ส่งฟอร์ม Landing', shortName: 'ฟอร์ม', value: stats.SUBMIT_LANDING_FORM, color: '#0EA5E9' },
+        { name: 'ยอดดูหน้าร้านออนไลน์', shortName: 'หน้าร้าน', value: stats.VIEW_LANDING_PAGE, color: '#22C55E' },
+        { name: 'จำนวนคนที่กรอกฟอร์ม', shortName: 'กรอกฟอร์ม', value: stats.SUBMIT_LANDING_FORM, color: '#0EA5E9' },
         { name: 'สแกน QR', shortName: 'QR', value: stats.SCAN_QR, color: '#A855F7' },
     ] : [];
+
+    const totalFormSubmissions = forms.reduce((sum, form) => sum + Number(form.submission_count || 0), 0);
 
     const remainingDays = getRemainingDays();
 
@@ -186,8 +198,8 @@ export default function AnalyticsDashboard() {
                         {/* Stats Grid */}
                         <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-2 md:gap-6 mb-4 md:mb-10">
                             <StatCard
-                                title="ยอดดูโปรไฟล์"
-                                mobileTitle="ดูโปรไฟล์"
+                                title="ยอดเข้าดูนามบัตร"
+                                mobileTitle="ดูนามบัตร"
                                 value={stats?.VIEW_PROFILE || 0}
                                 icon={<Eye size={18} className="text-indigo-500" />}
                                 color="bg-indigo-500/10 border-indigo-500/20"
@@ -222,17 +234,17 @@ export default function AnalyticsDashboard() {
                         {/* Funnel Stats Grid */}
                         <div className="grid grid-cols-3 md:grid-cols-3 gap-2 md:gap-6 mb-6 md:mb-10">
                             <StatCard
-                                title="ยอดดู Landing Page"
-                                mobileTitle="ดู Landing"
+                                title="ยอดดูหน้าร้านออนไลน์"
+                                mobileTitle="ดูหน้าร้าน"
                                 value={stats?.VIEW_LANDING_PAGE || 0}
                                 icon={<LineChart size={16} className="text-emerald-500" />}
                                 color="bg-emerald-500/10 border-emerald-500/20"
                                 compact
                             />
                             <StatCard
-                                title="ส่งฟอร์ม Landing"
-                                mobileTitle="ส่งฟอร์ม"
-                                value={stats?.SUBMIT_LANDING_FORM || 0}
+                                title="จำนวนคนที่กรอกฟอร์ม"
+                                mobileTitle="กรอกฟอร์ม"
+                                value={totalFormSubmissions || stats?.SUBMIT_LANDING_FORM || 0}
                                 icon={<Download size={16} className="text-sky-500" />}
                                 color="bg-sky-500/10 border-sky-500/20"
                                 compact
@@ -245,6 +257,37 @@ export default function AnalyticsDashboard() {
                                 color="bg-violet-500/10 border-violet-500/20"
                                 compact
                             />
+                        </div>
+
+                        <div className="mb-7 rounded-[28px] border border-[#D9E1F2] bg-white p-4 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.16)] md:rounded-[32px] md:p-8">
+                            <div className="mb-4 flex items-center justify-between gap-3 md:mb-6">
+                                <h3 className="flex items-center gap-2 text-base font-bold tracking-tight text-[#050579] md:text-xl">
+                                    <FileText size={20} className="text-[#050579]" />
+                                    สถิติแบบฟอร์ม
+                                </h3>
+                                <Link href="/manage/forms" className="text-[11px] font-black uppercase tracking-[0.18em] text-[#F97316]">
+                                    จัดการฟอร์ม
+                                </Link>
+                            </div>
+                            {forms.length === 0 ? (
+                                <p className="text-sm text-[#64748B]">ยังไม่มีแบบฟอร์มในระบบ คุณสามารถเริ่มสร้างได้จากเมนูฟอร์มบันทึกข้อมูล</p>
+                            ) : (
+                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                    {forms.slice(0, 4).map((form: any) => (
+                                        <div key={form.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-3 md:p-4">
+                                            <div className="min-w-0">
+                                                <p className="mb-1 text-xs font-black uppercase tracking-widest text-[#64748B]">แบบฟอร์ม</p>
+                                                <p className="truncate text-sm font-semibold">{form.name || '(ไม่มีชื่อฟอร์ม)'}</p>
+                                                <p className="text-xs text-[#64748B]">{form.fields?.length || 0} ช่องข้อมูล</p>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-2xl font-black">{Number(form.submission_count || 0).toLocaleString()}</div>
+                                                <div className="text-[10px] uppercase tracking-widest text-[#64748B]">คนกรอกฟอร์ม</div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Charts Section */}
@@ -378,7 +421,7 @@ export default function AnalyticsDashboard() {
                             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mb-4 md:mb-6 gap-2">
                                 <h3 className="flex items-center gap-2 text-base md:text-xl font-bold tracking-tight text-[#050579]">
                                     <LineChart size={20} className="text-[#050579]" />
-                                    สถิติ Landing Page (สูงสุด 5 หน้าแรก)
+                                    สถิติหน้าร้านออนไลน์
                                 </h3>
                                 {landingLoading && (
                                     <span className="flex items-center gap-2 text-xs text-[#64748B]">
@@ -389,7 +432,7 @@ export default function AnalyticsDashboard() {
                             </div>
                             {landingPages.length === 0 ? (
                                 <p className="text-sm text-[#64748B]">
-                                    ยังไม่มี Landing Page ในระบบ คุณสามารถเริ่มสร้างได้จากเมนู Landing Pages
+                                    ยังไม่มีหน้าร้านออนไลน์ในระบบ คุณสามารถเริ่มสร้างได้จากเมนูหน้าร้านออนไลน์
                                 </p>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
@@ -402,7 +445,7 @@ export default function AnalyticsDashboard() {
                                             >
                                                 <div className="min-w-0">
                                                     <p className="mb-1 text-xs font-black uppercase tracking-widest text-[#64748B]">
-                                                        Landing Page
+                                                        หน้าร้านออนไลน์
                                                     </p>
                                                     <p className="text-xs md:text-sm font-semibold truncate mb-1">
                                                         {page.title || '(ไม่มีชื่อเพจ)'}
@@ -414,7 +457,7 @@ export default function AnalyticsDashboard() {
                                                 <div className="text-right">
                                                     <div className="text-xl md:text-2xl font-black">{views.toLocaleString()}</div>
                                                     <div className="text-[10px] uppercase tracking-widest text-[#64748B]">
-                                                        Views รวม
+                                                        จำนวนผู้เข้าชม
                                                     </div>
                                                 </div>
                                             </div>

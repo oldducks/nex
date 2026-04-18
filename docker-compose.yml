@@ -49,6 +49,7 @@ services:
       SMTP_PASS: ${SMTP_PASS:-qmmfnljjtukzigrj}
       SMTP_FROM: ${SMTP_FROM:-noreply@nexsolution.cloud}
       SMTP_SECURE: ${SMTP_SECURE:-false}
+      UPGRADE_PLAN_NOTIFY_EMAILS: ${UPGRADE_PLAN_NOTIFY_EMAILS:-}
       FRONTEND_URL: https://nexsolution.cloud
       CORS_ALLOWED_ORIGINS: https://nexsolution.cloud,https://www.nexsolution.cloud,http://localhost:3000,http://localhost:3001
       API_URL: https://nexsolution.cloud/api
@@ -59,10 +60,16 @@ services:
       FACEBOOK_APP_SECRET: ${FACEBOOK_APP_SECRET:-}
       LINE_CHANNEL_ID: ${LINE_CHANNEL_ID:-}
       LINE_CHANNEL_SECRET: ${LINE_CHANNEL_SECRET:-}
+      LINE_MESSAGING_API_CHANNEL_ACCESS_TOKEN: ${LINE_MESSAGING_API_CHANNEL_ACCESS_TOKEN:-}
+      LINE_UPGRADE_NOTIFY_TO: ${LINE_UPGRADE_NOTIFY_TO:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
       TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
       GOOGLE_API_KEY: ${GOOGLE_API_KEY:-}
+      GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+      GOOGLE_CLOUD_PROJECT: ${GOOGLE_CLOUD_PROJECT:-}
+      GCLOUD_PROJECT: ${GCLOUD_PROJECT:-}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${GOOGLE_SERVICE_ACCOUNT_JSON:-}
       NEX_VERTEX_PROXY_SECRET: ${NEX_VERTEX_PROXY_SECRET:-}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
     depends_on:
@@ -71,7 +78,7 @@ services:
     volumes:
       - ./uploads:/app/uploads  # Persist uploaded files
     ports:
-      - "4001:4000"
+      - "127.0.0.1:4001:4000"
     networks:
       - default
       - n8n_default
@@ -104,7 +111,7 @@ services:
     depends_on:
       - api
     ports:
-      - "3001:3000"
+      - "127.0.0.1:3001:3000"
     networks:
       - default
       - n8n_default

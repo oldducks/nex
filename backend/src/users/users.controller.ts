@@ -238,6 +238,15 @@ export class UsersController {
     return this.usersService.updateTier(+id, body.tier);
   }
 
+  @Patch(':id/role')
+  @UseGuards(JwtAuthGuard)
+  async updateRole(@Request() req, @Param('id') id: string, @Body() body: { role: string }) {
+    if (req.user.role !== 'super_admin') {
+      throw new ForbiddenException('Only super admin can update user role');
+    }
+    return this.usersService.updateRole(+id, body.role);
+  }
+
   @Post('check-expired')
   @UseGuards(JwtAuthGuard)
   async checkExpiredUsers(@Request() req) {

@@ -6,10 +6,8 @@ import { usePathname, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import {
   ArrowRight,
-  BadgeHelp,
   BarChart3,
   BookOpen,
-  CreditCard,
   Crown,
   FileText,
   Gift,
@@ -61,17 +59,15 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "catalog", label: "อี แคตตาล็อค", href: "/manage", icon: BookOpen, featureKey: "catalog" },
   { id: "landing-pages", label: "หน้าร้านออนไลน์", href: "/manage/landing-pages", icon: Layout, featureKey: "landing-pages" },
   { id: "qr", label: "สร้าง QR Code", href: "/manage/qr", icon: QrCode, featureKey: "profile" },
-  { id: "forms", label: "ฟอร์มบันทึกข้อมูล", href: "/manage/forms", icon: FileText, featureKey: "leads" },
+  { id: "forms", label: "ฟอร์มบันทึกข้อมูล", href: "/manage/forms", icon: FileText },
   { id: "referrals", label: "พันธมิตรธุรกิจ", href: "/manage/referrals", icon: Gift, featureKey: "referrals" },
   { id: "analytics", label: "ข้อมูลสรุป", href: "/manage/dashboard", icon: BarChart3, featureKey: "analytics" },
-  { id: "ai", label: "สร้างงานด้วย AI", href: "/manage/ai", icon: Zap, featureKey: "ai" },
+  { id: "ai", label: "สร้างงานด้วย AI", href: "/manage/digital-media-v1", icon: Zap, featureKey: "ai" },
   { id: "learning", label: "คู่มือการใช้งาน", href: "/manage/learning", icon: UserCircle, featureKey: "learning" },
   { id: "design", label: "ออกแบบกราฟิก", href: "/manage/create-lite", icon: ImageIcon, featureKey: "catalog" },
-  { id: "namecard", label: "ออกแบบนามบัตร", href: "/manage/namecard", icon: CreditCard, featureKey: "namecard" },
   { id: "upgrade-plan", label: "อัปเกรดแพ็กเกจ", href: "/manage/upgrade-plan", icon: Crown },
   { id: "leads", label: "ข้อมูลจากแบบฟอร์ม", href: "/manage/leads", icon: Users, featureKey: "leads" },
   { id: "account", label: "ตั้งค่าบัญชี", href: "/manage/account", icon: Settings },
-  { id: "control-center", label: "ศูนย์ควบคุมเดิม", href: "/manage/control-center", icon: BadgeHelp },
 ];
 
 const CORE_IDS = new Set(["catalog", "landing-pages", "qr", "forms"]);
@@ -181,7 +177,6 @@ export default function Control2V2Page() {
                 <PrimaryIcon size={20} />
               </span>
               <span>
-                <span className="block text-sm font-semibold">เริ่มจากเมนูหลัก</span>
                 <span className="block text-base font-bold leading-tight">{primaryItem.label}</span>
               </span>
             </span>

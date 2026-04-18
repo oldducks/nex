@@ -67,7 +67,7 @@ export default async function NexDigitalAssetPartnerPreviewPage() {
                     href="/register"
                     className="mx-auto flex w-full max-w-sm items-center justify-center rounded-[22px] bg-[#F97316] px-6 py-4 text-center text-[17px] font-black text-white shadow-[0_10px_30px_rgba(249,115,22,0.32)] transition hover:scale-[1.02] hover:bg-[#EA580C]"
                   >
-                    เปิดฟอร์มสมัครสมาชิก
+                    ทดลองใช้ระบบฟรี
                   </Link>
                 </section>
               )}

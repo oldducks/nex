@@ -4,14 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { ArrowRight, Copy, Loader2, Lock, Save, User, Phone, Mail, Building2, Briefcase, FileText, Image as ImageIcon, Upload, Trash2, Video } from "lucide-react";
+import { ArrowLeft, ArrowRight, Copy, CreditCard, Loader2, Lock, Save, User, Phone, Mail, Building2, Briefcase, FileText, Image as ImageIcon, Upload, Trash2 } from "lucide-react";
 import { Toast, type ToastType } from "@/components/Toast";
-import { VideoUpload } from "@/components/VideoUpload";
 
 type I18nField = { lang: string; value: string };
 type ContactField = { label: string; value: string };
 type ImageWithPosition = { url: string; position: { x: number; y: number }; scale?: number; objectPosition?: string; link_url?: string };
-type VideoConfig = { url: string; autoplay: boolean; link_url?: string; link_enabled: boolean; enabled: boolean };
 
 type MeProfileResponse = {
   uid?: string;
@@ -22,9 +20,9 @@ type MeProfileResponse = {
   companies_i18n?: I18nField[];
   phones?: ContactField[];
   emails?: ContactField[];
+  profile_pic_url?: string;
   logo?: ImageWithPosition | null;
   backgrounds?: ImageWithPosition[];
-  video_config?: VideoConfig | null;
   subscription_tier?: string;
   feature_config?: Record<string, boolean>;
   user?: {
@@ -75,13 +73,15 @@ export default function ProfileV2Page() {
   const loginPath = `${v2Prefix}/login`;
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingProfileImage, setUploadingProfileImage] = useState(false);
   const [uploadingLogo, setUploadingLogo] = useState(false);
   const [uploadingBackground, setUploadingBackground] = useState(false);
+  const [showProfileForm, setShowProfileForm] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [profile, setProfile] = useState<MeProfileResponse | null>(null);
+  const [profileImageUrl, setProfileImageUrl] = useState("");
   const [logo, setLogo] = useState<ImageWithPosition | null>(null);
   const [backgrounds, setBackgrounds] = useState<ImageWithPosition[]>([]);
-  const [videoConfig, setVideoConfig] = useState<VideoConfig | null>(null);
   const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
     message: "",
     type: "info",
@@ -89,6 +89,8 @@ export default function ProfileV2Page() {
   });
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
+  const profileImageInputRef = useRef<HTMLInputElement | null>(null);
+  const formStartRef = useRef<HTMLDivElement | null>(null);
 
   const showToast = (message: string, type: ToastType = "info") => {
     setToast({ message, type, isVisible: true });
@@ -114,9 +116,9 @@ export default function ProfileV2Page() {
 
         const data = (await res.json()) as MeProfileResponse;
         setProfile(data);
+        setProfileImageUrl(data.profile_pic_url || "");
         setLogo(data.logo || null);
         setBackgrounds(data.backgrounds || []);
-        setVideoConfig(data.video_config || null);
         setForm({
           nameTh: getFieldByLang(data.names_i18n, "th"),
           nameEn: getFieldByLang(data.names_i18n, "en"),
@@ -145,7 +147,7 @@ export default function ProfileV2Page() {
 
   const isAdmin = profile?.user?.role === "super_admin" || profile?.user?.role === "group_admin";
   const isPremium = profile?.subscription_tier === "premium";
-  const currentPlanLabel = isAdmin ? "Admin" : isPremium ? "แผนพรีเมียม" : "แผนพื้นฐาน";
+  const currentPlanLabel = isPremium ? "แผนพรีเมียม" : "แผนพื้นฐาน";
 
   const isProfileUnlocked = useMemo(() => {
     if (isAdmin || isPremium) return true;
@@ -155,6 +157,21 @@ export default function ProfileV2Page() {
     }
     return true;
   }, [isAdmin, isPremium, profile?.feature_config]);
+
+  const isNewUser = useMemo(() => {
+    const hasBasicText =
+      form.nameTh.trim() ||
+      form.nameEn.trim() ||
+      form.positionTh.trim() ||
+      form.companyTh.trim() ||
+      form.phone.trim() ||
+      form.email.trim() ||
+      form.aboutMe.trim();
+
+    return !hasBasicText && !profileImageUrl && !logo?.url && !backgrounds[0]?.url;
+  }, [backgrounds, form, logo, profileImageUrl]);
+
+  const shouldShowProfileForm = !isNewUser || showProfileForm;
 
   const publicPath = profile?.uid ? `${profile.url_prefix || "p"}/${profile.uid}` : "";
   const publicUrl = publicPath
@@ -248,6 +265,93 @@ export default function ProfileV2Page() {
       setUploadingLogo(false);
       if (logoInputRef.current) {
         logoInputRef.current.value = "";
+      }
+    }
+  };
+
+  const uploadProfileImage = async (file: File) => {
+    const token = Cookies.get("token");
+    if (!token) {
+      router.replace(loginPath);
+      return;
+    }
+
+    const allowedTypes = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+    if (!allowedTypes.includes(file.type)) {
+      showToast("รองรับเฉพาะไฟล์รูปภาพ jpg, png, gif, webp", "error");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showToast("ไฟล์มีขนาดเกิน 5MB", "error");
+      return;
+    }
+
+    setUploadingProfileImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch(`${apiUrl}/uploads/image`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error("อัปโหลดรูปโปรไฟล์ไม่สำเร็จ");
+      }
+
+      const data = await res.json();
+      let imageUrl = data.url as string | undefined;
+
+      if (data.jobId) {
+        imageUrl = await new Promise<string>((resolve, reject) => {
+          const started = Date.now();
+          const interval = setInterval(async () => {
+            try {
+              const jobRes = await fetch(`${apiUrl}/uploads/job/${data.jobId}`, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+
+              if (!jobRes.ok) return;
+              const status = await jobRes.json();
+
+              if (status.state === "completed" && status.result?.url) {
+                clearInterval(interval);
+                resolve(status.result.url);
+                return;
+              }
+
+              if (status.state === "failed") {
+                clearInterval(interval);
+                reject(new Error(status.failedReason || "ประมวลผลรูปโปรไฟล์ไม่สำเร็จ"));
+                return;
+              }
+
+              if (Date.now() - started > 60_000) {
+                clearInterval(interval);
+                reject(new Error("อัปโหลดรูปโปรไฟล์ใช้เวลานานเกินไป กรุณาลองใหม่"));
+              }
+            } catch {
+              // keep polling
+            }
+          }, 1000);
+        });
+      }
+
+      if (!imageUrl) {
+        throw new Error("ไม่พบ URL รูปหลังอัปโหลด");
+      }
+
+      setProfileImageUrl(imageUrl);
+      showToast("อัปโหลดรูปโปรไฟล์สำเร็จ", "success");
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "อัปโหลดรูปโปรไฟล์ไม่สำเร็จ";
+      showToast(message, "error");
+    } finally {
+      setUploadingProfileImage(false);
+      if (profileImageInputRef.current) {
+        profileImageInputRef.current.value = "";
       }
     }
   };
@@ -355,6 +459,24 @@ export default function ProfileV2Page() {
     }
   };
 
+  useEffect(() => {
+    if (!isNewUser) {
+      setShowProfileForm(true);
+    }
+  }, [isNewUser]);
+
+  const handleCreateDigitalNamecard = () => {
+    if (isNewUser) {
+      setShowProfileForm(true);
+      requestAnimationFrame(() => {
+        formStartRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      return;
+    }
+
+    showToast("คุณได้มีนามบัตรดิจิทัลแล้ว", "info");
+  };
+
   const onSave = async () => {
     if (!isProfileUnlocked) {
       showToast("บัญชีนี้ยังไม่ปลดล็อกฟีเจอร์โปรไฟล์", "error");
@@ -376,9 +498,9 @@ export default function ProfileV2Page() {
         phones: [{ label: "Mobile", value: form.phone }],
         emails: [{ label: "Work", value: form.email }],
         about_me: form.aboutMe,
+        profile_pic_url: profileImageUrl,
         logo,
         backgrounds,
-        video_config: videoConfig,
       };
 
       const res = await fetch(`${apiUrl}/profile/me`, {
@@ -397,9 +519,9 @@ export default function ProfileV2Page() {
 
       const updated = (await res.json()) as MeProfileResponse;
       setProfile((prev) => ({ ...prev, ...updated }));
+      setProfileImageUrl(updated.profile_pic_url || "");
       setLogo(updated.logo || null);
       setBackgrounds(updated.backgrounds || []);
-      setVideoConfig(updated.video_config || null);
       showToast("บันทึกข้อมูลเรียบร้อย", "success");
     } catch {
       showToast("บันทึกข้อมูลไม่สำเร็จ", "error");
@@ -418,224 +540,309 @@ export default function ProfileV2Page() {
 
   return (
     <main className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
-      <section className="mx-auto w-full max-w-md px-4 pb-8 pt-5">
-        <header className="rounded-3xl border border-[#D9E1F2] bg-white p-5 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.35)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#475569]">NEX Profile v2</p>
-          <h1 className="mt-2 text-xl font-bold text-[#050579]">แก้ไขโปรไฟล์</h1>
-          <div className="mt-3 inline-flex items-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-1 text-xs font-bold text-[#64748B]">
-            <span className="mr-1.5 text-[#94A3B8]">แผนปัจจุบัน</span>
-            <span className="text-[#050579]">{currentPlanLabel}</span>
-          </div>
-        </header>
-
-        <section className="mt-4 rounded-3xl border border-[#F6D5BF] bg-white p-4 shadow-[0_18px_36px_-30px_rgba(249,115,22,0.55)]">
-          <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#9A3412]">Primary Action</p>
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving || !isProfileUnlocked}
-            className="mt-2 flex w-full items-center justify-between rounded-2xl bg-[#F97316] px-4 py-4 text-white disabled:cursor-not-allowed disabled:opacity-55"
+      <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/85 backdrop-blur-md">
+        <div className="relative mx-auto flex h-24 w-full max-w-md items-center px-4">
+          <Link
+            href="/manage/control-center"
+            className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group"
+            title="ย้อนกลับ"
           >
-            <span className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20">
-                {saving ? <Loader2 size={20} className="animate-spin" /> : <Save size={20} />}
-              </span>
-              <span>
-                <span className="block text-sm font-semibold">บันทึกข้อมูลโปรไฟล์</span>
-                <span className="block text-base font-bold leading-tight">{saving ? "กำลังบันทึก..." : "บันทึกการเปลี่ยนแปลง"}</span>
-              </span>
-            </span>
-            <ArrowRight size={18} />
-          </button>
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <Link
-              href={publicPath ? `/${publicPath}` : `${v2Prefix}/manage/profile`}
-              className="rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-center text-xs font-semibold text-[#475569]"
-            >
-              ดูนามบัตร
-            </Link>
-            <button
-              type="button"
-              onClick={copyPublicUrl}
-              className="rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-center text-xs font-semibold text-[#475569]"
-            >
-              <span className="inline-flex items-center gap-1"><Copy size={13} /> คัดลอกลิงก์</span>
-            </button>
-          </div>
-        </section>
+            <ArrowLeft size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
+          </Link>
 
-        {!isProfileUnlocked && (
-          <section className="mt-4 rounded-3xl border border-[#F6D5BF] bg-[#FFF1E8] p-4 text-[#9A3412]">
-            <div className="flex items-start gap-2">
-              <Lock size={16} className="mt-0.5" />
-              <div>
-                <p className="text-sm font-bold">ฟีเจอร์โปรไฟล์ถูกล็อก</p>
-                <p className="text-xs opacity-80">บัญชีนี้ยังไม่ปลดล็อก จึงไม่สามารถบันทึกการแก้ไขได้</p>
-              </div>
+          <div className="mx-auto flex min-w-0 flex-col items-center text-center">
+            <div className="mb-0.5 text-[11px] font-black uppercase leading-none tracking-[0.18em] text-[#94A3B8]">
+              NEX PROFILE
             </div>
-          </section>
-        )}
+            <div className="text-base font-black text-[#050579]">จัดการข้อมูลในนามบัตรดิจิทัลของคุณ</div>
+            <div className="mt-2 inline-flex items-center rounded-full border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-1 text-xs font-bold text-[#64748B]">
+              <span className="mr-1.5 text-[#94A3B8]">แผนปัจจุบัน</span>
+              <span className="text-[#050579]">{currentPlanLabel}</span>
+            </div>
+          </div>
 
-        <FormSection title="ข้อมูลหลัก" icon={<User size={16} />}>
-          <Input label="ชื่อ-นามสกุล (ไทย)" value={form.nameTh} onChange={(value) => setForm((prev) => ({ ...prev, nameTh: value }))} disabled={!isProfileUnlocked} />
-          <Input label="ชื่อ-นามสกุล (English)" value={form.nameEn} onChange={(value) => setForm((prev) => ({ ...prev, nameEn: value }))} disabled={!isProfileUnlocked} />
-          <Input label="ตำแหน่ง" value={form.positionTh} onChange={(value) => setForm((prev) => ({ ...prev, positionTh: value }))} disabled={!isProfileUnlocked} icon={<Briefcase size={14} />} />
-          <Input label="บริษัท/องค์กร" value={form.companyTh} onChange={(value) => setForm((prev) => ({ ...prev, companyTh: value }))} disabled={!isProfileUnlocked} icon={<Building2 size={14} />} />
-        </FormSection>
+          <Link
+            href="/manage/control-center"
+            className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group"
+            title="กลับไปหน้าจัดการ"
+          >
+            <ArrowRight size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
+          </Link>
+        </div>
+      </nav>
 
-        <FormSection title="การติดต่อ" icon={<Phone size={16} />}>
-          <Input label="เบอร์โทรศัพท์" value={form.phone} onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))} disabled={!isProfileUnlocked} icon={<Phone size={14} />} />
-          <Input label="อีเมล" value={form.email} onChange={(value) => setForm((prev) => ({ ...prev, email: value }))} disabled={!isProfileUnlocked} icon={<Mail size={14} />} />
-        </FormSection>
+      <section className="mx-auto w-full max-w-md px-4 pb-8 pt-5">
+        <button
+          type="button"
+          onClick={handleCreateDigitalNamecard}
+          className="mb-4 flex min-h-14 w-full items-center justify-between rounded-2xl bg-[#F97316] px-7 py-4 text-lg font-black text-white shadow-[0_20px_45px_-20px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-95"
+        >
+          <span className="flex items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/22">
+              <CreditCard size={20} />
+            </span>
+            <span>
+              <span className="block text-xl font-black text-white">สร้างนามบัตรดิจิตอล</span>
+            </span>
+          </span>
+          <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1 text-sm font-black tracking-[0.08em] text-white">
+            {isNewUser ? "0/1" : "1/1"}
+          </span>
+        </button>
 
-        <FormSection title="เกี่ยวกับฉัน" icon={<FileText size={16} />}>
-          <label className="block text-xs font-semibold text-[#475569]">แนะนำตัว</label>
-          <textarea
-            value={form.aboutMe}
-            onChange={(event) => setForm((prev) => ({ ...prev, aboutMe: event.target.value }))}
-            disabled={!isProfileUnlocked}
-            rows={5}
-            className="mt-1 w-full rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-sm text-[#0F172A] outline-none focus:border-[#C7D2E5] disabled:cursor-not-allowed disabled:opacity-60"
-            placeholder="แนะนำธุรกิจหรือความเชี่ยวชาญของคุณ"
-          />
-        </FormSection>
+        {shouldShowProfileForm && (
+          <>
+            <div ref={formStartRef} />
+            <section className="mt-4 rounded-3xl border border-[#F6D5BF] bg-white p-4 shadow-[0_18px_36px_-30px_rgba(249,115,22,0.55)]">
+              <div className="grid grid-cols-2 gap-2">
+                <Link
+                  href={publicPath ? `/${publicPath}` : `${v2Prefix}/manage/profile`}
+                  className="rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-center text-xs font-semibold text-[#475569]"
+                >
+                  ดูนามบัตร
+                </Link>
+                <button
+                  type="button"
+                  onClick={copyPublicUrl}
+                  className="rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-center text-xs font-semibold text-[#475569]"
+                >
+                  <span className="inline-flex items-center gap-1"><Copy size={13} /> คัดลอกลิงก์</span>
+                </button>
+              </div>
+            </section>
 
-        <FormSection title="โลโก้" icon={<ImageIcon size={16} />}>
-          <div className="space-y-3">
-            <input
-              ref={logoInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void uploadLogoImage(file);
-                }
-              }}
-            />
-
-            {logo?.url ? (
-              <div className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
-                <div className="flex items-center justify-center bg-white p-4">
-                  <img src={getAssetUrl(logo.url)} alt="Logo" className="max-h-28 w-auto object-contain" />
+            {!isProfileUnlocked && (
+              <section className="mt-4 rounded-3xl border border-[#F6D5BF] bg-[#FFF1E8] p-4 text-[#9A3412]">
+                <div className="flex items-start gap-2">
+                  <Lock size={16} className="mt-0.5" />
+                  <div>
+                    <p className="text-sm font-bold">ฟีเจอร์โปรไฟล์ถูกล็อก</p>
+                    <p className="text-xs opacity-80">บัญชีนี้ยังไม่ปลดล็อก จึงไม่สามารถบันทึกการแก้ไขได้</p>
+                  </div>
                 </div>
-                <div className="flex gap-2 border-t border-[#D9E1F2] p-3">
+              </section>
+            )}
+
+            <FormSection title="ข้อมูลหลัก" icon={<User size={16} />}>
+              <Input label="ชื่อ-นามสกุล (ไทย)" value={form.nameTh} onChange={(value) => setForm((prev) => ({ ...prev, nameTh: value }))} disabled={!isProfileUnlocked} />
+              <Input label="ชื่อ-นามสกุล (English)" value={form.nameEn} onChange={(value) => setForm((prev) => ({ ...prev, nameEn: value }))} disabled={!isProfileUnlocked} />
+              <Input label="ตำแหน่ง" value={form.positionTh} onChange={(value) => setForm((prev) => ({ ...prev, positionTh: value }))} disabled={!isProfileUnlocked} icon={<Briefcase size={14} />} />
+              <Input label="บริษัท/องค์กร" value={form.companyTh} onChange={(value) => setForm((prev) => ({ ...prev, companyTh: value }))} disabled={!isProfileUnlocked} icon={<Building2 size={14} />} />
+            </FormSection>
+
+            <FormSection title="รูปโปรไฟล์" icon={<ImageIcon size={16} />}>
+              <div className="space-y-3">
+                <input
+                  ref={profileImageInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void uploadProfileImage(file);
+                    }
+                  }}
+                />
+
+                {profileImageUrl ? (
+                  <div className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
+                    <div className="flex items-center justify-center bg-white p-4">
+                      <img
+                        src={getAssetUrl(profileImageUrl)}
+                        alt="Profile"
+                        className="h-[28rem] w-[28rem] rounded-2xl object-cover border border-[#D9E1F2]"
+                      />
+                    </div>
+                    <div className="flex gap-2 border-t border-[#D9E1F2] p-3">
+                      <button
+                        type="button"
+                        disabled={!isProfileUnlocked || uploadingProfileImage}
+                        onClick={() => profileImageInputRef.current?.click()}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-xs font-bold text-[#475569] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Upload size={14} />
+                        เปลี่ยนรูป
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isProfileUnlocked || uploadingProfileImage}
+                        onClick={() => setProfileImageUrl("")}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#F3C3C3] bg-[#FEF2F2] px-3 py-2 text-xs font-bold text-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 size={14} />
+                        ลบรูป
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!isProfileUnlocked || uploadingProfileImage}
+                    onClick={() => profileImageInputRef.current?.click()}
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFF] px-4 py-6 text-sm font-semibold text-[#475569] transition hover:border-[#F97316] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    {uploadingProfileImage ? <Loader2 size={18} className="animate-spin text-[#050579]" /> : <Upload size={18} className="text-[#050579]" />}
+                    {uploadingProfileImage ? "กำลังอัปโหลดรูปโปรไฟล์..." : "อัปโหลดรูปโปรไฟล์"}
+                  </button>
+                )}
+                <p className="text-xs text-[#94A3B8]">รองรับไฟล์ jpg, png, gif, webp ขนาดไม่เกิน 5MB</p>
+              </div>
+            </FormSection>
+
+            <FormSection title="การติดต่อ" icon={<Phone size={16} />}>
+              <Input label="เบอร์โทรศัพท์" value={form.phone} onChange={(value) => setForm((prev) => ({ ...prev, phone: value }))} disabled={!isProfileUnlocked} icon={<Phone size={14} />} />
+              <Input label="อีเมล" value={form.email} onChange={(value) => setForm((prev) => ({ ...prev, email: value }))} disabled={!isProfileUnlocked} icon={<Mail size={14} />} />
+            </FormSection>
+
+            <FormSection title="เกี่ยวกับฉัน" icon={<FileText size={16} />}>
+              <label className="block text-xs font-semibold text-[#475569]">แนะนำตัว</label>
+              <textarea
+                value={form.aboutMe}
+                onChange={(event) => setForm((prev) => ({ ...prev, aboutMe: event.target.value }))}
+                disabled={!isProfileUnlocked}
+                rows={5}
+                className="mt-1 w-full rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-sm text-[#0F172A] outline-none focus:border-[#C7D2E5] disabled:cursor-not-allowed disabled:opacity-60"
+                placeholder="แนะนำธุรกิจหรือความเชี่ยวชาญของคุณ"
+              />
+            </FormSection>
+
+            <FormSection title="โลโก้" icon={<ImageIcon size={16} />}>
+              <div className="space-y-3">
+                <input
+                  ref={logoInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void uploadLogoImage(file);
+                    }
+                  }}
+                />
+
+                {logo?.url ? (
+                  <div className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
+                    <div className="flex items-center justify-center bg-white p-4">
+                      <img src={getAssetUrl(logo.url)} alt="Logo" className="max-h-28 w-auto object-contain" />
+                    </div>
+                    <div className="flex gap-2 border-t border-[#D9E1F2] p-3">
+                      <button
+                        type="button"
+                        disabled={!isProfileUnlocked || uploadingLogo}
+                        onClick={() => logoInputRef.current?.click()}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-xs font-bold text-[#475569] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Upload size={14} />
+                        เปลี่ยนโลโก้
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isProfileUnlocked || uploadingLogo}
+                        onClick={() => setLogo(null)}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#F3C3C3] bg-[#FEF2F2] px-3 py-2 text-xs font-bold text-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 size={14} />
+                        ลบโลโก้
+                      </button>
+                    </div>
+                  </div>
+                ) : (
                   <button
                     type="button"
                     disabled={!isProfileUnlocked || uploadingLogo}
                     onClick={() => logoInputRef.current?.click()}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-xs font-bold text-[#475569] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFF] px-4 py-6 text-sm font-semibold text-[#475569] transition hover:border-[#F97316] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Upload size={14} />
-                    เปลี่ยนโลโก้
+                    {uploadingLogo ? <Loader2 size={18} className="animate-spin text-[#050579]" /> : <Upload size={18} className="text-[#050579]" />}
+                    {uploadingLogo ? "กำลังอัปโหลดโลโก้..." : "อัปโหลดโลโก้"}
                   </button>
-                  <button
-                    type="button"
-                    disabled={!isProfileUnlocked || uploadingLogo}
-                    onClick={() => setLogo(null)}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#F3C3C3] bg-[#FEF2F2] px-3 py-2 text-xs font-bold text-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Trash2 size={14} />
-                    ลบโลโก้
-                  </button>
-                </div>
+                )}
+                <p className="text-xs text-[#94A3B8]">รองรับไฟล์ jpg, png, gif, webp ขนาดไม่เกิน 5MB</p>
               </div>
-            ) : (
-              <button
-                type="button"
-                disabled={!isProfileUnlocked || uploadingLogo}
-                onClick={() => logoInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFF] px-4 py-6 text-sm font-semibold text-[#475569] transition hover:border-[#F97316] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {uploadingLogo ? <Loader2 size={18} className="animate-spin text-[#050579]" /> : <Upload size={18} className="text-[#050579]" />}
-                {uploadingLogo ? "กำลังอัปโหลดโลโก้..." : "อัปโหลดโลโก้"}
-              </button>
-            )}
-            <p className="text-xs text-[#94A3B8]">รองรับไฟล์ jpg, png, gif, webp ขนาดไม่เกิน 5MB</p>
-          </div>
-        </FormSection>
+            </FormSection>
 
-        <FormSection title="แบคกราวด์" icon={<ImageIcon size={16} />}>
-          <div className="space-y-3">
-            <input
-              ref={backgroundInputRef}
-              type="file"
-              accept="image/jpeg,image/png,image/gif,image/webp"
-              className="hidden"
-              onChange={(event) => {
-                const file = event.target.files?.[0];
-                if (file) {
-                  void uploadBackgroundImage(file);
-                }
-              }}
-            />
+            <FormSection title="แบคกราวด์" icon={<ImageIcon size={16} />}>
+              <div className="space-y-3">
+                <input
+                  ref={backgroundInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/gif,image/webp"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void uploadBackgroundImage(file);
+                    }
+                  }}
+                />
 
-            {backgrounds[0]?.url ? (
-              <div className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
-                <div className="relative aspect-[16/9] bg-white">
-                  <img src={getAssetUrl(backgrounds[0].url)} alt="Background preview" className="h-full w-full object-cover" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
-                  <div className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#050579]">
-                    Background Preview
+                {backgrounds[0]?.url ? (
+                  <div className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
+                    <div className="relative aspect-[16/9] bg-white">
+                      <img src={getAssetUrl(backgrounds[0].url)} alt="Background preview" className="h-full w-full object-cover" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/35 via-black/5 to-transparent" />
+                      <div className="absolute bottom-3 left-3 rounded-full bg-white/90 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-[#050579]">
+                        Background Preview
+                      </div>
+                    </div>
+                    <div className="flex gap-2 border-t border-[#D9E1F2] p-3">
+                      <button
+                        type="button"
+                        disabled={!isProfileUnlocked || uploadingBackground}
+                        onClick={() => backgroundInputRef.current?.click()}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-xs font-bold text-[#475569] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Upload size={14} />
+                        เปลี่ยนพื้นหลัง
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!isProfileUnlocked || uploadingBackground}
+                        onClick={() => setBackgrounds([])}
+                        className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#F3C3C3] bg-[#FEF2F2] px-3 py-2 text-xs font-bold text-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
+                      >
+                        <Trash2 size={14} />
+                        ลบพื้นหลัง
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="flex gap-2 border-t border-[#D9E1F2] p-3">
+                ) : (
                   <button
                     type="button"
                     disabled={!isProfileUnlocked || uploadingBackground}
                     onClick={() => backgroundInputRef.current?.click()}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-xs font-bold text-[#475569] disabled:cursor-not-allowed disabled:opacity-60"
+                    className="flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFF] px-4 py-6 text-sm font-semibold text-[#475569] transition hover:border-[#F97316] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    <Upload size={14} />
-                    เปลี่ยนพื้นหลัง
+                    {uploadingBackground ? <Loader2 size={18} className="animate-spin text-[#050579]" /> : <Upload size={18} className="text-[#050579]" />}
+                    {uploadingBackground ? "กำลังอัปโหลดพื้นหลัง..." : "อัปโหลดแบคกราวด์"}
                   </button>
-                  <button
-                    type="button"
-                    disabled={!isProfileUnlocked || uploadingBackground}
-                    onClick={() => setBackgrounds([])}
-                    className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#F3C3C3] bg-[#FEF2F2] px-3 py-2 text-xs font-bold text-[#B91C1C] disabled:cursor-not-allowed disabled:opacity-60"
-                  >
-                    <Trash2 size={14} />
-                    ลบพื้นหลัง
-                  </button>
-                </div>
+                )}
+                <p className="text-xs text-[#94A3B8]">ภาพนี้จะถูกใช้เป็นฉากหลังของหน้า public profile รองรับไฟล์ไม่เกิน 8MB</p>
               </div>
-            ) : (
-              <button
-                type="button"
-                disabled={!isProfileUnlocked || uploadingBackground}
-                onClick={() => backgroundInputRef.current?.click()}
-                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-dashed border-[#CBD5E1] bg-[#F8FAFF] px-4 py-6 text-sm font-semibold text-[#475569] transition hover:border-[#F97316] hover:bg-white disabled:cursor-not-allowed disabled:opacity-60"
-              >
-                {uploadingBackground ? <Loader2 size={18} className="animate-spin text-[#050579]" /> : <Upload size={18} className="text-[#050579]" />}
-                {uploadingBackground ? "กำลังอัปโหลดพื้นหลัง..." : "อัปโหลดแบคกราวด์"}
-              </button>
-            )}
-            <p className="text-xs text-[#94A3B8]">ภาพนี้จะถูกใช้เป็นฉากหลังของหน้า public profile รองรับไฟล์ไม่เกิน 8MB</p>
-          </div>
-        </FormSection>
+            </FormSection>
 
-        <FormSection title="วิดีโอ" icon={<Video size={16} />}>
-          <VideoUpload value={videoConfig} onChange={setVideoConfig} />
-        </FormSection>
-
-        <div className="h-28" />
+            <div className="h-28" />
+          </>
+        )}
       </section>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#D9E1F2] bg-white/92 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+14px)] pt-3 shadow-[0_-18px_40px_-28px_rgba(15,23,42,0.28)] backdrop-blur-md">
-        <div className="mx-auto w-full max-w-md">
-          <button
-            type="button"
-            onClick={onSave}
-            disabled={saving || !isProfileUnlocked}
-            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#F97316] px-4 py-4 font-black text-white shadow-[0_18px_36px_-24px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55"
-          >
-            {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
-            {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
-          </button>
+      {!isNewUser && (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-[#D9E1F2] bg-white/92 px-4 pb-[calc(env(safe-area-inset-bottom,0px)+14px)] pt-3 shadow-[0_-18px_40px_-28px_rgba(15,23,42,0.28)] backdrop-blur-md">
+          <div className="mx-auto w-full max-w-md">
+            <button
+              type="button"
+              onClick={onSave}
+              disabled={saving || !isProfileUnlocked}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#F97316] px-4 py-4 font-black text-white shadow-[0_18px_36px_-24px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-[0.99] disabled:cursor-not-allowed disabled:opacity-55"
+            >
+              {saving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />}
+              {saving ? "กำลังบันทึก..." : "บันทึกข้อมูล"}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       <Toast
         message={toast.message}

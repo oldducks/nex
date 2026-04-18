@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, ForbiddenException, Res } from '@nestjs/common';
 import { CatalogsService } from './catalogs.service';
 import { CreateCatalogDto } from './dto/create-catalog.dto';
 import { UpdateCatalogDto } from './dto/update-catalog.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UsersService } from '../users/users.service';
+import type { Response } from 'express';
 
 @Controller('catalogs')
 export class CatalogsController {
@@ -21,6 +22,18 @@ export class CatalogsController {
   @Get('view/:id')
   async findOnePublic(@Param('id') id: string) {
     return this.catalogsService.findOnePublic(+id);
+  }
+
+  @Get('view/:id/download-pdf')
+  async downloadPublicPdf(@Param('id') id: string, @Res() res: Response) {
+    const { buffer, fileName } = await this.catalogsService.generatePublicPdf(+id);
+    const asciiFallback = fileName.replace(/[^\x20-\x7E]/g, '_');
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename="${asciiFallback}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+    );
+    return res.send(buffer);
   }
 
   @Get('user-public/:userId')

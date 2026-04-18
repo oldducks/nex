@@ -24,6 +24,7 @@ import {
   Upload,
 } from "lucide-react";
 import { QrCodeImage } from "@/components/QrCode";
+import { QrCodeDownloadActions } from "@/components/QrCodeDownloadActions";
 import { Toast, type ToastType } from "@/components/Toast";
 
 interface Catalog {
@@ -33,6 +34,7 @@ interface Catalog {
   pdf_url?: string;
   layout_config?: {
     brand_logo?: string;
+    catalog_mode?: string;
     [key: string]: unknown;
   } | null;
   created_at: string;
@@ -45,6 +47,9 @@ interface Catalog {
 
 interface MeProfile {
   subscription_tier?: string;
+  user?: {
+    role?: string;
+  } | null;
 }
 
 const FacebookIcon = () => (
@@ -92,6 +97,7 @@ export default function CatalogManageV3Page() {
     type: "info",
     isVisible: false,
   });
+  const [isAdmin, setIsAdmin] = useState(false);
 
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
   const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "https://nexsolution.cloud";
@@ -104,6 +110,15 @@ export default function CatalogManageV3Page() {
   const resolvePlanLabel = (tier?: string) => {
     if (tier === "premium") return "แผนพรีเมียม";
     return "แผนพื้นฐาน";
+  };
+
+  const openCreateCatalogModal = () => {
+    if (!isAdmin && catalogs.length >= 1) {
+      showToast("ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน", "error");
+      return;
+    }
+
+    setShowModal(true);
   };
 
   useEffect(() => {
@@ -226,6 +241,9 @@ export default function CatalogManageV3Page() {
       if (profileRes.ok) {
         const profileData: MeProfile = await profileRes.json();
         setCurrentPlanLabel(resolvePlanLabel(profileData.subscription_tier));
+        setIsAdmin(
+          profileData.user?.role === "super_admin" || profileData.user?.role === "group_admin",
+        );
       }
 
       const res = await fetch(`${API_URL}/catalogs`, {
@@ -241,6 +259,12 @@ export default function CatalogManageV3Page() {
 
   const createCatalog = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isAdmin && catalogs.length >= 1) {
+      showToast("ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน", "error");
+      setShowModal(false);
+      return;
+    }
+
     try {
       const payload: Record<string, unknown> = {
         title: newCatalog.title,
@@ -261,9 +285,13 @@ export default function CatalogManageV3Page() {
         setShowModal(false);
         setNewCatalog({ title: "", description: "", brand_logo: "" });
         void fetchCatalogs();
+      } else {
+        const errorData = await res.json().catch(() => null);
+        showToast(errorData?.message || "ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน", "error");
       }
     } catch (error) {
       console.error(error);
+      showToast("สร้างแคตตาล็อกไม่สำเร็จ กรุณาลองใหม่", "error");
     }
   };
 
@@ -416,15 +444,25 @@ export default function CatalogManageV3Page() {
 
       <main className="relative z-10 mx-auto mt-6 w-full max-w-md px-4 pb-8 md:max-w-5xl md:px-6">
         <div className="mb-6 flex justify-center">
-          <button
-            onClick={() => setShowModal(true)}
-            className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#F97316] px-7 py-4 text-lg font-black text-white shadow-[0_20px_45px_-20px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-95 md:w-auto"
-          >
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/22">
-              <Plus size={22} strokeWidth={3} />
-            </span>
-            <span>สร้างแคตตาล็อกใหม่</span>
-          </button>
+          <div className="flex w-full flex-col gap-2 md:w-auto md:flex-row md:items-center">
+            <button
+              onClick={openCreateCatalogModal}
+              className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl bg-[#F97316] px-7 py-4 text-lg font-black text-white shadow-[0_20px_45px_-20px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-95 md:w-auto"
+            >
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/22">
+                <Plus size={22} strokeWidth={3} />
+              </span>
+              <span>สร้างแคตตาล็อกใหม่</span>
+            </button>
+
+            <Link
+              href="/manage/catalog-import-document"
+              className="inline-flex min-h-14 w-full items-center justify-center gap-3 rounded-2xl border border-[#D1DBEF] bg-white px-6 py-4 text-sm font-black text-[#334155] transition-all hover:border-[#BCCBE8] hover:bg-[#F8FAFF] md:w-auto"
+            >
+              <Upload size={18} />
+              <span>นำเข้าแคตตาล็อกเอกสาร</span>
+            </Link>
+          </div>
         </div>
 
         <section className="rounded-3xl border border-[#D9E1F2] bg-white p-4 shadow-[0_18px_40px_-30px_rgba(5,5,121,0.16)]">
@@ -463,11 +501,17 @@ export default function CatalogManageV3Page() {
                 เริ่มสร้างแคตตาล็อกแรกของคุณเพื่อเพิ่มรายการสินค้าและแชร์กับลูกค้าได้ทันที
               </p>
               <button
-                onClick={() => setShowModal(true)}
+                onClick={openCreateCatalogModal}
                 className="mt-6 inline-flex min-h-12 items-center justify-center rounded-2xl bg-[#F97316] px-6 py-3 text-sm font-black text-white shadow-[0_18px_40px_-26px_rgba(249,115,22,0.45)] transition-colors hover:bg-[#EA580C]"
               >
                 สร้างแคตตาล็อกตอนนี้
               </button>
+              <Link
+                href="/manage/catalog-import-document"
+                className="mt-2 inline-flex min-h-11 items-center justify-center rounded-2xl border border-[#D1DBEF] bg-white px-5 py-2.5 text-sm font-bold text-[#475569] transition-colors hover:bg-[#F8FAFF]"
+              >
+                นำเข้าแคตตาล็อกเอกสาร
+              </Link>
             </section>
           ) : filteredCatalogs.length === 0 ? (
             <section className="mt-5 rounded-[28px] border border-[#D9E1F2] bg-[#F9FBFF] px-6 py-12 text-center">
@@ -485,6 +529,7 @@ export default function CatalogManageV3Page() {
                 const expandedType = expandedPanel.catalogId === catalog.id ? expandedPanel.type : null;
                 const isShareExpanded = expandedType === "share";
                 const cardImage = getCatalogCardImage(catalog);
+                const isDocumentCatalog = catalog.layout_config?.catalog_mode === "document_book";
                 return (
                   <article
                     key={catalog.id}
@@ -524,14 +569,14 @@ export default function CatalogManageV3Page() {
                       <div className="mt-4 border-t border-[#DEE7F7] pt-4">
                         <div className="grid gap-2 md:grid-cols-2">
                           <Link
-                            href={`/manage/catalogs/${catalog.id}`}
+                            href={isDocumentCatalog ? `/manage/catalog-import-document?catalog_id=${catalog.id}` : `/manage/catalogs/${catalog.id}`}
                             className="flex items-center justify-between rounded-2xl bg-[#050579] px-4 py-3 text-sm font-black text-white transition-colors hover:bg-[#07079A]"
                           >
-                            <span>จัดการสินค้า</span>
+                            <span>{isDocumentCatalog ? "จัดการหน้าเอกสาร" : "จัดการสินค้า"}</span>
                             <ExternalLink size={16} />
                           </Link>
                           <Link
-                            href={`/catalog/${catalog.id}`}
+                            href={`/catalog/${catalog.id}?view=book`}
                             target="_blank"
                             className="flex items-center justify-between rounded-2xl border border-[#D1DBEF] bg-white/92 px-4 py-3 text-sm font-semibold text-[#0F172A] transition hover:border-[#B9C9E6]"
                           >
@@ -588,10 +633,21 @@ export default function CatalogManageV3Page() {
                         </div>
 
                         <div className="mt-3 rounded-2xl border border-[#D1DBEF] bg-[#F7FAFF] p-4 text-center">
-                          <div className="mx-auto mb-3 w-fit rounded-2xl border border-[#E2E8F0] bg-white p-3 shadow-sm">
+                          <div className="mx-auto w-full max-w-[250px] rounded-[28px] border border-[#D9E1F2] bg-white p-4 shadow-sm">
+                            <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.16em] text-[#94A3B8]">QR Code</div>
                             <QrCodeImage url={getCatalogUrl(catalog.id)} size={150} />
+                            <div className="mt-3 text-sm font-semibold text-[#050579]">{catalog.title}</div>
+                            <div className="mt-1 break-all text-[11px] leading-5 text-[#64748B]">{getCatalogUrl(catalog.id)}</div>
+                            <QrCodeDownloadActions
+                              qrValue={getCatalogUrl(catalog.id)}
+                              fileBaseName={`catalog-${catalog.id}`}
+                              titleLine="QR Code"
+                              nameLine={catalog.title}
+                              bottomLabel="URL"
+                              bottomLine={getCatalogUrl(catalog.id)}
+                              className="mt-4"
+                            />
                           </div>
-                          <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-[#94A3B8]">สแกนเพื่อเข้าชมแคตตาล็อก</p>
                         </div>
 
                         <div className="mt-3 flex items-center justify-center gap-2.5">
@@ -639,17 +695,17 @@ export default function CatalogManageV3Page() {
       </main>
 
       {showModal && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 sm:p-4">
           <div className="absolute inset-0 bg-[#050579]/40 backdrop-blur-md" onClick={() => setShowModal(false)} />
-          <div className="relative z-10 w-full max-w-md rounded-[32px] border border-[#D9E1F2] bg-white p-8 shadow-2xl">
-            <h2 className="mb-2 text-2xl font-black text-[#050579]">สร้างแคตตาล็อกใหม่</h2>
-            <p className="mb-8 text-sm font-medium text-[#64748B]">เริ่มต้นพื้นที่นำเสนอสินค้าของคุณในธีมมาตรฐานเดียวกับระบบจัดการ NEX</p>
-            <form onSubmit={createCatalog} className="space-y-6">
+          <div className="relative z-10 w-full max-w-md rounded-[28px] border border-[#D9E1F2] bg-white p-5 shadow-2xl sm:rounded-[32px] sm:p-8">
+            <h2 className="mb-2 text-2xl font-black leading-tight text-[#050579] sm:text-2xl">สร้างแคตตาล็อกใหม่</h2>
+            <p className="mb-6 text-sm font-medium leading-7 text-[#64748B] sm:mb-8">เริ่มต้นพื้นที่นำเสนอสินค้าของคุณในธีมมาตรฐานเดียวกับระบบจัดการ NEX</p>
+            <form onSubmit={createCatalog} className="space-y-5 sm:space-y-6">
               <div className="space-y-2">
                 <label className="ml-1 block text-[10px] font-black uppercase tracking-widest text-[#64748B]">หัวข้อแคตตาล็อก</label>
                 <input
                   required
-                  className="w-full rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-3.5 text-base font-bold text-[#050579] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20"
+                  className="w-full rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-4 text-base font-bold text-[#050579] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20"
                   value={newCatalog.title}
                   placeholder="เช่น คอลเลกชันฤดูร้อน 2024"
                   onChange={(e) => setNewCatalog({ ...newCatalog, title: e.target.value })}
@@ -658,57 +714,13 @@ export default function CatalogManageV3Page() {
               <div className="space-y-2">
                 <label className="ml-1 block text-[10px] font-black uppercase tracking-widest text-[#64748B]">คำอธิบาย</label>
                 <textarea
-                  className="h-32 w-full resize-none rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-4 font-medium text-[#0F172A] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20"
+                  className="h-36 w-full resize-none rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] px-4 py-4 font-medium text-[#0F172A] outline-none transition-all placeholder:text-[#94A3B8] focus:ring-2 focus:ring-[#F97316]/20"
                   value={newCatalog.description}
                   placeholder="เพิ่มรายละเอียดเกี่ยวกับแคตตาล็อกนี้..."
                   onChange={(e) => setNewCatalog({ ...newCatalog, description: e.target.value })}
                 />
               </div>
-              <div className="space-y-3">
-                <label className="ml-1 block text-[10px] font-black uppercase tracking-widest text-[#64748B]">โลโก้แบรนด์สินค้า</label>
-                <input
-                  ref={createLogoInputRef}
-                  type="file"
-                  accept="image/jpeg,image/png,image/gif,image/webp"
-                  className="hidden"
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void uploadLogoImage(file, "create");
-                  }}
-                />
-                <div className="flex items-center gap-3">
-                  <div className="flex h-20 w-20 items-center justify-center overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF]">
-                    {newCatalog.brand_logo ? (
-                      <img src={getImageUrl(newCatalog.brand_logo)} alt="Brand logo preview" className="h-full w-full object-contain" />
-                    ) : (
-                      <ImageIcon size={24} className="text-[#94A3B8]" />
-                    )}
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={() => createLogoInputRef.current?.click()}
-                      disabled={uploadingLogoTarget === "create"}
-                      className="inline-flex items-center gap-2 rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-sm font-bold text-[#334155] transition-colors hover:bg-white disabled:opacity-60"
-                    >
-                      {uploadingLogoTarget === "create" ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-                      {uploadingLogoTarget === "create" ? "กำลังอัปโหลด..." : "อัปโหลดโลโก้"}
-                    </button>
-                    {newCatalog.brand_logo && (
-                      <button
-                        type="button"
-                        onClick={() => setNewCatalog((prev) => ({ ...prev, brand_logo: "" }))}
-                        disabled={uploadingLogoTarget === "create"}
-                        className="rounded-xl border border-[#FECACA] bg-[#FEF2F2] px-3 py-2 text-sm font-bold text-[#B91C1C] transition-colors hover:bg-[#FEE2E2] disabled:opacity-60"
-                      >
-                        ลบรูป
-                      </button>
-                    )}
-                  </div>
-                </div>
-                <p className="text-xs text-[#94A3B8]">รองรับ JPG, PNG, GIF, WebP ขนาดไม่เกิน 5MB</p>
-              </div>
-              <div className="flex gap-4 pt-4">
+              <div className="flex gap-3 pt-3 sm:gap-4 sm:pt-4">
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
@@ -716,7 +728,7 @@ export default function CatalogManageV3Page() {
                 >
                   ยกเลิก
                 </button>
-                <button className="flex-[2] rounded-2xl bg-[#F97316] py-4 text-xs font-black uppercase tracking-widest text-white shadow-md transition-all hover:bg-[#EA580C] active:scale-95">
+                <button className="flex-[1.8] rounded-2xl bg-[#F97316] py-4 text-xs font-black uppercase tracking-widest text-white shadow-md transition-all hover:bg-[#EA580C] active:scale-95">
                   สร้างแคตตาล็อก
                 </button>
               </div>

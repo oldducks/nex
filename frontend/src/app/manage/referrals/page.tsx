@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
 import { QrCodeImage } from '@/components/QrCode';
+import { QrCodeDownloadActions } from '@/components/QrCodeDownloadActions';
 
 interface UserData {
   id: number;
@@ -344,16 +345,24 @@ export default function ReferralsPage() {
            {/* QR Code */}
            <div className="lg:col-span-4 rounded-[32px] border border-[#D9E1F2] bg-white p-8 flex flex-col items-center justify-center text-center shadow-sm">
               <h3 className="text-lg font-black text-[#050579] mb-4">สแกนรหัสเพื่อไปสมัคร</h3>
-              <div className="p-3 bg-white border border-[#E2E8F0] rounded-3xl mb-4 transition-transform hover:scale-105 duration-300">
+              <div className="w-full max-w-[280px] rounded-[28px] border border-[#D9E1F2] bg-[#F8FAFF] p-5 shadow-[0_18px_34px_-24px_rgba(15,23,42,0.24)]">
+                 <div className="mb-3 text-[10px] font-bold uppercase tracking-[0.18em] text-[#94A3B8]">QR Code</div>
+                 <div className="rounded-3xl border border-[#E2E8F0] bg-white p-3 transition-transform duration-300 hover:scale-105">
                  <QrCodeImage id="referral-qr-canvas" useCanvas={true} url={referralUrl} size={160} />
+                 </div>
+                 <div className="mt-3 text-xs font-semibold text-[#050579]">{user?.referral_code || 'Referral QR'}</div>
+                 <div className="mt-1 break-all text-[11px] leading-5 text-[#64748B]">{referralUrl}</div>
+                 <QrCodeDownloadActions
+                   qrValue={referralUrl}
+                   fileBaseName={`referral-${user?.referral_code || 'qr'}`}
+                   titleLine="QR Code"
+                   nameLine={user?.referral_code || 'Referral QR'}
+                   bottomLabel="URL"
+                   bottomLine={referralUrl}
+                   buttonLabel="กดเพื่อ download qr code ลงในโทรศัพท์"
+                   className="mt-4"
+                 />
               </div>
-              <button
-                onClick={downloadQrCode}
-                className="flex items-center gap-2 rounded-xl bg-[#F6F8FF] px-4 py-2 text-xs font-bold text-[#050579] hover:bg-[#EEF2FF] transition-all border border-blue-100"
-              >
-                <Download size={14} />
-                Download QR Code
-              </button>
            </div>
         </div>
 

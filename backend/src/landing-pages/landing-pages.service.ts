@@ -7,6 +7,8 @@ import { User, UserRole } from '../users/entities/user.entity';
 
 @Injectable()
 export class LandingPagesService {
+    private readonly maxMediaBlocksPerType = 20;
+
     constructor(
         @InjectRepository(LandingPage)
         private repository: Repository<LandingPage>,
@@ -122,16 +124,16 @@ export class LandingPagesService {
             dto.slug = await this.makeUniqueSlug(baseSlug, id);
         }
 
-        // Check image and video limits (max 10 each per landing page)
+        // Check image and video limits (max 20 each per landing page)
         if (dto.content_blocks) {
             const imageBlocks = dto.content_blocks.filter((b: any) => b.type === 'image');
             const videoBlocks = dto.content_blocks.filter((b: any) => b.type === 'video');
             
-            if (imageBlocks.length > 10) {
-                throw new ConflictException('จำกัดรูปภาพไม่เกิน 10 รูปต่อ Landing Page');
+            if (imageBlocks.length > this.maxMediaBlocksPerType) {
+                throw new ConflictException(`จำกัดรูปภาพไม่เกิน ${this.maxMediaBlocksPerType} รูปต่อ Landing Page`);
             }
-            if (videoBlocks.length > 10) {
-                throw new ConflictException('จำกัดวิดีโอไม่เกิน 10 วิดีโอต่อ Landing Page');
+            if (videoBlocks.length > this.maxMediaBlocksPerType) {
+                throw new ConflictException(`จำกัดวิดีโอไม่เกิน ${this.maxMediaBlocksPerType} วิดีโอต่อ Landing Page`);
             }
         }
 

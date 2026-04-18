@@ -214,7 +214,6 @@ export function LayoutEditorProvider({ children, profileData, userId }: LayoutEd
             discardChanges,
         }}>
             {children}
-            {isOwner && <LayoutEditorToolbar saving={saving} />}
         </LayoutEditorContext.Provider>
     );
 }
