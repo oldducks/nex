@@ -279,16 +279,6 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                             QR Code
                         </div>
                         <QrCodeImage url={shareUrl} size={180} />
-                        <div style={{
-                            marginTop: '1rem',
-                            fontSize: '12px',
-                            lineHeight: 1.65,
-                            color: '#64748B',
-                            maxWidth: '15rem',
-                            wordBreak: 'break-word'
-                        }}>
-                            {shareUrl}
-                        </div>
                         <QrCodeDownloadActions
                             qrValue={shareUrl}
                             fileBaseName={`landing-page-${page.slug}`}
