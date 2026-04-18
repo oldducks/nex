@@ -54,37 +54,6 @@ function roundedRect(
   context.closePath();
 }
 
-function wrapText(
-  context: CanvasRenderingContext2D,
-  text: string,
-  x: number,
-  startY: number,
-  maxWidth: number,
-  lineHeight: number,
-) {
-  const words = text.split(/(\s+)/).filter(Boolean);
-  const lines: string[] = [];
-  let currentLine = "";
-
-  for (const word of words) {
-    const testLine = `${currentLine}${word}`;
-    if (context.measureText(testLine).width > maxWidth && currentLine.trim()) {
-      lines.push(currentLine.trim());
-      currentLine = word.trimStart();
-    } else {
-      currentLine = testLine;
-    }
-  }
-
-  if (currentLine.trim()) {
-    lines.push(currentLine.trim());
-  }
-
-  lines.forEach((line, index) => {
-    context.fillText(line, x, startY + index * lineHeight);
-  });
-}
-
 export default function ManageQrPage() {
   const router = useRouter();
   const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -169,14 +138,6 @@ export default function ManageQrPage() {
             context.stroke();
 
             context.drawImage(canvas, 300, 480, 900, 900);
-
-            context.fillStyle = "#64748b";
-            context.font = "600 34px sans-serif";
-            context.fillText("URL", outputCanvas.width / 2, 1545);
-
-            context.fillStyle = "#050579";
-            context.font = "700 40px sans-serif";
-            wrapText(context, exportConfig.target_url, outputCanvas.width / 2, 1625, 980, 58);
 
             const url = outputCanvas.toDataURL("image/png");
             const link = document.createElement("a");
