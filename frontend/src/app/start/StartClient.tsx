@@ -124,14 +124,22 @@ export default function StartClient({ initialRef }: StartClientProps) {
           </div>
 
           {/* Right – VS Box (desktop only) */}
-          <div className="hidden md:block bg-white/6 border border-white/12 rounded-[20px] p-5 backdrop-blur-sm">
-            <div className="font-mono text-[10px] font-bold tracking-widest text-white/40 uppercase mb-[14px]">
+          <div
+            className="hidden md:block rounded-[20px] p-5 backdrop-blur-sm border border-[#F97316]/40"
+            style={{
+              background: 'rgba(255,255,255,0.08)',
+              boxShadow: '0 0 40px rgba(249,115,22,0.15), 0 8px 32px rgba(0,0,0,0.3)',
+            }}
+          >
+            {/* orange top accent */}
+            <div className="h-[3px] rounded-full mb-4" style={{ background: 'linear-gradient(90deg,transparent,#F97316,transparent)' }} />
+            <div className="font-mono text-[10px] font-bold tracking-widest text-white/70 uppercase mb-[14px]">
               // เปรียบเทียบ
             </div>
             <div className="flex gap-[10px] mb-[10px] items-stretch">
               {/* Them */}
-              <div className="flex-1 rounded-[10px] p-[14px] px-4 bg-white/4 border border-white/8">
-                <div className="text-[11px] font-bold tracking-wider text-white/40 mb-2">
+              <div className="flex-1 rounded-[10px] p-[14px] px-4 bg-white/8 border border-white/20">
+                <div className="text-[11px] font-bold tracking-wider text-white/60 mb-2">
                   ตามบัตรดิจิทัลทั่วไป
                 </div>
                 {[
@@ -145,18 +153,21 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 ].map(([icon, label, faded]) => (
                   <div
                     key={String(label)}
-                    className={`flex items-center gap-[7px] text-xs mb-[5px] ${faded ? 'opacity-35' : ''} text-white/50`}
+                    className={`flex items-center gap-[7px] text-xs mb-[5px] ${faded ? 'opacity-40' : ''} text-white/70`}
                   >
                     <span className="text-[11px]">{icon}</span>
                     {label}
                   </div>
                 ))}
               </div>
-              <div className="flex items-center justify-center text-white/25 text-[11px] font-bold px-[2px]">
+              <div className="flex items-center justify-center text-white/50 text-[12px] font-bold px-[2px]">
                 VS
               </div>
               {/* Us */}
-              <div className="flex-1 rounded-[10px] p-[14px] px-4 bg-[#F97316]/10 border border-[#F97316]/30">
+              <div
+                className="flex-1 rounded-[10px] p-[14px] px-4 border border-[#F97316]/60"
+                style={{ background: 'rgba(249,115,22,0.15)' }}
+              >
                 <div className="text-[11px] font-bold tracking-wider text-[#F97316] mb-2">
                   NEX Solution
                 </div>
@@ -171,7 +182,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 ].map(([icon, label, color]) => (
                   <div
                     key={String(label)}
-                    className="flex items-center gap-[7px] text-xs mb-[5px] text-white/85"
+                    className="flex items-center gap-[7px] text-xs mb-[5px] text-white"
                   >
                     <span
                       className="text-[11px]"
@@ -184,7 +195,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 ))}
               </div>
             </div>
-            <div className="text-center text-[11px] text-white/40 pt-[10px] border-t border-white/8">
+            <div className="text-center text-[12px] text-white/70 pt-[10px] border-t border-white/15">
               NEX มีมากกว่าบริการทั่วไปถึง{' '}
               <strong className="text-[#F97316]">5 ฟีเจอร์</strong>{' '}
               — ในราคาที่ยืดหยุ่นกว่า
