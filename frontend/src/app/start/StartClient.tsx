@@ -277,11 +277,10 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   🪪 NEX Card
                 </div>
                 <h3 className="text-[clamp(22px,3vw,30px)] font-bold text-[#050579] mb-[10px] leading-tight">
-                  ตามบัตรดิจิทัล
+                  นามบัตรดิจิทัล
                   <br />
-                  ที่{' '}
                   <em className="not-italic text-[#F97316]">
-                    ลูกค้าจำคุณได้ทันที
+                    ที่ลูกค้าบันทึกได้ทันที
                   </em>
                 </h3>
                 <p className="text-[14px] text-[#475569] leading-relaxed mb-5">
@@ -313,8 +312,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   <p className="text-xs text-[#92400E] leading-snug">
                     <strong>NEX vs ตามบัตรดิจิทัลทั่วไป:</strong>{' '}
                     ทั้งคู่มีนามบัตรดิจิทัล แต่ NEX มี Analytics, ลิงค์ส่วนตัว
-                    และเชื่อมต่อกัน Catalog + Sale Page ได้ – AIS ใช้ได้แค่
-                    standalone card
+                    และเชื่อมต่อกัน Catalog + Sale Page ได้ – บริการทั่วไปใช้ได้แต่ standalone card เท่านั้น
                   </p>
                 </div>
                 <Link
