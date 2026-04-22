@@ -86,17 +86,14 @@ export default function StartClient({ initialRef }: StartClientProps) {
               มากกว่าตามบัตรดิจิทัล · ครบจบที่เดียว
             </div>
             <h1 className="text-[clamp(28px,4vw,48px)] font-bold text-white leading-tight mb-4">
-              บริการตั้งต้นให้เร็ว ด้วย{' '}
-              <em className="not-italic text-[#F97316]">ตามบัตร</em>
+              บริการทั่วไปให้แค่ นามบัตร
               <br />
-              NEX ให้คุณ{' '}
-              <em className="not-italic text-[#F97316]">ขายได้จริง</em>
+              <em className="not-italic text-[#F97316]">NEX ให้คุณ ขายได้จริง</em>
             </h1>
             <p className="text-[15px] text-white/72 leading-relaxed mb-7 max-w-[460px]">
               NEX Card · NEX Catalog · NEX Sale Page
               <br />
-              3 เครื่องมือที่ทำงานร่วมกัน – ตั้งตัวคนเดียว ถึงกิจการขาย
-              ระบบเดียว
+              3 เครื่องมือที่ทำงานร่วมกัน — ตั้งแต่แนะนำตัว ถึงปิดการขาย ในระบบเดียว
             </p>
             <div className="flex gap-[10px] flex-wrap mb-8">
               <Link
@@ -180,9 +177,9 @@ export default function StartClient({ initialRef }: StartClientProps) {
               </div>
             </div>
             <div className="text-center text-[11px] text-white/40 pt-[10px] border-t border-white/8">
-              NEX มีมากกว่า AIS ถึง{' '}
-              <strong className="text-[#F97316]">5 ฟีเจอร์</strong> –
-              ราคาที่ยืดหยุ่นกว่า
+              NEX มีมากกว่าบริการทั่วไปถึง{' '}
+              <strong className="text-[#F97316]">5 ฟีเจอร์</strong>{' '}
+              — ในราคาที่ยืดหยุ่นกว่า
             </div>
           </div>
         </div>
