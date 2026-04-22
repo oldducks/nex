@@ -57,7 +57,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
             </a>
             <Link
               href="/auth/login"
-              className="text-[14px] text-white/85 px-4 py-[7px] rounded-lg border border-white/20 hover:border-white/40 transition-all"
+              className="hidden sm:block text-[14px] text-white/85 px-4 py-[7px] rounded-lg border border-white/20 hover:border-white/40 transition-all"
             >
               เข้าสู่ระบบ
             </Link>
@@ -232,7 +232,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
           </div>
 
           {/* Tabs */}
-          <div className="flex justify-center gap-2 mt-10 mb-8 flex-wrap">
+          <div className="flex gap-2 mt-10 mb-8 overflow-x-auto pb-1 sm:justify-center sm:flex-wrap scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
             {(
               [
                 { id: 'card', icon: '🪪', label: 'NEX Card', badge: 'มีทั่วไป', badgeStyle: {} },
@@ -255,7 +255,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveProduct(tab.id)}
-                className={`flex items-center gap-2 px-5 py-[10px] rounded-[10px] border-[1.5px] text-[14px] font-semibold transition-all ${
+                className={`flex items-center gap-2 px-5 py-[10px] rounded-[10px] border-[1.5px] text-[14px] font-semibold transition-all shrink-0 ${
                   activeProduct === tab.id
                     ? 'bg-[#050579] border-[#050579] text-white'
                     : 'bg-white border-[#D9E1F2] text-[#475569] hover:border-[#050579] hover:text-[#050579]'
@@ -622,7 +622,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   { feature: 'QR Code', them: '✓', us: '✓' },
                   { feature: 'vCard / บันทึกเบอร์ทันที', them: 'บางเจ้าเท่านั้น', us: '✓ ทุกแพลน', usGreen: true },
                   { feature: 'Catalog สินค้า (NEX Catalog)', them: '✗', us: '✓', usGreen: true },
-                  { feature: 'Sale Page / Landing Page (NEX Sale Page)', them: '✗', us: '✓', usGreen: true },
+                  { feature: 'Sale Page / Landing Page', them: '✗', us: '✓', usGreen: true },
                   { feature: 'ฟอร์มรับ Lead + Export CSV', them: '✗', us: '✓', usGreen: true },
                   { feature: 'Analytics Dashboard', them: '✗', us: '✓ (Pro)', usGreen: true },
                   { feature: 'AI สร้างสื่อการขาย', them: '✗', us: '✓ (Pro)', usGreen: true },
@@ -635,7 +635,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   },
                 ].map(({ feature, them, us, themRed, usGreen }) => (
                   <tr key={feature}>
-                    <td className="p-[13px] px-5 text-[13px] font-medium text-[#0F172A] bg-[#FAFBFF] border-b border-[#D9E1F2]">
+                    <td className="p-3 px-4 sm:p-[13px] sm:px-5 text-[12px] sm:text-[13px] font-medium text-[#0F172A] bg-[#FAFBFF] border-b border-[#D9E1F2] leading-snug">
                       {feature}
                     </td>
                     <td className="p-[13px] px-5 text-[13px] border-b border-[#D9E1F2] bg-white text-[#475569] hidden sm:table-cell">
@@ -649,7 +649,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                         </span>
                       )}
                     </td>
-                    <td className="p-[13px] px-5 text-[13px] border-b border-[#D9E1F2] bg-[#FFF9F5]">
+                    <td className="p-3 px-4 sm:p-[13px] sm:px-5 text-[13px] border-b border-[#D9E1F2] bg-[#FFF9F5]">
                       {us === '✓' || us?.startsWith('✓') ? (
                         <span className={`font-bold ${usGreen ? 'text-[#16A34A]' : 'text-[#16A34A]'} text-[15px]`}>
                           {us.length > 1 ? (
