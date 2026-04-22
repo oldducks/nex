@@ -32,7 +32,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
       {/* ── NAVBAR ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050579]/97 backdrop-blur-md border-b border-white/10">
         <div className="max-w-[1080px] mx-auto px-6 flex items-center justify-between h-[60px]">
-          <Link href="/" className="bg-white rounded-lg px-3 py-1 flex items-center">
+          <Link href="/" className="bg-white/50 rounded-lg px-3 py-1 flex items-center">
             <Image
               src="/nex-logo-current-transparent.png"
               alt="NEX Solution"
