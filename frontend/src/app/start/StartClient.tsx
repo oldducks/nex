@@ -133,9 +133,6 @@ export default function StartClient({ initialRef }: StartClientProps) {
           >
             {/* orange top accent */}
             <div className="h-[3px] rounded-full mb-4" style={{ background: 'linear-gradient(90deg,transparent,#F97316,transparent)' }} />
-            <div className="font-mono text-[10px] font-bold tracking-widest text-white/70 uppercase mb-[14px]">
-              // เปรียบเทียบ
-            </div>
             <div className="flex gap-[10px] mb-[10px] items-stretch">
               {/* Them */}
               <div className="flex-1 rounded-[10px] p-[14px] px-4 bg-white/8 border border-white/20">
@@ -228,9 +225,6 @@ export default function StartClient({ initialRef }: StartClientProps) {
       <section id="products" className="py-20 bg-[#F6F8FF]">
         <div className="max-w-[1080px] mx-auto px-6">
           <div className="text-center mb-4">
-            <div className="inline-block text-[11px] font-bold tracking-widest uppercase text-[#F97316] bg-[#F97316]/10 border border-[#F97316]/25 px-[14px] py-1 rounded-full mb-[14px]">
-              // 3 ผลิตภัณฑ์
-            </div>
             <h2 className="text-[clamp(22px,3.5vw,36px)] font-bold text-[#050579] leading-tight">
               เลือกดูผลิตภัณฑ์แต่ละอย่าง
               <br />
@@ -603,9 +597,6 @@ export default function StartClient({ initialRef }: StartClientProps) {
       {/* ── COMPARISON TABLE ── */}
       <section id="compare" className="py-20 bg-[#EEF0FF]">
         <div className="max-w-[1080px] mx-auto px-6">
-          <div className="inline-block text-[11px] font-bold tracking-widest uppercase text-[#F97316] bg-[#F97316]/10 border border-[#F97316]/25 px-[14px] py-1 rounded-full mb-[14px]">
-            // เปรียบเทียบ
-          </div>
           <h2 className="text-[clamp(22px,3.5vw,36px)] font-bold text-[#050579] mb-2">
             NEX vs บริการนามบัตรทั่วไป
           </h2>
@@ -687,9 +678,6 @@ export default function StartClient({ initialRef }: StartClientProps) {
       <section id="pricing" className="py-20 bg-[#F6F8FF]">
         <div className="max-w-[1080px] mx-auto px-6">
           <div className="text-center mb-10">
-            <div className="inline-block text-[11px] font-bold tracking-widest uppercase text-[#F97316] bg-[#F97316]/10 border border-[#F97316]/25 px-[14px] py-1 rounded-full mb-[14px]">
-              // ราคา
-            </div>
             <h2 className="text-[clamp(22px,3.5vw,36px)] font-bold text-[#050579] leading-tight mb-[10px]">
               เริ่มต้น<span className="text-[#F97316]">ฟรี</span> อัปเกรดเมื่อพร้อม
             </h2>
