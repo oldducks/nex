@@ -588,8 +588,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
             // เปรียบเทียบ
           </div>
           <h2 className="text-[clamp(22px,3.5vw,36px)] font-bold text-[#050579] mb-2">
-            NEX vs ตามบัตรดิจิทัลทั่วไป{' '}
-            <em className="not-italic text-[#F97316]">กัน</em>
+            NEX vs บริการนามบัตรทั่วไป
           </h2>
           <p className="text-[14px] text-[#475569] mb-0">
             เปรียบเทียบกับบริการตามบัตรดิจิทัล Basic ทั่วไปในตลาด
@@ -611,7 +610,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
               </thead>
               <tbody>
                 {[
-                  { feature: 'ตามบัตรดิจิทัล (Digital Card)', them: '✓', us: '✓' },
+                  { feature: 'นามบัตรดิจิทัล (Digital Card)', them: '✓', us: '✓' },
                   { feature: 'QR Code', them: '✓', us: '✓' },
                   { feature: 'vCard / บันทึกเบอร์ทันที', them: 'บางเจ้าเท่านั้น', us: '✓ ทุกแพลน', usGreen: true },
                   { feature: 'Catalog สินค้า (NEX Catalog)', them: '✗', us: '✓', usGreen: true },
@@ -619,7 +618,6 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   { feature: 'ฟอร์มรับ Lead + Export CSV', them: '✗', us: '✓', usGreen: true },
                   { feature: 'Analytics Dashboard', them: '✗', us: '✓ (Pro)', usGreen: true },
                   { feature: 'AI สร้างสื่อการขาย', them: '✗', us: '✓ (Pro)', usGreen: true },
-                  { feature: 'แพลนฟรีตลอดชีพ', them: '✗', us: '✓', usGreen: true },
                   {
                     feature: 'ผูกกับ Provider / ล็อคอิน',
                     them: 'ผูกกับ provider หรือล็อคอิน',
@@ -734,7 +732,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   'NEX Sale Page – หน้าขาย + Lead Form',
                   'Analytics Dashboard',
                   'AI สร้างสื่อการขาย',
-                  'ไม่จำกัดจำนวนผู้ดูเพจ',
+                  'ไม่จำกัดจำนวน ทุกฟีเจอร์',
                 ].map((text) => (
                   <li key={text} className="flex gap-2 text-[14px] text-[#475569] items-start">
                     <span className="shrink-0 font-bold text-[#16A34A]">✓</span>
