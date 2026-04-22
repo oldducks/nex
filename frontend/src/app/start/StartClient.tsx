@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 type Product = 'card' | 'catalog' | 'salepage';
 
@@ -31,8 +32,15 @@ export default function StartClient({ initialRef }: StartClientProps) {
       {/* ── NAVBAR ── */}
       <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050579]/97 backdrop-blur-md border-b border-white/10">
         <div className="max-w-[1080px] mx-auto px-6 flex items-center justify-between h-[60px]">
-          <Link href="/" className="text-[21px] font-bold text-white">
-            NEX<span className="text-[#F97316]">.</span>
+          <Link href="/">
+            <Image
+              src="/nex-logo-current-transparent.png"
+              alt="NEX Solution"
+              width={100}
+              height={36}
+              className="object-contain"
+              priority
+            />
           </Link>
           <div className="flex items-center gap-2">
             <a
