@@ -232,7 +232,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
           </div>
 
           {/* Tabs */}
-          <div className="flex gap-2 mt-10 mb-8 overflow-x-auto pb-1 sm:justify-center sm:flex-wrap scrollbar-none" style={{ WebkitOverflowScrolling: 'touch' }}>
+          <div className="flex gap-2 mt-10 mb-8 sm:justify-center sm:flex-wrap">
             {(
               [
                 { id: 'card', icon: '🪪', label: 'NEX Card', badge: 'มีทั่วไป', badgeStyle: {} },
@@ -255,16 +255,16 @@ export default function StartClient({ initialRef }: StartClientProps) {
               <button
                 key={tab.id}
                 onClick={() => setActiveProduct(tab.id)}
-                className={`flex items-center gap-2 px-5 py-[10px] rounded-[10px] border-[1.5px] text-[14px] font-semibold transition-all shrink-0 ${
+                className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-5 py-[10px] rounded-[10px] border-[1.5px] text-[12px] sm:text-[14px] font-semibold transition-all ${
                   activeProduct === tab.id
                     ? 'bg-[#050579] border-[#050579] text-white'
                     : 'bg-white border-[#D9E1F2] text-[#475569] hover:border-[#050579] hover:text-[#050579]'
                 }`}
               >
-                <span className="text-lg">{tab.icon}</span>
-                {tab.label}
+                <span className="text-base sm:text-lg">{tab.icon}</span>
+                <span className="truncate">{tab.label}</span>
                 <span
-                  className={`text-[10px] font-bold rounded px-[6px] py-[1px] ${
+                  className={`hidden sm:inline-block text-[10px] font-bold rounded px-[6px] py-[1px] ${
                     activeProduct === tab.id
                       ? 'bg-white/20 text-[#BEF264]'
                       : 'bg-[#DCFCE7] text-[#16A34A]'
