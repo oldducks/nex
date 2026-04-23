@@ -798,6 +798,56 @@ export default function StartClient({ initialRef }: StartClientProps) {
         </p>
       </section>
 
+      {/* ── CONTACT LINE ── */}
+      <section className="py-16 bg-[#EEF0FF]">
+        <div className="max-w-[480px] mx-auto px-6 text-center">
+          <h2 className="text-[clamp(22px,3vw,30px)] font-bold text-[#050579] mb-2">
+            ติดต่อเรา
+          </h2>
+          <p className="text-[14px] text-[#475569] mb-8">
+            มีคำถามหรืออยากให้ทีมช่วยแนะนำ? ทักหาเราผ่าน LINE ได้เลย
+          </p>
+
+          <div className="bg-white rounded-[20px] border border-[#D9E1F2] p-8 shadow-sm flex flex-col items-center gap-5">
+            {/* LINE QR */}
+            <div className="w-[160px] h-[160px] rounded-[16px] overflow-hidden border border-[#E5E7EB] shadow-sm">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src="https://qr-official.line.me/gs/M_481aokit_GW.png?oat_content=qr"
+                alt="LINE QR Code @481aokit"
+                className="w-full h-full object-cover"
+              />
+            </div>
+
+            {/* LINE ID badge */}
+            <div className="flex items-center gap-2">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                <rect width="24" height="24" rx="6" fill="#06C755"/>
+                <path d="M12 4C7.58 4 4 7.13 4 11c0 2.42 1.38 4.56 3.5 5.9-.15.54-.56 1.94-.64 2.24-.1.37.14.36.29.26.12-.08 1.85-1.22 2.6-1.72.71.1 1.44.15 2.25.15 4.42 0 8-3.13 8-7S16.42 4 12 4Z" fill="white"/>
+              </svg>
+              <span className="text-[16px] font-bold text-[#06C755]">@481aokit</span>
+            </div>
+
+            <p className="text-[12px] text-[#94A3B8]">สแกน QR หรือคลิกปุ่มด้านล่าง</p>
+
+            {/* CTA button */}
+            <a
+              href="https://lin.ee/UiiKvZf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-[13px] rounded-[12px] text-[15px] font-bold text-white transition-all hover:opacity-90 active:scale-95"
+              style={{ background: '#06C755' }}
+            >
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+                <rect width="24" height="24" rx="6" fill="white" fillOpacity="0.25"/>
+                <path d="M12 4C7.58 4 4 7.13 4 11c0 2.42 1.38 4.56 3.5 5.9-.15.54-.56 1.94-.64 2.24-.1.37.14.36.29.26.12-.08 1.85-1.22 2.6-1.72.71.1 1.44.15 2.25.15 4.42 0 8-3.13 8-7S16.42 4 12 4Z" fill="white"/>
+              </svg>
+              เพิ่มเพื่อนใน LINE
+            </a>
+          </div>
+        </div>
+      </section>
+
       {/* ── FOOTER ── */}
       <footer className="bg-[#03034F] border-t border-white/8 py-[18px] px-6 text-center text-white/40 text-xs">
         © NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด
