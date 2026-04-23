@@ -11,11 +11,11 @@ type QuickAction = {
 };
 
 const quickActions = [
-  { label: "เข้าสู่ระบบ", href: "/login", primary: true },
   { label: "NEX Control Your Future", href: "/nex-control-your-future-preview" },
   { label: "NEX Solution เครื่องมือการตลาด", href: "/what-is-nex-preview" },
   { label: "NEX Digital Asset สินทรัพย์ดิจิทัล", href: "/nex-digital-asset-partner-preview" },
   { label: "NEX MOS โซลูชั่นสำหรับองค์กร", href: "https://nexsolution.cloud/enterprise-mos-preview" },
+  { label: "เข้าสู่ระบบ", href: "/login", primary: true },
 ] satisfies QuickAction[];
 
 export default function LandingPage() {

@@ -55,6 +55,18 @@ export default function StartClient({ initialRef }: StartClientProps) {
             >
               เปรียบเทียบ
             </a>
+            <a
+              href="#pricing"
+              className="hidden sm:block text-[14px] text-white/70 px-[14px] py-[6px] rounded-lg hover:text-white hover:bg-white/8 transition-all"
+            >
+              ราคา
+            </a>
+            <a
+              href="#contact"
+              className="hidden sm:block text-[14px] text-white/70 px-[14px] py-[6px] rounded-lg hover:text-white hover:bg-white/8 transition-all"
+            >
+              ติดต่อ
+            </a>
             <Link
               href="/auth/login"
               className="hidden sm:block text-[14px] text-white/85 px-4 py-[7px] rounded-lg border border-white/20 hover:border-white/40 transition-all"
@@ -263,7 +275,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 className={`flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-5 py-[10px] rounded-[10px] border-[1.5px] text-[12px] sm:text-[14px] font-semibold transition-all ${
                   activeProduct === tab.id
                     ? 'bg-[#050579] border-[#050579] text-white'
-                    : 'bg-white border-[#D9E1F2] text-[#475569] hover:border-[#050579] hover:text-[#050579]'
+                    : 'bg-white border-[#94A3B8] text-[#475569] hover:border-[#050579] hover:text-[#050579]'
                 }`}
               >
                 <span className="text-base sm:text-lg">{tab.icon}</span>
@@ -799,11 +811,13 @@ export default function StartClient({ initialRef }: StartClientProps) {
       </section>
 
       {/* ── CONTACT LINE ── */}
-      <section className="py-8 bg-[#EEF0FF]">
-        <div className="max-w-[400px] mx-auto px-6">
-          <div className="bg-white rounded-[16px] border border-[#D9E1F2] p-5 shadow-sm flex items-center gap-5">
+      <section id="contact" className="py-14 bg-[#EEF0FF]">
+        <div className="max-w-[360px] mx-auto px-6 text-center">
+          <p className="text-[12px] font-bold tracking-widest text-[#050579]/50 uppercase mb-2">ติดต่อเรา</p>
+          <h2 className="text-[22px] font-bold text-[#050579] mb-8">พูดคุยกับเราผ่าน LINE</h2>
+          <div className="bg-white rounded-[20px] border border-[#D9E1F2] p-7 shadow-sm flex flex-col items-center gap-5">
             {/* QR */}
-            <div className="w-[80px] h-[80px] rounded-[10px] overflow-hidden border border-[#E5E7EB] shrink-0">
+            <div className="w-[160px] h-[160px] rounded-[14px] overflow-hidden border border-[#E5E7EB]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src="https://qr-official.line.me/gs/M_481aokit_GW.png?oat_content=qr"
@@ -811,29 +825,30 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 className="w-full h-full object-cover"
               />
             </div>
-            {/* Info + CTA */}
-            <div className="flex-1 min-w-0">
-              <p className="text-[11px] text-[#94A3B8] mb-[2px]">ติดต่อเราผ่าน LINE</p>
-              <div className="flex items-center gap-1 mb-3">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+            {/* Info */}
+            <div className="flex flex-col items-center gap-1">
+              <p className="text-[12px] text-[#94A3B8]">สแกน QR หรือกดปุ่มด้านล่าง</p>
+              <div className="flex items-center gap-1">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                   <rect width="24" height="24" rx="6" fill="#06C755"/>
                   <path d="M12 4C7.58 4 4 7.13 4 11c0 2.42 1.38 4.56 3.5 5.9-.15.54-.56 1.94-.64 2.24-.1.37.14.36.29.26.12-.08 1.85-1.22 2.6-1.72.71.1 1.44.15 2.25.15 4.42 0 8-3.13 8-7S16.42 4 12 4Z" fill="white"/>
                 </svg>
-                <span className="text-[14px] font-bold text-[#06C755]">@481aokit</span>
+                <span className="text-[16px] font-bold text-[#06C755]">@481aokit</span>
               </div>
-              <a
-                href="https://lin.ee/UiiKvZf"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center justify-center gap-2 w-full py-[9px] rounded-[8px] text-[13px] font-bold text-white transition-all hover:opacity-90"
-                style={{ background: '#06C755' }}
-              >
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <path d="M12 4C7.58 4 4 7.13 4 11c0 2.42 1.38 4.56 3.5 5.9-.15.54-.56 1.94-.64 2.24-.1.37.14.36.29.26.12-.08 1.85-1.22 2.6-1.72.71.1 1.44.15 2.25.15 4.42 0 8-3.13 8-7S16.42 4 12 4Z" fill="white"/>
-                </svg>
-                เพิ่มเพื่อนใน LINE
-              </a>
             </div>
+            {/* CTA */}
+            <a
+              href="https://lin.ee/UiiKvZf"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center justify-center gap-2 w-full py-[13px] rounded-[10px] text-[15px] font-bold text-white transition-all hover:opacity-90 shadow-[0_4px_16px_rgba(6,199,85,.30)]"
+              style={{ background: '#06C755' }}
+            >
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                <path d="M12 4C7.58 4 4 7.13 4 11c0 2.42 1.38 4.56 3.5 5.9-.15.54-.56 1.94-.64 2.24-.1.37.14.36.29.26.12-.08 1.85-1.22 2.6-1.72.71.1 1.44.15 2.25.15 4.42 0 8-3.13 8-7S16.42 4 12 4Z" fill="white"/>
+              </svg>
+              เพิ่มเพื่อนใน LINE
+            </a>
           </div>
         </div>
       </section>

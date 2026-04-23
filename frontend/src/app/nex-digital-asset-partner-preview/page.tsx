@@ -36,8 +36,8 @@ export default async function NexDigitalAssetPartnerPreviewPage() {
   const images = await getPreviewImages();
 
   return (
-    <main className="bg-[#EEF0FF] py-4">
-      <div className="mx-auto w-full max-w-[680px] px-0 sm:px-2">
+    <main className="bg-[#EEF0FF] pt-[15px]">
+      <div className="mx-auto w-full max-w-[680px] px-[10px] sm:px-[24px] lg:px-[40px]">
         <div className="flex flex-col gap-[15px]">
           {images.map((image) => (
             <div key={image.src} className="flex flex-col gap-[15px]">

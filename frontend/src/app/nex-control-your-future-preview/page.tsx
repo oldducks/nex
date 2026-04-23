@@ -17,8 +17,8 @@ const REGISTER_BUTTON_AFTER = new Set([1, 7, 13, 15, 17]);
 export default function NexControlYourFuturePreviewPage() {
   return (
     <main className="bg-[#EEF0FF]">
-      <div className="mx-auto w-full max-w-[680px] px-0 sm:px-2">
-        <div className="flex flex-col gap-[15px]">
+      <div className="mx-auto w-full max-w-[680px] px-[10px] sm:px-[24px] lg:px-[40px]">
+        <div className="flex flex-col gap-[15px] pt-[15px]">
           {storyboardImages.map((image) => (
             <React.Fragment key={image.src}>
               <section className="relative overflow-hidden lg:flex lg:min-h-dvh lg:items-center lg:justify-center">
