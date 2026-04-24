@@ -21,9 +21,9 @@ const montserrat = Montserrat({
 const configuredTheme = process.env.NEXT_PUBLIC_THEME_VARIANT === "cyan-orange-green" ? "brand-cog" : "light";
 
 export const metadata: Metadata = {
-  title: "NEX Solution | Digital Business Card Platform",
+  title: "NEX Solution | มากกว่านามบัตรดิจิทัล",
   description:
-    "สร้าง แชร์ และติดตามตัวตนทางธุรกิจของคุณ ด้วยแพลตฟอร์มนามบัตรดิจิทัลพลัง AI ภายใต้แบรนด์ NEX Solution",
+    "NEX Solution – แพลตฟอร์มครบวงจรสำหรับธุรกิจไทย NEX Digital ID · NEX Catalog · NEX Sale Page ครบจบที่เดียว เริ่มต้นฟรีใน 5 นาที บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: [
@@ -33,6 +33,30 @@ export const metadata: Metadata = {
     ],
     shortcut: "/favicon.ico",
     apple: "/icons/icon-192.png",
+  },
+  openGraph: {
+    type: "website",
+    locale: "th_TH",
+    url: "https://nexsolution.cloud",
+    siteName: "NEX Solution",
+    title: "NEX Solution | มากกว่านามบัตรดิจิทัล",
+    description:
+      "NEX Digital ID · NEX Catalog · NEX Sale Page – 3 เครื่องมือที่ช่วยให้ธุรกิจของคุณแนะนำตัว แชร์สินค้า และปิดการขายได้จริง เริ่มต้นฟรี",
+    images: [
+      {
+        url: "https://nexsolution.cloud/nex-logo-current.png",
+        width: 1200,
+        height: 630,
+        alt: "NEX Solution – มากกว่านามบัตรดิจิทัล",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NEX Solution | มากกว่านามบัตรดิจิทัล",
+    description:
+      "NEX Digital ID · NEX Catalog · NEX Sale Page – ครบจบที่เดียว เริ่มต้นฟรีใน 5 นาที",
+    images: ["https://nexsolution.cloud/nex-logo-current.png"],
   },
 };
 

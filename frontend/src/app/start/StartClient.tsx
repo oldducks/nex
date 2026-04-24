@@ -30,7 +30,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
   return (
     <div className="font-sans bg-[#EEF0FF] text-[#0F172A] overflow-x-hidden min-h-screen">
       {/* ── NAVBAR ── */}
-      <nav className="fixed top-0 left-0 right-0 z-50 bg-[#050579]/97 backdrop-blur-md border-b border-white/10">
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-[#E5E7EB] shadow-sm">
         <div className="max-w-[1080px] mx-auto px-6 flex items-center justify-between h-[60px]">
           <Link href="/" className="flex items-center">
             <Image
@@ -45,36 +45,42 @@ export default function StartClient({ initialRef }: StartClientProps) {
           <div className="flex items-center gap-2">
             <a
               href="#products"
-              className="hidden sm:block text-[14px] text-white/70 px-[14px] py-[6px] rounded-lg hover:text-white hover:bg-white/8 transition-all"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               ผลิตภัณฑ์
             </a>
             <a
               href="#compare"
-              className="hidden sm:block text-[14px] text-white/70 px-[14px] py-[6px] rounded-lg hover:text-white hover:bg-white/8 transition-all"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               เปรียบเทียบ
             </a>
             <a
               href="#pricing"
-              className="hidden sm:block text-[14px] text-white/70 px-[14px] py-[6px] rounded-lg hover:text-white hover:bg-white/8 transition-all"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               ราคา
             </a>
             <a
               href="#contact"
-              className="hidden sm:block text-[14px] text-white/70 px-[14px] py-[6px] rounded-lg hover:text-white hover:bg-white/8 transition-all"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               ติดต่อ
             </a>
             <Link
-              href="/auth/login"
-              className="hidden sm:block text-[14px] text-white/85 px-4 py-[7px] rounded-lg border border-white/20 hover:border-white/40 transition-all"
+              href="/start/examples"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
+            >
+              ตัวอย่าง
+            </Link>
+            <Link
+              href="/login"
+              className="hidden sm:block text-[14px] text-[#050579] px-4 py-[7px] rounded-lg border border-[#D9E1F2] hover:border-[#050579] transition-all"
             >
               เข้าสู่ระบบ
             </Link>
             <Link
-              href="/auth/register"
+              href="/register"
               className="text-[14px] font-semibold bg-[#F97316] hover:bg-[#EA580C] text-white px-5 py-2 rounded-lg transition-all"
             >
               เริ่มต้นฟรี
@@ -111,13 +117,13 @@ export default function StartClient({ initialRef }: StartClientProps) {
               <em className="not-italic text-[#F97316]">NEX ให้คุณ ขายได้จริง</em>
             </h1>
             <p className="text-[15px] text-white/72 leading-relaxed mb-7 max-w-[460px]">
-              NEX Card · NEX Catalog · NEX Sale Page
+              NEX Digital ID · NEX Catalog · NEX Sale Page
               <br />
               3 เครื่องมือที่ทำงานร่วมกัน — ตั้งแต่แนะนำตัว ถึงปิดการขาย ในระบบเดียว
             </p>
             <div className="flex gap-[10px] flex-wrap mb-8">
               <Link
-                href="/auth/register"
+                href="/register"
                 className="bg-[#F97316] hover:bg-[#EA580C] text-white px-7 py-[13px] rounded-[10px] text-[15px] font-semibold transition-all shadow-[0_4px_20px_rgba(249,115,22,.35)] hover:-translate-y-px"
               >
                 เริ่มต้นใช้งานฟรี →
@@ -181,7 +187,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   NEX Solution
                 </div>
                 {[
-                  ['✓', 'NEX Card'],
+                  ['✓', 'NEX Digital ID'],
                   ['✓', 'QR Code + vCard'],
                   ['✓', 'NEX Catalog', '#BEF264'],
                   ['✓', 'NEX Sale Page', '#BEF264'],
@@ -252,7 +258,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
           <div className="flex gap-2 mt-10 mb-8 sm:justify-center sm:flex-wrap">
             {(
               [
-                { id: 'card', icon: '🪪', label: 'NEX Card', badge: 'มีทั่วไป', badgeStyle: {} },
+                { id: 'card', icon: '🪪', label: 'NEX Digital ID', badge: 'มีทั่วไป', badgeStyle: {} },
                 {
                   id: 'catalog',
                   icon: '📖',
@@ -292,14 +298,22 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 </span>
               </button>
             ))}
+            <Link
+              href="/start/examples"
+              className="flex-1 sm:flex-none flex items-center justify-center gap-1 sm:gap-2 px-2 sm:px-5 py-[10px] rounded-[10px] border-[1.5px] text-[12px] sm:text-[14px] font-semibold transition-all bg-white border-[#94A3B8] text-[#475569] hover:border-[#F97316] hover:text-[#F97316]"
+            >
+              <span className="text-base sm:text-lg">🎯</span>
+              <span className="truncate">ตัวอย่าง</span>
+              <span className="hidden sm:inline-block text-[10px] font-bold rounded px-[6px] py-[1px] bg-[#FFF7ED] text-[#F97316]">Use Cases</span>
+            </Link>
           </div>
 
-          {/* Panel: NEX Card */}
+          {/* Panel: NEX Digital ID */}
           {activeProduct === 'card' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
               <div>
                 <div className="inline-flex items-center gap-[6px] text-[11px] font-bold tracking-wider px-3 py-1 rounded-full mb-4 bg-[#E8ECFF] text-[#050579] border border-[#D9E1F2]">
-                  🪪 NEX Card
+                  🪪 NEX Digital ID
                 </div>
                 <h3 className="text-[clamp(22px,3vw,30px)] font-bold text-[#050579] mb-[10px] leading-tight">
                   นามบัตรดิจิทัล
@@ -341,10 +355,10 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   </p>
                 </div>
                 <Link
-                  href="/auth/register"
+                  href="/register"
                   className="inline-block bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-semibold px-6 py-3 rounded-[10px] transition-all"
                 >
-                  สร้าง NEX Card ฟรี →
+                  สร้าง NEX Digital ID ฟรี →
                 </Link>
               </div>
               {/* Phone Mockup */}
@@ -392,7 +406,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   </div>
                 </div>
                 <p className="text-center text-[11px] text-[#64748B] mt-3">
-                  ตัวอย่าง: NEX Card สำหรับฟรีแลนซ์
+                  ตัวอย่าง: NEX Digital ID สำหรับฟรีแลนซ์
                 </p>
               </div>
             </div>
@@ -443,7 +457,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   </p>
                 </div>
                 <Link
-                  href="/auth/register"
+                  href="/register"
                   className="inline-block bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-semibold px-6 py-3 rounded-[10px] transition-all"
                 >
                   สร้าง NEX Catalog ฟรี →
@@ -542,7 +556,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                   </p>
                 </div>
                 <Link
-                  href="/auth/register"
+                  href="/register"
                   className="inline-block bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-semibold px-6 py-3 rounded-[10px] transition-all"
                 >
                   สร้าง NEX Sale Page ฟรี →
@@ -706,7 +720,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
               <div className="text-[13px] text-[#64748B] mt-[6px] mb-6">ใช้ได้ตลอด ไม่มีวันหมดอายุ</div>
               <ul className="flex flex-col gap-[10px] mb-7 p-0 list-none">
                 {[
-                  { ok: true,  text: 'NEX Card – ตามบัตรดิจิทัล' },
+                  { ok: true,  text: 'NEX Digital ID – ตามบัตรดิจิทัล' },
                   { ok: true,  text: 'QR Code + vCard บันทึกเบอร์ทันที' },
                   { ok: true,  text: 'ลิงค์ส่วนตัว nexsolution.cloud/nex/…' },
                   { ok: false, text: 'NEX Catalog, NEX Sale Page' },
@@ -721,7 +735,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 ))}
               </ul>
               <Link
-                href="/auth/register"
+                href="/register"
                 className="block w-full py-3 rounded-[10px] bg-transparent text-[#050579] border-[1.5px] border-[#D9E1F2] text-[14px] font-semibold text-center hover:border-[#050579] transition-all"
               >
                 เริ่มต้นใช้งานฟรี
@@ -760,7 +774,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
                 ))}
               </ul>
               <Link
-                href="/auth/register"
+                href="/register"
                 className="block w-full py-3 rounded-[10px] bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-semibold text-center transition-all"
               >
                 เริ่มต้นใช้งาน →
@@ -793,7 +807,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
         </p>
         <div className="flex justify-center gap-3 flex-wrap">
           <Link
-            href="/auth/register"
+            href="/register"
             className="bg-[#F97316] hover:bg-[#EA580C] text-white text-[16px] font-semibold px-9 py-[14px] rounded-[10px] transition-all"
           >
             เริ่มต้นใช้งานฟรี →
