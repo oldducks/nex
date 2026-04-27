@@ -1,9 +1,25 @@
 'use client';
 
+import { useRef, useState } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 
 export default function ExamplesClient() {
+  const catalogVideoRef = useRef<HTMLVideoElement>(null);
+  const [catalogPlaying, setCatalogPlaying] = useState(false);
+  const salepageVideoRef = useRef<HTMLVideoElement>(null);
+  const [salepagePlaying, setSalepagePlaying] = useState(false);
+
+  function playCatalog() {
+    catalogVideoRef.current?.play();
+    setCatalogPlaying(true);
+  }
+
+  function playSalepage() {
+    salepageVideoRef.current?.play();
+    setSalepagePlaying(true);
+  }
+
   return (
     <div className="font-sans bg-[#EEF0FF] text-[#0F172A] overflow-x-hidden min-h-screen">
 
@@ -65,46 +81,16 @@ export default function ExamplesClient() {
       {/* ── SECTION 1: NEX Digital ID ── */}
       <section className="py-16 px-6 bg-white">
         <div className="max-w-[1080px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
-          {/* Phone Mockup — LEFT */}
+          {/* Phone Screenshot — LEFT */}
           <div className="flex flex-col items-center">
-            <div
-              className="w-[240px] rounded-[36px] p-[10px] shadow-[0_30px_80px_rgba(5,5,121,.25),0_0_0_1px_rgba(255,255,255,.08)]"
-              style={{ background: '#1C1C2E' }}
-            >
-              <div className="rounded-[28px] overflow-hidden bg-white">
-                <div className="h-7 flex items-center justify-center" style={{ background: '#1C1C2E' }}>
-                  <div className="w-[60px] h-4 rounded-b-[10px]" style={{ background: '#1C1C2E' }} />
-                </div>
-                <div className="p-[18px] px-[14px]">
-                  <div className="flex items-center gap-[10px] mb-[14px]">
-                    <div
-                      className="w-[46px] h-[46px] rounded-full flex items-center justify-center text-lg shrink-0"
-                      style={{ background: 'linear-gradient(135deg,#050579,#2563EB)' }}
-                    >
-                      👩
-                    </div>
-                    <div>
-                      <div className="text-[13px] font-bold text-[#0F172A]">รตี อัครเกร</div>
-                      <div className="text-[10px] text-[#64748B]">Property Consultant</div>
-                      <div className="text-[10px] text-[#F97316] font-medium">Real Estate · Bangkok</div>
-                    </div>
-                  </div>
-                  <div className="h-px bg-[#E5E7EB] my-[10px]" />
-                  <div className="flex gap-[5px] flex-wrap mb-[10px]">
-                    {['📞 โทร', '💬 LINE', '🏠 โครงการ', '📸 IG'].map((c) => (
-                      <span key={c} className="bg-[#F1F5F9] rounded-[5px] px-[7px] py-1 text-[9px] text-[#475569]">{c}</span>
-                    ))}
-                  </div>
-                  <div className="flex gap-[5px]">
-                    <button className="flex-1 bg-[#F97316] text-white border-none rounded-[7px] py-[7px] text-[10px] font-bold">บันทึกเบอร์</button>
-                    <button className="flex-1 bg-[#F1F5F9] text-[#475569] border-none rounded-[7px] py-[7px] text-[10px]">QR Code</button>
-                  </div>
-                  <div className="mt-[10px] text-center">
-                    <div className="w-[56px] h-[56px] mx-auto mb-1 rounded-[4px]" style={{ background: 'repeating-conic-gradient(#1C1C2E 0% 25%, #fff 0% 50%) 0 0 / 6px 6px' }} />
-                    <div className="text-[9px] text-[#94A3B8]">nexsolution.cloud/rat01/ratteeakr01</div>
-                  </div>
-                </div>
-              </div>
+            <div className="relative w-[240px] rounded-[28px] overflow-hidden shadow-[0_30px_80px_rgba(5,5,121,.20)] border border-[#E5E7EB]">
+              <Image
+                src="/example-digital-id.png"
+                alt="ตัวอย่าง NEX Digital ID"
+                width={240}
+                height={536}
+                className="w-full h-auto object-cover"
+              />
             </div>
             <p className="text-center text-[12px] text-[#64748B] mt-4 max-w-[220px]">
               ตัวอย่างจริง: NEX Digital ID ของตัวแทนอสังหาฯ
@@ -168,45 +154,32 @@ export default function ExamplesClient() {
       {/* ── SECTION 2: NEX Catalog ── */}
       <section className="py-16 px-6 bg-[#EEF0FF]">
         <div className="max-w-[1080px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
-          {/* Browser Mockup — LEFT */}
+          {/* Catalog Video — LEFT */}
           <div className="flex flex-col items-center">
-            <div className="w-full max-w-[340px]">
-              <div className="bg-[#2D3748] rounded-[14px_14px_0_0] p-2 pb-0 shadow-[0_30px_80px_rgba(5,5,121,.20)]">
-                <div className="bg-white rounded-[8px_8px_0_0] overflow-hidden">
-                  <div className="bg-[#F1F5F9] px-[10px] py-[6px] flex gap-[5px] items-center border-b border-[#E5E7EB]">
-                    <span className="w-[7px] h-[7px] rounded-full bg-[#FF5F57] inline-block" />
-                    <span className="w-[7px] h-[7px] rounded-full bg-[#FFBC2E] inline-block mx-[3px]" />
-                    <span className="w-[7px] h-[7px] rounded-full bg-[#28C840] inline-block mr-[6px]" />
-                    <span className="text-[9px] text-[#94A3B8] font-mono bg-white rounded px-2 py-[2px] flex-1 truncate">
-                      nexsolution.cloud/catalog/5?view=book
-                    </span>
+            <div className="relative w-full rounded-[16px] overflow-hidden shadow-[0_30px_80px_rgba(5,5,121,.20)] border border-[#E5E7EB] bg-black">
+              <video
+                ref={catalogVideoRef}
+                src="/catalog-demo.mp4"
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+                onPlay={() => setCatalogPlaying(true)}
+                onPause={() => setCatalogPlaying(false)}
+              />
+              {!catalogPlaying && (
+                <button
+                  onClick={playCatalog}
+                  aria-label="Play video"
+                  className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-all group"
+                >
+                  <div className="w-16 h-16 rounded-full bg-white/90 group-hover:bg-white shadow-lg flex items-center justify-center transition-all">
+                    <svg className="w-7 h-7 text-[#050579] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
                   </div>
-                  <div className="p-3">
-                    <div className="bg-[#050579] text-white px-3 py-2 -mx-3 -mt-3 mb-[10px] flex justify-between items-center">
-                      <div className="text-[11px] font-bold">📦 Product Catalog 2025</div>
-                      <div className="bg-[#F97316] text-[8px] px-[6px] py-[2px] rounded font-bold">Flipbook</div>
-                    </div>
-                    <div className="grid grid-cols-3 gap-[6px] mb-2">
-                      {[
-                        { bg: '#EEF0FF', icon: '🛋️', name: 'สินค้า A', price: '฿12,900' },
-                        { bg: '#FFF7ED', icon: '🎁', name: 'สินค้า B', price: '฿3,500' },
-                        { bg: '#F0FDF4', icon: '⭐', name: 'สินค้า C', price: '฿18,500' },
-                      ].map(({ bg, icon, name, price }) => (
-                        <div key={name} className="bg-[#F8FAFC] border border-[#E5E7EB] rounded-[5px] overflow-hidden">
-                          <div className="h-10 flex items-center justify-center text-lg" style={{ background: bg }}>{icon}</div>
-                          <div className="text-[8px] text-[#374151] p-[3px_4px] font-semibold">{name}</div>
-                          <div className="text-[8px] text-[#F97316] px-1 pb-[3px] font-bold">{price}</div>
-                        </div>
-                      ))}
-                    </div>
-                    <button className="bg-[#050579] text-white border-none rounded px-2 py-1 text-[8px] font-bold block mx-auto">
-                      📖 ดู Flipbook / Download PDF
-                    </button>
-                  </div>
-                </div>
-                <div className="bg-[#3D4A5C] h-[14px] rounded-[0_0_6px_6px]" />
-              </div>
-              <div className="w-[40%] h-2 bg-[#4A5568] mx-auto rounded-b-lg" />
+                </button>
+              )}
             </div>
             <p className="text-center text-[12px] text-[#64748B] mt-4 max-w-[260px]">
               ตัวอย่างจริง: NEX Catalog แบบ Flipbook
@@ -269,49 +242,32 @@ export default function ExamplesClient() {
       {/* ── SECTION 3: NEX Sale Page ── */}
       <section className="py-16 px-6 bg-white">
         <div className="max-w-[1080px] mx-auto grid grid-cols-1 md:grid-cols-2 gap-14 items-center">
-          {/* Sale Page Mockup — LEFT */}
+          {/* Sale Page Video — LEFT */}
           <div className="flex flex-col items-center">
-            <div className="w-full max-w-[280px] bg-white rounded-[16px] overflow-hidden shadow-[0_20px_60px_rgba(5,5,121,.15)] border border-[#D9E1F2]">
-              <div className="p-4" style={{ background: 'linear-gradient(135deg,#050579,#1D1DB8)' }}>
-                <div className="inline-block text-[8px] bg-[#F97316] text-white px-[7px] py-[2px] rounded font-bold mb-[6px]">
-                  🔥 โปรพิเศษ
-                </div>
-                <div className="text-[13px] font-bold text-white mb-[3px]">
-                  Sale Page ของคุณ<br />
-                  พร้อมรับ Lead ทันที
-                </div>
-                <div className="text-[10px] text-white/80">
-                  สร้างเอง · ไม่ต้องโค้ด · มี Analytics
-                </div>
-                <button className="mt-[10px] bg-[#F97316] text-white border-none rounded-[6px] px-[14px] py-[6px] text-[10px] font-bold">
-                  รับโปรโมชันพิเศษ
+            <div className="relative w-[240px] rounded-[16px] overflow-hidden shadow-[0_30px_80px_rgba(5,5,121,.20)] border border-[#E5E7EB] bg-black">
+              <video
+                ref={salepageVideoRef}
+                src="/salepage-demo.mp4"
+                controls
+                playsInline
+                preload="metadata"
+                className="w-full h-auto block"
+                onPlay={() => setSalepagePlaying(true)}
+                onPause={() => setSalepagePlaying(false)}
+              />
+              {!salepagePlaying && (
+                <button
+                  onClick={playSalepage}
+                  aria-label="Play video"
+                  className="absolute inset-0 flex items-center justify-center bg-black/30 hover:bg-black/40 transition-all group"
+                >
+                  <div className="w-16 h-16 rounded-full bg-white/90 group-hover:bg-white shadow-lg flex items-center justify-center transition-all">
+                    <svg className="w-7 h-7 text-[#050579] ml-1" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z" />
+                    </svg>
+                  </div>
                 </button>
-              </div>
-              <div className="p-3">
-                <div className="flex gap-[6px] mb-[10px]">
-                  {[
-                    { icon: '✅', txt: 'ฟอร์ม Lead' },
-                    { icon: '📊', txt: 'Analytics' },
-                    { icon: '🔗', txt: 'Custom URL' },
-                  ].map(({ icon, txt }) => (
-                    <div key={txt} className="flex-1 bg-[#F8FAFC] border border-[#E5E7EB] rounded-[6px] p-[7px] text-center">
-                      <div className="text-sm mb-[3px]">{icon}</div>
-                      <div className="text-[8px] text-[#475569]">{txt}</div>
-                    </div>
-                  ))}
-                </div>
-                <div className="bg-[#F8FAFC] rounded-[6px] p-2">
-                  <div className="text-[9px] font-bold text-[#050579] mb-[6px]">กรอกข้อมูลรับราคาทันที</div>
-                  {['ชื่อ-นามสกุล', 'เบอร์โทรศัพท์'].map((ph) => (
-                    <div key={ph} className="bg-white border border-[#E5E7EB] rounded px-2 py-[5px] text-[9px] text-[#94A3B8] mb-[5px]">
-                      {ph}
-                    </div>
-                  ))}
-                  <button className="w-full bg-[#F97316] text-white border-none rounded py-[6px] text-[9px] font-bold">
-                    ส่งข้อมูล →
-                  </button>
-                </div>
-              </div>
+              )}
             </div>
             <p className="text-center text-[12px] text-[#64748B] mt-4 max-w-[220px]">
               ตัวอย่างจริง: NEX Sale Page สำหรับ Sales Agent
