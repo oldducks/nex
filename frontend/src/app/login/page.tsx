@@ -91,6 +91,11 @@ function LoginContent() {
             window.parent?.postMessage({ type: 'NEX_LOGIN_CLOSE' }, '*');
             return;
         }
+        const cameFromForgotPassword = document.referrer.includes('/forgot-password');
+        if (cameFromForgotPassword) {
+            router.push('/');
+            return;
+        }
         if (window.history.length > 1) {
             router.back();
             return;

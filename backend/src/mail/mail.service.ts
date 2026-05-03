@@ -38,33 +38,34 @@ export class MailService {
     const mailOptions = {
       from: process.env.SMTP_FROM || 'noreply@namecard.com',
       to,
-      subject: 'รีเซ็ตรหัสผ่าน - Digital Namecard',
+      subject: 'รีเซ็ตรหัสผ่าน - NEX Solution',
       html: `
-                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-                    <div style="background: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%); padding: 30px; border-radius: 16px 16px 0 0; text-align: center;">
-                        <h1 style="color: white; margin: 0; font-size: 24px;">🔐 รีเซ็ตรหัสผ่าน</h1>
+                <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background: #EEF0FF;">
+                    <div style="background: #050579; padding: 28px 30px; border-radius: 16px 16px 0 0; text-align: center;">
+                        <p style="margin: 0 0 8px; color: #D9E1F2; font-size: 12px; letter-spacing: 1.4px; font-weight: 700;">NEX SOLUTION</p>
+                        <h1 style="color: #FFFFFF; margin: 0; font-size: 24px;">รีเซ็ตรหัสผ่าน</h1>
                     </div>
-                    <div style="background: #18181b; padding: 30px; border-radius: 0 0 16px 16px; color: #e4e4e7;">
+                    <div style="background: #FFFFFF; border: 1px solid #D9E1F2; border-top: none; padding: 30px; border-radius: 0 0 16px 16px; color: #0F172A;">
                         <p style="margin-bottom: 20px; line-height: 1.6;">
-                            คุณได้ขอรีเซ็ตรหัสผ่านสำหรับบัญชี Digital Namecard ของคุณ
+                            คุณได้ขอรีเซ็ตรหัสผ่านสำหรับบัญชี NEX Solution ของคุณ
                         </p>
                         <p style="margin-bottom: 20px; line-height: 1.6;">
                             คลิกปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่:
                         </p>
                         <div style="text-align: center; margin: 30px 0;">
                             <a href="${resetUrl}" 
-                               style="display: inline-block; background: linear-gradient(135deg, #7C3AED 0%, #EC4899 100%); color: white; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px;">
+                               style="display: inline-block; background: #FF6B00; color: #FFFFFF; padding: 16px 32px; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px;">
                                 ตั้งรหัสผ่านใหม่
                             </a>
                         </div>
-                        <p style="margin-bottom: 10px; color: #a1a1aa; font-size: 14px;">
+                        <p style="margin-bottom: 10px; color: #64748B; font-size: 14px;">
                             หรือคัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:
                         </p>
-                        <p style="word-break: break-all; background: #27272a; padding: 12px; border-radius: 8px; font-size: 12px; color: #7C3AED;">
+                        <p style="word-break: break-all; background: #F6F8FF; border: 1px solid #D9E1F2; padding: 12px; border-radius: 8px; font-size: 12px; color: #050579;">
                             ${resetUrl}
                         </p>
-                        <hr style="border: none; border-top: 1px solid #3f3f46; margin: 30px 0;" />
-                        <p style="color: #71717a; font-size: 12px; text-align: center;">
+                        <hr style="border: none; border-top: 1px solid #D9E1F2; margin: 30px 0;" />
+                        <p style="color: #64748B; font-size: 12px; text-align: center;">
                             ลิงก์นี้จะหมดอายุใน 1 ชั่วโมง<br/>
                             หากคุณไม่ได้ขอรีเซ็ตรหัสผ่าน สามารถเพิกเฉยอีเมลนี้ได้
                         </p>

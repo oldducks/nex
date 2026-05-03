@@ -11,6 +11,7 @@ type QuickAction = {
 };
 
 const quickActions = [
+  { label: "เริ่มต้นกับ NEX Solution", href: "https://nexsolution.cloud/start" },
   { label: "NEX Control Your Future", href: "/nex-control-your-future-preview" },
   { label: "NEX Solution เครื่องมือการตลาด", href: "/what-is-nex-preview" },
   { label: "NEX Digital Asset สินทรัพย์ดิจิทัล", href: "/nex-digital-asset-partner-preview" },

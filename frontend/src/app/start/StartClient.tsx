@@ -63,7 +63,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
               href="#pricing"
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
-              ราคา
+              พาร์ทเนอร์
             </a>
             <a
               href="#contact"
@@ -632,95 +632,125 @@ export default function StartClient({ initialRef }: StartClientProps) {
       </section>
 
       {/* ── PRICING ── */}
+      {/* ── NEX PARTNER PROGRAM ── */}
       <section id="pricing" className="py-20 bg-[#F6F8FF]">
-        <div className="max-w-[1080px] mx-auto px-6">
-          <div className="text-center mb-10">
-            <h2 className="text-[clamp(22px,3.5vw,36px)] font-bold text-[#050579] leading-[1.5] mb-[10px]">
-              เริ่มต้น<span className="text-[#F97316]">ฟรี</span> อัปเกรดเมื่อพร้อม
+        <div className="max-w-[860px] mx-auto px-6">
+          <div className="text-center mb-12">
+            <div className="inline-block bg-[#F97316] text-white text-[11px] font-bold tracking-widest uppercase px-5 py-[6px] rounded-full mb-6">
+              NEX PARTNER PROGRAM
+            </div>
+            <h2 className="text-[clamp(24px,3.5vw,38px)] font-bold text-[#050579] leading-[1.5] mb-4">
+              คุณมีคอนเนคชัน
+              <br />
+              มาสร้าง<span className="text-[#F97316]">รายได้</span>ด้วยกัน
             </h2>
-            <p className="text-[#475569] text-[15px] max-w-[440px] mx-auto leading-relaxed">
-              ไม่มีสัญญาผูกมัด · ไม่ต้องส่งบัตรเครดิต · ยกเลิกได้ทุกเมื่อ
+            <p className="text-[#475569] text-[15px] leading-[1.8] max-w-[480px] mx-auto">
+              ไม่ต้องสต๊อกสินค้า ไม่ต้องลงทุนล่วงหน้า
+              <br />
+              แนะนำ NEX ให้ลูกค้าคุณ — รับค่าคอมมิชชั่นทุกครั้งที่ปิดการขาย
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 max-w-[720px] mx-auto">
-            {/* FREE */}
-            <div className="bg-white border-[1.5px] border-[#D9E1F2] rounded-[16px] p-8 px-7">
-              <div className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-2">Free</div>
-              <div className="text-[40px] font-bold text-[#050579] leading-none">฿0</div>
-              <div className="text-[13px] text-[#64748B] mt-[6px] mb-6">ใช้ได้ตลอด ไม่มีวันหมดอายุ</div>
-              <ul className="flex flex-col gap-[10px] mb-7 p-0 list-none">
-                {[
-                  { ok: true,  text: 'NEX Digital ID – ตามบัตรดิจิทัล' },
-                  { ok: true,  text: 'QR Code + vCard บันทึกเบอร์ทันที' },
-                  { ok: true,  text: 'ลิงค์ส่วนตัว nexsolution.cloud/nex/…' },
-                  { ok: false, text: 'NEX Catalog, NEX Sale Page' },
-                  { ok: false, text: 'Analytics, Lead Form, AI สร้างสื่อ' },
-                ].map(({ ok, text }) => (
-                  <li key={text} className="flex gap-2 text-[14px] items-start">
-                    <span className={`shrink-0 font-bold ${ok ? 'text-[#16A34A]' : 'text-[#CBD5E1]'}`}>
-                      {ok ? '✓' : '✗'}
-                    </span>
-                    <span className={ok ? 'text-[#475569]' : 'text-[#CBD5E1]'}>{text}</span>
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register"
-                className="block w-full py-3 rounded-[10px] bg-transparent text-[#050579] border-[1.5px] border-[#D9E1F2] text-[14px] font-semibold text-center hover:border-[#050579] transition-all"
-              >
-                เริ่มต้นใช้งานฟรี
-              </Link>
-            </div>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+            {[
+              {
+                icon: (
+                  <svg className="w-6 h-6 text-[#050579]/60" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6l4 2m6-2a10 10 0 11-20 0 10 10 0 0120 0z" />
+                  </svg>
+                ),
+                title: 'Recurring',
+                titleSub: 'รายเดือน',
+                titleColor: 'text-[#F97316]',
+                desc: 'รับค่าคอมต่อเนื่องทุกเดือน ตลอดอายุสมาชิก',
+              },
+              {
+                icon: (
+                  <svg className="w-6 h-6 text-[#050579]/60" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.562.562 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" />
+                  </svg>
+                ),
+                title: 'ไม่จำกัด',
+                titleSub: 'ยอด',
+                titleColor: 'text-[#F97316]',
+                desc: 'ขายได้เท่าไหร่ ได้เท่านั้น ไม่มี cap',
+              },
+              {
+                icon: (
+                  <svg className="w-6 h-6 text-[#050579]/60" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                ),
+                title: 'Free',
+                titleSub: 'เริ่มต้น',
+                titleColor: 'text-[#050579]',
+                desc: 'ไม่มีค่าสมัคร ไม่ต้องลงทุนล่วงหน้าใดๆ',
+              },
+            ].map(({ icon, title, titleSub, titleColor, desc }) => (
+              <div key={title} className="bg-white border border-[#E2E8F0] rounded-[16px] p-6 text-center hover:shadow-md transition-all">
+                <div className="w-12 h-12 rounded-[12px] bg-[#EEF0FF] flex items-center justify-center mx-auto mb-4">
+                  {icon}
+                </div>
+                <div className="text-[20px] font-bold text-[#050579] leading-tight mb-1">
+                  {title} <span className={`text-[16px] font-semibold ${titleColor}`}>{titleSub}</span>
+                </div>
+                <p className="text-[13px] text-[#64748B] leading-[1.7]">{desc}</p>
+              </div>
+            ))}
+          </div>
 
-            {/* PREMIUM */}
-            <div className="bg-white border-2 border-[#F97316] rounded-[16px] p-8 px-7 relative">
-              <div className="absolute -top-[13px] left-1/2 -translate-x-1/2 bg-[#F97316] text-white text-[11px] font-bold px-4 py-[3px] rounded-full whitespace-nowrap">
-                ⭐ แนะนำ
-              </div>
-              <div className="text-xs font-bold text-[#64748B] uppercase tracking-wider mb-2">Premium</div>
-              <div className="flex items-end gap-1 leading-none mb-[2px]">
-                <span className="text-[40px] font-bold text-[#050579]">฿1,500</span>
-                <span className="text-[14px] text-[#64748B] pb-[6px]">/ปี</span>
-              </div>
-              <div className="text-[13px] text-[#64748B] mt-[6px] mb-1">
-                เฉลี่ยเพียง <strong className="text-[#F97316]">฿125/เดือน</strong>
-              </div>
-              <div className="text-[12px] text-[#16A34A] font-semibold mb-6">
-                ประหยัดกว่าค่าแต่งหน้าลงโปรไฟล์ 1 ทิ้งตาม
-              </div>
-              <ul className="flex flex-col gap-[10px] mb-7 p-0 list-none">
-                {[
-                  'ทุกอย่างใน Free',
-                  'NEX Catalog – catalog สินค้า + PDF',
-                  'NEX Sale Page – หน้าขาย + Lead Form',
-                  'Analytics Dashboard',
-                  'AI สร้างสื่อการขาย',
-                  'ไม่จำกัดจำนวน ทุกฟีเจอร์',
-                ].map((text) => (
-                  <li key={text} className="flex gap-2 text-[14px] text-[#475569] items-start">
-                    <span className="shrink-0 font-bold text-[#16A34A]">✓</span>
-                    {text}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                href="/register"
-                className="block w-full py-3 rounded-[10px] bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-semibold text-center transition-all"
-              >
-                เริ่มต้นใช้งาน →
-              </Link>
-              <p className="text-center text-[12px] text-[#64748B] mt-[10px]">
-                ชำระครั้งเดียว ใช้ได้ทั้งปี
+          <div className="bg-[#050579] rounded-[16px] p-6 flex gap-5 items-start mb-10">
+            <div className="w-12 h-12 rounded-[12px] bg-[#F97316]/20 flex items-center justify-center shrink-0">
+              <svg className="w-6 h-6 text-[#F97316]" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" />
+              </svg>
+            </div>
+            <div>
+              <div className="text-white font-bold text-[15px] mb-2">ทำไม NEX ขายง่าย?</div>
+              <p className="text-white/70 text-[13px] leading-[1.7]">
+                ลูกค้า SME ทุกเจ้าต้องการสิ่งที่ NEX ทำให้ — ทำสื่อ ดึง Lead สร้างหน้าขาย
+                <br />
+                ราคาเริ่มต้น <span className="text-[#F97316] font-semibold">฿1,500/ปี</span> ตัดสินใจง่าย ไม่ต้องโน้มน้าวนาน
               </p>
             </div>
           </div>
 
-          <div className="text-center mt-7 text-[13px] text-[#64748B]">
-            ต้องการใช้งานหลายคนต้ององค์กร?
-            <Link href="#" className="text-[#050579] font-semibold ml-1 hover:underline">
-              ติดต่อทีมงาน →
+          <div className="mb-10">
+            <div className="flex items-center gap-3 mb-8">
+              <div className="flex-1 h-[1px] bg-[#D9E1F2]" />
+              <span className="text-[12px] text-[#94A3B8] font-semibold tracking-wide uppercase whitespace-nowrap">เริ่มต้นง่าย 3 ขั้นตอน</span>
+              <div className="flex-1 h-[1px] bg-[#D9E1F2]" />
+            </div>
+            <div className="grid grid-cols-3 gap-6 text-center">
+              {[
+                { num: 1, title: 'สมัครเป็น', sub: 'NEX Partner ฟรี' },
+                { num: 2, title: 'รับลิงก์ส่วนตัว', sub: '+ คู่มือการขาย' },
+                { num: 3, title: 'แนะนำลูกค้า', sub: 'รับค่าคอมทันที' },
+              ].map(({ num, title, sub }) => (
+                <div key={num}>
+                  <div className="w-10 h-10 rounded-full bg-[#050579] text-white font-bold text-[15px] flex items-center justify-center mx-auto mb-3">
+                    {num}
+                  </div>
+                  <div className="text-[13px] font-semibold text-[#0F172A]">{title}</div>
+                  <div className="text-[12px] text-[#64748B] mt-[2px]">{sub}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="text-center">
+            <Link
+              href="/register"
+              className="inline-block bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-bold px-8 py-3 rounded-[10px] transition-all shadow-[0_4px_16px_rgba(249,115,22,.30)] mb-4"
+            >
+              สมัครเป็น NEX Partner ฟรี
             </Link>
+            <p className="text-[13px] text-[#64748B]">
+              มีคำถามก่อนสมัคร?{' '}
+              <a href="#contact" className="text-[#050579] font-semibold hover:underline">
+                ติดต่อทีมงาน
+              </a>
+            </p>
           </div>
         </div>
       </section>

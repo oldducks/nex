@@ -2,7 +2,7 @@
 
 import { useState, useEffect, Suspense, useMemo } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
-import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff, Check, X } from 'lucide-react';
+import { Lock, ArrowLeft, CheckCircle, Eye, EyeOff, Check, X, Loader2 } from 'lucide-react';
 import Link from 'next/link';
 
 // Password validation rules (Gmail standard)
@@ -86,130 +86,139 @@ function ResetPasswordForm() {
             setTimeout(() => {
                 router.push('/login');
             }, 2000);
-        } catch (err: any) {
-            setError(err.message);
+        } catch (err: unknown) {
+            setError(err instanceof Error ? err.message : 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง');
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center p-6 relative overflow-hidden">
-            {/* Background Ambience */}
-            <div className="absolute top-0 left-0 w-[500px] h-[500px] bg-purple-600/20 blur-[120px] rounded-full -translate-x-1/2 -translate-y-1/2" />
-            <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-pink-600/20 blur-[120px] rounded-full translate-x-1/2 translate-y-1/2" />
-
-            <div className="w-full max-w-md bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 relative z-10">
-                <Link href="/login" className="inline-flex items-center gap-2 text-gray-400 hover:text-white mb-6 transition-colors">
-                    <ArrowLeft size={18} />
-                    กลับไปหน้าเข้าสู่ระบบ
-                </Link>
-
-                <div className="text-center mb-8">
-                    <h1 className="text-2xl font-bold mb-2">ตั้งรหัสผ่านใหม่</h1>
-                    <p className="text-gray-400">สร้างรหัสผ่านที่ปลอดภัยสำหรับบัญชีของคุณ</p>
-                </div>
-
-                {message && (
-                    <div className="mb-6 p-4 bg-green-500/10 border border-green-500/20 rounded-xl text-green-400 text-sm text-center font-medium flex items-center justify-center gap-2">
-                        <CheckCircle size={18} />
-                        {message}
-                    </div>
-                )}
-
-                {error && (
-                    <div className="mb-6 p-4 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm text-center font-medium">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">รหัสผ่านใหม่</label>
-                        <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                required
-                                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-12 pr-12 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all placeholder-gray-500"
-                                placeholder="ตั้งรหัสผ่านใหม่"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                            />
-                            <button
-                                type="button"
-                                onClick={() => setShowPassword(!showPassword)}
-                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white transition-colors"
-                            >
-                                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                            </button>
-                        </div>
-
-                        {/* Password Strength Bar */}
-                        {password && (
-                            <div className="mt-3 space-y-2">
-                                <div className="h-2 bg-white/10 rounded-full overflow-hidden">
-                                    <div
-                                        className={`h-full transition-all duration-300 ${getStrengthColor()}`}
-                                        style={{ width: `${passwordStrength.percentage}%` }}
-                                    />
-                                </div>
-                                <p className="text-xs text-gray-400">
-                                    ความแข็งแรง: {passwordStrength.passed}/{passwordStrength.total}
-                                </p>
-                            </div>
-                        )}
-
-                        {/* Password Rules Checklist */}
-                        {password && (
-                            <div className="mt-4 space-y-2">
-                                {passwordRules.map(rule => {
-                                    const passed = rule.test(password);
-                                    return (
-                                        <div key={rule.id} className={`flex items-center gap-2 text-sm ${passed ? 'text-green-400' : 'text-gray-500'}`}>
-                                            {passed ? <Check size={16} /> : <X size={16} />}
-                                            <span>{rule.label}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="space-y-2">
-                        <label className="text-sm font-medium text-gray-300 ml-1">ยืนยันรหัสผ่าน</label>
-                        <div className="relative">
-                            <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
-                            <input
-                                type={showPassword ? "text" : "password"}
-                                required
-                                className="w-full bg-white/10 border border-white/20 rounded-xl py-3 pl-12 pr-4 focus:outline-none focus:ring-2 focus:ring-purple-500 transition-all placeholder-gray-500"
-                                placeholder="พิมพ์รหัสผ่านอีกครั้ง"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                            />
-                        </div>
-                        {confirmPassword && password !== confirmPassword && (
-                            <p className="mt-2 text-sm text-red-400 flex items-center gap-1">
-                                <X size={14} /> รหัสผ่านไม่ตรงกัน
-                            </p>
-                        )}
-                        {confirmPassword && password === confirmPassword && (
-                            <p className="mt-2 text-sm text-green-400 flex items-center gap-1">
-                                <Check size={14} /> รหัสผ่านตรงกัน
-                            </p>
-                        )}
-                    </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading || !token || !passwordStrength.isValid || password !== confirmPassword}
-                        className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white font-bold py-4 rounded-xl shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+        <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
+            <main className="mx-auto flex min-h-screen w-full max-w-md items-center px-4 py-8">
+                <section className="w-full rounded-[28px] border border-[#D9E1F2] bg-white p-5 shadow-[0_24px_60px_-42px_rgba(5,5,121,0.2)] md:p-7">
+                    <Link
+                        href="/login"
+                        className="inline-flex items-center gap-2 text-sm font-semibold text-[#475569] transition-colors hover:text-[#050579]"
                     >
-                        {loading ? 'กำลังดำเนินการ...' : 'ตั้งรหัสผ่านใหม่'}
-                    </button>
-                </form>
-            </div>
+                        <ArrowLeft size={18} />
+                        กลับไปหน้าเข้าสู่ระบบ
+                    </Link>
+
+                    <div className="mt-6">
+                        <h1 className="text-2xl font-black tracking-tight text-[#050579]">ตั้งรหัสผ่านใหม่</h1>
+                        <p className="mt-2 text-sm leading-relaxed text-[#475569]">สร้างรหัสผ่านที่ปลอดภัยสำหรับบัญชีของคุณ</p>
+                    </div>
+
+                    {message ? (
+                        <div className="mt-5 flex items-center justify-center gap-2 rounded-2xl border border-[#BCE2C4] bg-[#F2FBF4] px-4 py-3 text-sm font-semibold text-[#166534]">
+                            <CheckCircle size={18} />
+                            {message}
+                        </div>
+                    ) : null}
+
+                    {error ? (
+                        <div className="mt-5 rounded-2xl border border-[#FECACA] bg-[#FEF2F2] px-4 py-3 text-sm font-semibold text-[#B91C1C]">
+                            {error}
+                        </div>
+                    ) : null}
+
+                    <form onSubmit={handleSubmit} className="mt-6 space-y-5">
+                        <div className="space-y-2">
+                            <label className="ml-1 block text-xs font-black uppercase tracking-[0.12em] text-[#64748B]">รหัสผ่านใหม่</label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" size={18} />
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    className="h-12 w-full rounded-xl border border-[#D9E1F2] bg-white pl-11 pr-12 text-sm text-[#0F172A] outline-none transition focus:border-[#A7B7E6] focus:ring-2 focus:ring-[#EEF0FF]"
+                                    placeholder="ตั้งรหัสผ่านใหม่"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[#64748B] transition-colors hover:text-[#050579]"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+
+                            {password ? (
+                                <div className="mt-3 space-y-2">
+                                    <div className="h-2 overflow-hidden rounded-full bg-[#E2E8F0]">
+                                        <div
+                                            className={`h-full transition-all duration-300 ${getStrengthColor()}`}
+                                            style={{ width: `${passwordStrength.percentage}%` }}
+                                        />
+                                    </div>
+                                    <p className="text-xs text-[#64748B]">
+                                        ความแข็งแรง: {passwordStrength.passed}/{passwordStrength.total}
+                                    </p>
+                                </div>
+                            ) : null}
+
+                            {password ? (
+                                <div className="mt-4 space-y-2">
+                                    {passwordRules.map((rule) => {
+                                        const passed = rule.test(password);
+                                        return (
+                                            <div key={rule.id} className={`flex items-center gap-2 text-sm ${passed ? 'text-[#166534]' : 'text-[#64748B]'}`}>
+                                                {passed ? <Check size={16} /> : <X size={16} />}
+                                                <span>{rule.label}</span>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            ) : null}
+                        </div>
+
+                        <div className="space-y-2">
+                            <label className="ml-1 block text-xs font-black uppercase tracking-[0.12em] text-[#64748B]">ยืนยันรหัสผ่าน</label>
+                            <div className="relative">
+                                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-[#64748B]" size={18} />
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    required
+                                    className="h-12 w-full rounded-xl border border-[#D9E1F2] bg-white pl-11 pr-4 text-sm text-[#0F172A] outline-none transition focus:border-[#A7B7E6] focus:ring-2 focus:ring-[#EEF0FF]"
+                                    placeholder="พิมพ์รหัสผ่านอีกครั้ง"
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                />
+                            </div>
+                            {confirmPassword && password !== confirmPassword ? (
+                                <p className="mt-2 flex items-center gap-1 text-sm text-[#B91C1C]">
+                                    <X size={14} /> รหัสผ่านไม่ตรงกัน
+                                </p>
+                            ) : null}
+                            {confirmPassword && password === confirmPassword ? (
+                                <p className="mt-2 flex items-center gap-1 text-sm text-[#166534]">
+                                    <Check size={14} /> รหัสผ่านตรงกัน
+                                </p>
+                            ) : null}
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={loading || !token || !passwordStrength.isValid || password !== confirmPassword}
+                            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-xl bg-[#F97316] px-4 text-sm font-bold text-white transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 size={18} className="animate-spin" />
+                                    กำลังดำเนินการ...
+                                </>
+                            ) : (
+                                'ตั้งรหัสผ่านใหม่'
+                            )}
+                        </button>
+                    </form>
+                </section>
+            </main>
+            <footer className="px-4 pb-6 text-center text-xs font-medium text-[#64748B]">
+                © NEX Solution. All rights reserved. บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.
+            </footer>
         </div>
     );
 }
@@ -217,8 +226,8 @@ function ResetPasswordForm() {
 export default function ResetPasswordPage() {
     return (
         <Suspense fallback={
-            <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
-                <div className="text-gray-400">กำลังโหลด...</div>
+            <div className="flex min-h-screen items-center justify-center bg-[#EEF0FF] text-[#475569]">
+                <div>กำลังโหลด...</div>
             </div>
         }>
             <ResetPasswordForm />
