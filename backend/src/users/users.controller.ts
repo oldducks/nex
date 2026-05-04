@@ -256,6 +256,15 @@ export class UsersController {
     return this.usersService.disableExpiredUsers();
   }
 
+  @Get(':id/public-links')
+  @UseGuards(JwtAuthGuard)
+  async getPublicLinks(@Request() req, @Param('id', ParseIntPipe) id: number) {
+    if (req.user.role !== 'super_admin' && req.user.role !== 'group_admin' && req.user.sub !== id) {
+      throw new ForbiddenException('You can only view your own public links');
+    }
+    return this.usersService.getPublicLinks(id);
+  }
+
   // Feature Config Management
   @Get(':id/feature-config')
   @UseGuards(JwtAuthGuard)

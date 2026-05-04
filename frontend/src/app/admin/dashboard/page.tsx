@@ -8,7 +8,7 @@ import {
     Users, UserPlus, Eye, Download, Trash2, ToggleLeft, ToggleRight,
     Loader2, ShieldAlert, LogIn, AlertTriangle, CheckCircle, XCircle,
     Calendar, Edit3, RefreshCw, Settings2,
-    BookOpen, BarChart3, Smartphone, Layout, UserCircle, ListChecks, ServerCog, Save, Search, Pencil, Plus
+    BookOpen, BarChart3, Smartphone, Layout, UserCircle, ListChecks, ServerCog, Save, Search, Pencil, Plus, ExternalLink
 } from 'lucide-react';
 
 interface UserStats {
@@ -153,6 +153,17 @@ interface AdminTemplateItem {
     fields?: TemplateField[];
 }
 
+interface PublicLink {
+    title: string;
+    url: string;
+}
+
+interface UserPublicLinks {
+    namecard: PublicLink;
+    catalogs: PublicLink[];
+    landingPages: PublicLink[];
+}
+
 const AI_IMAGE_MODELS = [
     { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image (Recommended)' },
     { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image Preview (Pro)' },
@@ -213,6 +224,8 @@ export default function SuperAdminDashboard() {
     const [executiveReport, setExecutiveReport] = useState<ExecutiveReport | null>(null);
     const [reportLoading, setReportLoading] = useState(false);
     const [reportError, setReportError] = useState<string | null>(null);
+    const [publicLinks, setPublicLinks] = useState<UserPublicLinks | null>(null);
+    const [publicLinksLoading, setPublicLinksLoading] = useState(false);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -275,6 +288,32 @@ export default function SuperAdminDashboard() {
         };
         fetchData();
     }, [API_URL]);
+
+    // Fetch user public links when detailUserId changes
+    useEffect(() => {
+        const fetchPublicLinks = async () => {
+            if (!detailUserId) {
+                setPublicLinks(null);
+                return;
+            }
+
+            setPublicLinksLoading(true);
+            const token = Cookies.get('token');
+            try {
+                const res = await fetch(`${API_URL}/users/${detailUserId}/public-links`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setPublicLinks(data);
+                }
+            } catch (error) {
+                console.error('Failed to fetch public links:', error);
+            }
+            setPublicLinksLoading(false);
+        };
+        fetchPublicLinks();
+    }, [detailUserId, API_URL]);
 
     const toggleUserActive = async (userId: number) => {
         setActionLoading(userId);
@@ -1798,6 +1837,89 @@ export default function SuperAdminDashboard() {
                                         <p className="font-semibold text-[#0F172A]">{detailUser.expiration_date ? formatDate(detailUser.expiration_date) : 'ไม่จำกัด'}</p>
                                     </div>
                                 </div>
+                                
+                                {/* Public Links Section */}
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+                                        <ExternalLink size={16} className="text-indigo-500" />
+                                        ลิงก์ที่เผยแพร่แล้ว (Public Links)
+                                    </h4>
+                                    
+                                    {publicLinksLoading ? (
+                                        <div className="flex items-center gap-2 text-sm text-[#64748B] py-2">
+                                            <Loader2 size={14} className="animate-spin" />
+                                            กำลังโหลดลิงก์...
+                                        </div>
+                                    ) : publicLinks ? (
+                                        <div className="space-y-3">
+                                            {/* Namecard */}
+                                            <div className="rounded-xl border border-[#D9E1F2] bg-white p-3">
+                                                <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">นามบัตรดิจิทัล</p>
+                                                <a 
+                                                    href={publicLinks.namecard.url} 
+                                                    target="_blank" 
+                                                    rel="noopener noreferrer"
+                                                    className="text-sm font-medium text-indigo-600 hover:underline flex items-center gap-1"
+                                                >
+                                                    {publicLinks.namecard.url}
+                                                    <ExternalLink size={12} />
+                                                </a>
+                                            </div>
+
+                                            {/* Catalogs */}
+                                            {publicLinks.catalogs.length > 0 && (
+                                                <div className="rounded-xl border border-[#D9E1F2] bg-white p-3">
+                                                    <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">E-Catalog ({publicLinks.catalogs.length})</p>
+                                                    <div className="space-y-2">
+                                                        {publicLinks.catalogs.map((cat, i) => (
+                                                            <div key={i} className="flex flex-col">
+                                                                <span className="text-xs text-[#0F172A] font-semibold">{cat.title}</span>
+                                                                <a 
+                                                                    href={cat.url} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-xs text-emerald-600 hover:underline flex items-center gap-1"
+                                                                >
+                                                                    {cat.url}
+                                                                    <ExternalLink size={10} />
+                                                                </a>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {/* Landing Pages */}
+                                            {publicLinks.landingPages.length > 0 && (
+                                                <div className="rounded-xl border border-[#D9E1F2] bg-white p-3">
+                                                    <p className="text-[10px] font-bold text-[#64748B] uppercase tracking-wider mb-1">Sales Page / Landing Page ({publicLinks.landingPages.length})</p>
+                                                    <div className="space-y-2">
+                                                        {publicLinks.landingPages.map((lp, i) => (
+                                                            <div key={i} className="flex flex-col">
+                                                                <span className="text-xs text-[#0F172A] font-semibold">{lp.title}</span>
+                                                                <a 
+                                                                    href={lp.url} 
+                                                                    target="_blank" 
+                                                                    rel="noopener noreferrer"
+                                                                    className="text-xs text-orange-600 hover:underline flex items-center gap-1"
+                                                                >
+                                                                    {lp.url}
+                                                                    <ExternalLink size={10} />
+                                                                </a>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            
+                                            {publicLinks.catalogs.length === 0 && publicLinks.landingPages.length === 0 && (
+                                                <p className="text-xs text-[#64748B] italic">ยังไม่มี E-Catalog หรือ Sales Page</p>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-red-500">ไม่สามารถโหลดข้อมูลลิงก์ได้</p>
+                                    )}
+                                </div>
 
                                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                                     <div className="rounded-xl border border-[#D9E1F2] p-3 text-center">
@@ -2064,3 +2186,4 @@ export default function SuperAdminDashboard() {
         </div>
     );
 }
+

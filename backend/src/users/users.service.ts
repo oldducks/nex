@@ -3,6 +3,8 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User, FeatureConfig, DEFAULT_FEATURE_CONFIG_ALL_ENABLED, DEFAULT_FEATURE_CONFIG_LOCKED, UserRole } from './entities/user.entity';
 import { Profile } from '../profiles/entities/profile.entity';
+import { Catalog } from '../catalogs/entities/catalog.entity';
+import { LandingPage } from '../landing-pages/entities/landing-page.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UpdateFeatureConfigDto } from './dto/update-feature-config.dto';
@@ -27,6 +29,10 @@ export class UsersService {
     private usersRepository: Repository<User>,
     @InjectRepository(Profile)
     private profilesRepository: Repository<Profile>,
+    @InjectRepository(Catalog)
+    private catalogsRepository: Repository<Catalog>,
+    @InjectRepository(LandingPage)
+    private landingPagesRepository: Repository<LandingPage>,
   ) { }
 
   private async generateUniqueValue(field: 'uid' | 'url_prefix' | 'referral_code', length: number, uppercase = false): Promise<string> {
@@ -476,5 +482,38 @@ export class UsersService {
     await this.profilesRepository.save(profile);
 
     return savedUser;
+  }
+
+  async getPublicLinks(userId: number) {
+    const user = await this.usersRepository.findOneBy({ id: userId });
+    if (!user) return null;
+
+    const [catalogs, landingPages] = await Promise.all([
+      this.catalogsRepository.find({
+        where: { user_id: userId, is_active: true },
+        select: ['id', 'title', 'custom_slug'],
+      }),
+      this.landingPagesRepository.find({
+        where: { user_id: userId, is_published: true },
+        select: ['id', 'title', 'slug'],
+      }),
+    ]);
+
+    const SITE_URL = process.env.SITE_URL || 'https://nexsolution.cloud';
+
+    return {
+      namecard: {
+        title: 'Digital Namecard',
+        url: `${SITE_URL}/${user.url_prefix || 'p'}/${user.uid}`,
+      },
+      catalogs: catalogs.map((c) => ({
+        title: c.title,
+        url: `${SITE_URL}/catalog/${c.custom_slug || c.id}`,
+      })),
+      landingPages: landingPages.map((lp) => ({
+        title: lp.title,
+        url: `${SITE_URL}/lp/${lp.slug || lp.id}`,
+      })),
+    };
   }
 }
