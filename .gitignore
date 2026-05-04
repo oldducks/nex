@@ -5,5 +5,16 @@ coverage/
 .DS_Store
 .env
 .env.local
-pgdata/
-uploads/
+/pgdata/
+/uploads/
+
+# Local agent/editor artifacts
+/.claude/
+/.codex
+
+# Generated exports and local backups
+/backups/
+/exports/
+*.backup
+*.backup-*
+*.orig
