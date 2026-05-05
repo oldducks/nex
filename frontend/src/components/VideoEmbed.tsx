@@ -12,35 +12,6 @@ export function VideoEmbed({ url, autoplay = false }: VideoEmbedProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   
-  // Use Intersection Observer for scroll-based autoplay
-  useEffect(() => {
-    // Only set up observer if autoplay is enabled and it's a direct file (videoRef exists)
-    if (!autoplay || !videoRef.current) return;
-
-    const observer = new IntersectionObserver(
-      (entries) => {
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            videoRef.current?.play().catch(e => console.log('Autoplay blocked:', e));
-            setIsPlaying(true);
-          } else {
-            videoRef.current?.pause();
-            setIsPlaying(false);
-          }
-        });
-      },
-      { threshold: 0.5 } // 50% visible
-    );
-
-    observer.observe(videoRef.current);
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [autoplay, url]);
-
-  if (!url) return null;
-
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
   // Helper to get full URL
@@ -49,6 +20,8 @@ export function VideoEmbed({ url, autoplay = false }: VideoEmbedProps) {
     if (path.startsWith('/uploads')) return `${API_URL}${path}`;
     return path;
   };
+
+  if (!url) return null;
 
   // Check if URL is YouTube or Vimeo
   const isEmbedable = isEmbedableVideo(url);
@@ -60,10 +33,11 @@ export function VideoEmbed({ url, autoplay = false }: VideoEmbedProps) {
           <video
               ref={videoRef}
               src={getFullUrl(url)}
-              muted={autoplay} // Required for autoplay
+              autoPlay={false}
+              muted={false}
               loop
               playsInline
-              controls
+              controls={true}
               className="w-full h-full object-cover"
           />
       </div>
@@ -73,10 +47,10 @@ export function VideoEmbed({ url, autoplay = false }: VideoEmbedProps) {
   const embedUrl = getEmbedUrl(url);
   if (!embedUrl) return null;
 
-  // Add autoplay params for YouTube/Vimeo
+  // Add autoplay params for YouTube/Vimeo - Force to 0 for sound
   const finalUrl = embedUrl.includes('?') 
-    ? `${embedUrl}&autoplay=${autoplay ? 1 : 0}&mute=${autoplay ? 1 : 0}`
-    : `${embedUrl}?autoplay=${autoplay ? 1 : 0}&mute=${autoplay ? 1 : 0}`;
+    ? `${embedUrl}&autoplay=0&mute=0`
+    : `${embedUrl}?autoplay=0&mute=0`;
 
   return (
     <div className="relative w-full aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black">

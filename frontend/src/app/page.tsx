@@ -12,10 +12,10 @@ type QuickAction = {
 
 const quickActions = [
   { label: "เริ่มต้นกับ NEX Solution", href: "https://nexsolution.cloud/start" },
-  { label: "NEX Control Your Future", href: "/nex-control-your-future-preview" },
-  { label: "NEX Solution เครื่องมือการตลาด", href: "/what-is-nex-preview" },
-  { label: "NEX Digital Asset สินทรัพย์ดิจิทัล", href: "/nex-digital-asset-partner-preview" },
-  { label: "NEX MOS โซลูชั่นสำหรับองค์กร", href: "https://nexsolution.cloud/enterprise-mos-preview" },
+  { label: "NEX ให้อะไรกับคุณ", href: "/nex-control-your-future-preview" },
+  { label: "วิธีช่วยทุกธุรกิจให้เติบโต ก้าวกระโดด", href: "/what-is-nex-preview" },
+  { label: "วิธีสร้างเงินก้อนในอนาคตง่ายๆ", href: "/nex-digital-asset-partner-preview" },
+  { label: "วิธีบริหารเพิ่มยอดขายสำหรับธุรกิจ", href: "https://nexsolution.cloud/enterprise-mos-preview" },
   { label: "เข้าสู่ระบบ", href: "/login", primary: true },
 ] satisfies QuickAction[];
 

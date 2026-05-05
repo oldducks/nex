@@ -179,10 +179,10 @@ export default function LeadsPage() {
 
                 {lead.message && (
                   <div className="mt-8 border-t border-[#E7ECF7] pt-8">
-                    <div className="mb-3 ml-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">ข้อความจากลูกค้า:</div>
-                    <p className="rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-6 text-base italic leading-relaxed text-[#475569]">
-                      &ldquo;{lead.message}&rdquo;
-                    </p>
+                    <div className="mb-4 ml-1 text-[10px] font-black uppercase tracking-widest text-[#64748B]">รายละเอียดข้อมูลจากฟอร์ม:</div>
+                    <div className="rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-6">
+                      {renderLeadMessage(lead.message)}
+                    </div>
                   </div>
                 )}
               </div>
@@ -191,6 +191,44 @@ export default function LeadsPage() {
         )}
       </main>
     </div>
+  );
+}
+
+function renderLeadMessage(message: string) {
+  try {
+    const data = JSON.parse(message);
+    if (typeof data === 'object' && data !== null) {
+      return (
+        <div className="grid grid-cols-1 gap-y-4 gap-x-8 sm:grid-cols-2">
+          {Object.entries(data).map(([key, value]) => {
+            // Skip empty values
+            if (value === undefined || value === null || value === '') return null;
+            
+            // Format key label (capitalize and replace underscores/dashes)
+            const label = key.replace(/_/g, ' ').replace(/-/g, ' ');
+            
+            return (
+              <div key={key} className="flex flex-col gap-1 group/field">
+                <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[#94A3B8] transition-colors group-hover/field:text-[#050579]">
+                  {label}
+                </span>
+                <span className="text-sm font-bold text-[#334155]">
+                  {typeof value === 'boolean' ? (value ? 'ใช่' : 'ไม่ใช่') : String(value)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      );
+    }
+  } catch (e) {
+    // If not JSON, render as plain text
+  }
+  
+  return (
+    <p className="text-base italic leading-relaxed text-[#475569] whitespace-pre-wrap">
+      &ldquo;{message}&rdquo;
+    </p>
   );
 }
 

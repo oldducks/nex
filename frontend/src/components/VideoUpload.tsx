@@ -449,11 +449,11 @@ export function VideoPlayer({ config, className = '' }: VideoPlayerProps) {
     const videoElement = (
         <video
             src={getFullUrl(config.url)}
-            autoPlay={config.autoplay}
-            muted={config.autoplay} // Muted required for autoplay
+            autoPlay={false}
+            muted={false}
             loop
             playsInline
-            controls={!config.link_enabled}
+            controls={true}
             className={`w-full rounded-2xl ${className}`}
         />
     );

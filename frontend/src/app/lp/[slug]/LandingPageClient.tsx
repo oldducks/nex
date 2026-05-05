@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { 
   Globe, ExternalLink, Share2, Facebook, Twitter, 
   ChevronRight, MessageSquare, Package, Layout, Image as ImageIcon,
-  Copy, Mail, MapPin, Play, Loader2
+  Copy, Mail, MapPin, Play, Loader2, X
 } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
 import Cookies from 'js-cookie';
@@ -140,6 +140,8 @@ const WhatsAppIcon = ({ size = 20 }: { size?: number }) => (
 );
 
 export default function LandingPageClient({ page }: { page: LandingPage }) {
+    const [showShareModal, setShowShareModal] = useState(false);
+    
     useEffect(() => {
         if (page.owner_uid) {
             logLandingPageView(page.owner_uid, page.id, page.slug);
@@ -309,19 +311,7 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                     }}>
                         {/* Share / Copy Link */}
                         <button 
-                            onClick={async () => {
-                                try {
-                                    if (navigator.share) {
-                                        await navigator.share({
-                                            title: page.title,
-                                            url: shareUrl
-                                        });
-                                    } else {
-                                        await navigator.clipboard.writeText(shareUrl);
-                                        alert('คัดลอกลิงก์แล้ว!');
-                                    }
-                                } catch (err) {}
-                            }}
+                            onClick={() => setShowShareModal(true)}
                             style={{
                                 height: '3.5rem',
                                 padding: '0 1.5rem',
@@ -380,6 +370,130 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                     </footer>
                 </div>
             </main>
+
+            <ShareModal 
+                isOpen={showShareModal} 
+                onClose={() => setShowShareModal(false)} 
+                url={shareUrl} 
+                title={page.title} 
+            />
+        </div>
+    );
+}
+
+function ShareModal({ isOpen, onClose, url, title }: { isOpen: boolean, onClose: () => void, url: string, title: string }) {
+    if (!isOpen) return null;
+
+    const shareLinks = [
+        {
+            name: 'LINE',
+            icon: (
+                <div style={{ width: '48px', height: '48px', backgroundColor: '#06C755', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <LineIcon size={28} />
+                </div>
+            ),
+            href: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`,
+        },
+        {
+            name: 'Facebook',
+            icon: (
+                <div style={{ width: '48px', height: '48px', backgroundColor: '#1877F2', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <Facebook size={28} fill="currentColor" />
+                </div>
+            ),
+            href: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+        },
+        {
+            name: 'Twitter',
+            icon: (
+                <div style={{ width: '48px', height: '48px', backgroundColor: '#000000', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}>
+                    <Twitter size={24} fill="currentColor" />
+                </div>
+            ),
+            href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+        }
+    ];
+
+    return (
+        <div style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+            backdropFilter: 'blur(8px)'
+        }} onClick={onClose}>
+            <div style={{
+                backgroundColor: 'white',
+                borderRadius: '32px',
+                width: '100%',
+                maxWidth: '420px',
+                padding: '2.5rem 2rem',
+                position: 'relative',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)',
+                animation: 'modalFadeIn 0.3s ease-out'
+            }} onClick={e => e.stopPropagation()}>
+                <style>{`
+                    @keyframes modalFadeIn {
+                        from { opacity: 0; transform: translateY(20px) scale(0.95); }
+                        to { opacity: 1; transform: translateY(0) scale(1); }
+                    }
+                `}</style>
+                
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '2rem', color: '#050579', textAlign: 'center' }}>แชร์หน้านี้</h3>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem', marginBottom: '2.5rem' }}>
+                    {shareLinks.map(link => (
+                        <a key={link.name} href={link.href} target="_blank" rel="noopener noreferrer" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}>
+                            {link.icon}
+                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em' }}>{link.name}</span>
+                        </a>
+                    ))}
+                </div>
+
+                <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.75rem',
+                    padding: '0.75rem 0.75rem 0.75rem 1.25rem',
+                    backgroundColor: '#F1F5F9',
+                    borderRadius: '20px',
+                    border: '1px solid #E2E8F0'
+                }}>
+                    <div style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontSize: '13px', color: '#64748B', fontWeight: 500 }}>
+                        {url}
+                    </div>
+                    <button 
+                        onClick={() => {
+                            navigator.clipboard.writeText(url);
+                            alert('คัดลอกลิงก์สำเร็จ!');
+                        }}
+                        style={{ 
+                            backgroundColor: '#050579', 
+                            color: 'white', 
+                            border: 'none', 
+                            borderRadius: '14px', 
+                            padding: '0.6rem 1.2rem', 
+                            fontSize: '12px', 
+                            fontWeight: 800, 
+                            cursor: 'pointer',
+                            whiteSpace: 'nowrap'
+                        }}
+                    >
+                        คัดลอก
+                    </button>
+                </div>
+
+                <button 
+                    onClick={onClose}
+                    style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#F1F5F9', border: 'none', borderRadius: '12px', cursor: 'pointer', color: '#64748B', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                    <X size={20} />
+                </button>
+            </div>
         </div>
     );
 }
@@ -489,7 +603,8 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
         case 'video': {
             const videoConfig = block.content.video_config || {};
             const url = block.content.url || videoConfig.url;
-            const autoplay = block.content.autoplay ?? videoConfig.autoplay ?? false;
+            // Force disable autoplay for all videos to ensure sound is available and browser policies don't block audio
+            const autoplay = false;
             
             const isEmbed = isEmbedableVideo(url);
             const embedUrl = isEmbed ? getEmbedUrl(url) : '';
@@ -548,11 +663,11 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                     <video
                                         ref={videoRef}
                                         src={videoUrl}
-                                        autoPlay={autoplay}
-                                        muted={autoplay}
+                                        autoPlay={false}
+                                        muted={false}
                                         loop
                                         playsInline
-                                        controls={autoplay ? false : isVideoPlaying}
+                                        controls={true}
                                         onPlay={() => setIsVideoPlaying(true)}
                                         onPause={() => setIsVideoPlaying(false)}
                                         onEnded={() => setIsVideoPlaying(false)}
@@ -567,11 +682,11 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                 <video
                                     ref={videoRef}
                                     src={videoUrl}
-                                    autoPlay={autoplay}
-                                    muted={autoplay}
+                                    autoPlay={false}
+                                    muted={false}
                                     loop
                                     playsInline
-                                    controls={autoplay ? false : isVideoPlaying}
+                                    controls={true}
                                     onPlay={() => setIsVideoPlaying(true)}
                                     onPause={() => setIsVideoPlaying(false)}
                                     onEnded={() => setIsVideoPlaying(false)}

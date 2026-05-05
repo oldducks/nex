@@ -27,7 +27,7 @@ export function getEmbedUrl(url: string | undefined | null): string {
   for (const pattern of ytPatterns) {
     const match = url.match(pattern);
     if (match) {
-      return `https://www.youtube.com/embed/${match[1]}?feature=oembed&autoplay=1&mute=1`;
+      return `https://www.youtube.com/embed/${match[1]}?feature=oembed&autoplay=0&mute=0`;
     }
   }
 

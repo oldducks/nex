@@ -86,7 +86,7 @@ export default function AnalyticsDashboard() {
 
                 const viewMap: Record<number, number> = {};
                 await Promise.all(
-                    (pages || []).slice(0, 5).map(async (page: any) => {
+                    (pages || []).map(async (page: any) => {
                         try {
                             const viewRes = await fetch(`${API_URL}/analytics/landing-pages/${page.id}/views`, {
                                 headers: { Authorization: `Bearer ${token}` }
@@ -273,7 +273,7 @@ export default function AnalyticsDashboard() {
                                 <p className="text-sm text-[#64748B]">ยังไม่มีแบบฟอร์มในระบบ คุณสามารถเริ่มสร้างได้จากเมนูฟอร์มบันทึกข้อมูล</p>
                             ) : (
                                 <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                                    {forms.slice(0, 4).map((form: any) => (
+                                    {forms.map((form: any) => (
                                         <div key={form.id} className="flex items-center justify-between gap-3 rounded-2xl border border-[#E7ECF7] bg-[#F8FAFF] p-3 md:p-4">
                                             <div className="min-w-0">
                                                 <p className="mb-1 text-xs font-black uppercase tracking-widest text-[#64748B]">แบบฟอร์ม</p>
@@ -436,7 +436,7 @@ export default function AnalyticsDashboard() {
                                 </p>
                             ) : (
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
-                                    {landingPages.slice(0, 5).map((page: any) => {
+                                    {landingPages.map((page: any) => {
                                         const views = landingViews[page.id] ?? 0;
                                         return (
                                             <div
