@@ -225,7 +225,7 @@ export default function LandingPagesListPage() {
             <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/85 backdrop-blur-md">
                 <div className="relative mx-auto flex h-24 w-full max-w-md items-center px-4 md:max-w-2xl">
                     <Link
-                        href="/manage/control-center"
+                        href="/manage/control"
                         className="absolute left-6 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group"
                         title="ย้อนกลับ"
                     >

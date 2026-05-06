@@ -63,7 +63,7 @@ export default function StartClient({ initialRef }: StartClientProps) {
               href="#pricing"
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
-              พาร์ทเนอร์
+              ราคา
             </a>
             <a
               href="#contact"
@@ -76,6 +76,12 @@ export default function StartClient({ initialRef }: StartClientProps) {
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               ตัวอย่าง
+            </Link>
+            <Link
+              href="/start/enterprise"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
+            >
+              ลูกค้าองค์กร
             </Link>
             <Link
               href="/login"

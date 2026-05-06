@@ -13,15 +13,9 @@ export function proxy(request: NextRequest) {
   const userAgent = request.headers.get('user-agent') || '';
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(userAgent);
 
-  if (targetPath === '/manage/control-center' && isMobileDevice) {
+  if (targetPath === '/manage/control-center') {
     const redirectUrl = request.nextUrl.clone();
     redirectUrl.pathname = isV2 ? '/v2/manage/control' : '/manage/control';
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  if (targetPath === '/manage/control' && !isMobileDevice) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = isV2 ? '/v2/manage/control-center' : '/manage/control-center';
     return NextResponse.redirect(redirectUrl);
   }
 

@@ -411,7 +411,7 @@ export default function ReferralsV2Page() {
 
               <button
                 type="button"
-                onClick={() => router.push("/manage/control-center")}
+                onClick={() => router.push("/manage/control")}
                 className={`flex w-full items-center justify-between rounded-2xl px-4 py-3 text-sm font-bold transition ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
               >
                 <span className="flex items-center gap-2">

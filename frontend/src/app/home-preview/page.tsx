@@ -174,7 +174,7 @@ export default function HomePreviewPage() {
         return;
       }
 
-      window.location.href = "/manage/control-center";
+      window.location.href = "/manage/control";
     } catch (error: unknown) {
       setLoginError(error instanceof Error ? error.message : "เข้าสู่ระบบไม่สำเร็จ");
       setIsSubmitting(false);

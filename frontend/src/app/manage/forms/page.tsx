@@ -273,7 +273,7 @@ export default function FormsManagePageV2() {
       </div>
 
       <ManageTopBar
-        backHref="/manage/control-center"
+        backHref="/manage/control"
         subtitle="NEX FORMS"
         title="จัดการแบบฟอร์มของคุณ"
       />

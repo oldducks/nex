@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react';
 import { 
-  Globe, ExternalLink, Share2, Facebook, Twitter, 
+  Globe, ExternalLink, Share2, Facebook, Twitter, Phone,
   ChevronRight, MessageSquare, Package, Layout, Image as ImageIcon,
   Copy, Mail, MapPin, Play, Loader2, X
 } from 'lucide-react';
@@ -14,7 +14,7 @@ import { QrCodeDownloadActions } from '@/components/QrCodeDownloadActions';
 
 interface Block {
     id: string;
-    type: 'text' | 'image' | 'video' | 'button' | 'form' | 'location';
+    type: 'text' | 'image' | 'video' | 'button' | 'form' | 'location' | 'contact';
     content: any;
 }
 
@@ -139,8 +139,200 @@ const WhatsAppIcon = ({ size = 20 }: { size?: number }) => (
     </svg>
 );
 
+const TelegramIcon = ({ size = 20 }: { size?: number }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
+        <path d="M21.944 4.665c.263-.943-.273-1.314-1.02-1.043L2.832 10.79c-.91.36-.896.867-.166 1.091l4.644 1.45 1.795 5.562c.222.612.112.854.756.854.498 0 .718-.228.996-.498l2.388-2.32 4.965 3.665c.915.506 1.575.245 1.802-.847L21.944 4.665zM9.09 12.987l9.081-5.732c.454-.276.87-.127.529.176l-7.773 7.02-.303 3.27-1.534-4.734z" />
+    </svg>
+);
+
+const DiscordIcon = ({ size = 20 }: { size?: number }) => (
+    <svg viewBox="0 0 24 24" fill="currentColor" width={size} height={size}>
+        <path d="M20.317 4.369A19.791 19.791 0 0015.438 3c-.211.375-.444.88-.608 1.28a18.27 18.27 0 00-5.66 0A12.64 12.64 0 008.56 3a19.736 19.736 0 00-4.88 1.37C.533 9.13-.32 13.768.099 18.35a19.91 19.91 0 005.993 3.03c.48-.65.907-1.338 1.273-2.058-.698-.264-1.364-.59-1.986-.97.166-.122.328-.248.485-.379 3.835 1.8 7.998 1.8 11.788 0 .16.132.322.258.488.38-.624.38-1.293.706-1.992.97.366.719.793 1.407 1.273 2.057a19.873 19.873 0 005.995-3.03c.49-5.31-.839-9.906-3.099-13.981zM8.02 15.331c-1.183 0-2.157-1.085-2.157-2.419 0-1.334.95-2.418 2.157-2.418 1.216 0 2.181 1.093 2.157 2.418 0 1.334-.95 2.419-2.157 2.419zm7.974 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.334.95-2.418 2.157-2.418 1.216 0 2.181 1.093 2.157 2.418 0 1.334-.941 2.419-2.157 2.419z" />
+    </svg>
+);
+
+type ContactLink = {
+    name: string;
+    href: string;
+    icon: React.ReactNode;
+};
+
+function normalizeUrl(value?: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    let trimmed = value.trim();
+    if (trimmed.length === 0) return null;
+    if (!trimmed.startsWith('http://') &&
+        !trimmed.startsWith('https://') &&
+        !trimmed.startsWith('mailto:') &&
+        !trimmed.startsWith('tel:') &&
+        !trimmed.startsWith('/') &&
+        !trimmed.startsWith('#')) {
+        trimmed = 'https://' + trimmed;
+    }
+    return trimmed;
+}
+
+function normalizePhone(value?: unknown): string | null {
+    if (typeof value !== 'string') return null;
+    const trimmed = value.trim();
+    if (!trimmed) return null;
+    const digits = trimmed.replace(/[^\d+]/g, '');
+    return digits || null;
+}
+
+function buildLineHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://line.me/R/ti/p/${encodeURIComponent(trimmed.startsWith('@') ? trimmed : `@${trimmed}`)}`;
+}
+
+function buildFacebookHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://facebook.com/${trimmed.replace(/^@/, '')}`;
+}
+
+function buildWhatsAppHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    const phone = normalizePhone(trimmed);
+    return phone ? `https://wa.me/${phone.replace(/^\+/, '')}` : null;
+}
+
+function buildTelegramHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://t.me/${trimmed.replace(/^@/, '')}`;
+}
+
+function buildDiscordHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://discord.gg/${trimmed}`;
+}
+
+function buildXHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://x.com/${trimmed.replace(/^@/, '')}`;
+}
+
+function buildInstagramHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://instagram.com/${trimmed.replace(/^@/, '')}`;
+}
+
+function buildTikTokHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    const normalized = trimmed.replace(/^@/, '');
+    return `https://www.tiktok.com/@${normalized}`;
+}
+
+function buildYouTubeHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('@')) return `https://www.youtube.com/${trimmed}`;
+    return `https://www.youtube.com/${trimmed.replace(/^\//, '')}`;
+}
+
+function buildLinkedInHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://www.linkedin.com/${trimmed.replace(/^\//, '')}`;
+}
+
+function buildEmailHref(value?: unknown): string | null {
+    if (typeof value !== 'string' || !value.trim()) return null;
+    return `mailto:${value.trim()}`;
+}
+
+function buildContactLinks(content: any): ContactLink[] {
+    const items: Array<ContactLink | null> = [
+        buildLineHref(content?.line) ? {
+            name: 'LINE',
+            href: buildLineHref(content?.line)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#06C755', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><LineIcon size={28} /></div>,
+        } : null,
+        buildFacebookHref(content?.facebook) ? {
+            name: 'Facebook',
+            href: buildFacebookHref(content?.facebook)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#1877F2', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Facebook size={28} fill="currentColor" /></div>,
+        } : null,
+        normalizePhone(content?.phone) ? {
+            name: 'โทรศัพท์',
+            href: `tel:${normalizePhone(content?.phone)}`,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#0F766E', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Phone size={24} /></div>,
+        } : null,
+        buildWhatsAppHref(content?.whatsapp) ? {
+            name: 'WhatsApp',
+            href: buildWhatsAppHref(content?.whatsapp)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#25D366', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><WhatsAppIcon size={26} /></div>,
+        } : null,
+        buildTelegramHref(content?.telegram) ? {
+            name: 'Telegram',
+            href: buildTelegramHref(content?.telegram)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#229ED9', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><TelegramIcon size={26} /></div>,
+        } : null,
+        buildDiscordHref(content?.discord) ? {
+            name: 'Discord',
+            href: buildDiscordHref(content?.discord)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#5865F2', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><DiscordIcon size={24} /></div>,
+        } : null,
+        buildXHref(content?.x) ? {
+            name: 'X',
+            href: buildXHref(content?.x)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#000000', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Twitter size={24} fill="currentColor" /></div>,
+        } : null,
+        buildInstagramHref(content?.instagram) ? {
+            name: 'Instagram',
+            href: buildInstagramHref(content?.instagram)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#E1306C', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><ImageIcon size={24} /></div>,
+        } : null,
+        buildTikTokHref(content?.tiktok) ? {
+            name: 'TikTok',
+            href: buildTikTokHref(content?.tiktok)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#111827', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '19px', fontWeight: 900 }}>TT</div>,
+        } : null,
+        buildYouTubeHref(content?.youtube) ? {
+            name: 'YouTube',
+            href: buildYouTubeHref(content?.youtube)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#FF0000', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Play size={22} fill="currentColor" /></div>,
+        } : null,
+        buildLinkedInHref(content?.linkedin) ? {
+            name: 'LinkedIn',
+            href: buildLinkedInHref(content?.linkedin)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#0A66C2', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontSize: '22px', fontWeight: 900 }}>in</div>,
+        } : null,
+        normalizeUrl(content?.website) ? {
+            name: 'เว็บไซต์',
+            href: normalizeUrl(content?.website)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#334155', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Globe size={24} /></div>,
+        } : null,
+        buildEmailHref(content?.email) ? {
+            name: 'อีเมล',
+            href: buildEmailHref(content?.email)!,
+            icon: <div style={{ width: '48px', height: '48px', backgroundColor: '#F97316', borderRadius: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white' }}><Mail size={24} /></div>,
+        } : null,
+    ];
+
+    return items.filter((item): item is ContactLink => Boolean(item));
+}
+
 export default function LandingPageClient({ page }: { page: LandingPage }) {
     const [showShareModal, setShowShareModal] = useState(false);
+    const [showContactModal, setShowContactModal] = useState(false);
     
     useEffect(() => {
         if (page.owner_uid) {
@@ -184,6 +376,8 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
     const referralCode = page.referral_code?.trim() || 'ZXQ0KPCR';
     const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
     const baseSans = "var(--font-sans), 'Noto Sans Thai', 'Segoe UI', system-ui, -apple-system, sans-serif";
+    const contactBlock = page.content_blocks.find((block) => block.type === 'contact');
+    const contactLinks = buildContactLinks(contactBlock?.content);
 
     return (
         <div style={{ 
@@ -237,7 +431,7 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                 margin: '0 auto',
                 padding: '7rem 1.5rem 2rem'
             }}>
-                {page.content_blocks.map(block => (
+                {page.content_blocks.filter((block) => block.type !== 'contact').map(block => (
                     <div key={block.id} style={{ marginBottom: '2.5rem' }}>
                         <PublicBlock 
                             block={block} 
@@ -301,6 +495,40 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                     }}>
                         สแกนเพื่อเข้าชมหน้าร้าน
                     </p>
+
+                    {contactLinks.length > 0 ? (
+                        <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: '1rem'
+                        }}>
+                            <button 
+                                onClick={() => setShowContactModal(true)}
+                                style={{
+                                    height: '3.5rem',
+                                    padding: '0 1.5rem',
+                                    backgroundColor: '#FFFFFF',
+                                    color: '#050579',
+                                    borderRadius: '9999px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    gap: '0.75rem',
+                                    boxShadow: '0 10px 25px -5px rgba(0,0,0,0.1)',
+                                    border: '1px solid rgba(0,0,0,0.05)',
+                                    cursor: 'pointer',
+                                    fontSize: '14px',
+                                    fontWeight: 900,
+                                    textTransform: 'uppercase',
+                                    letterSpacing: '0.05em'
+                                }}
+                            >
+                                <MessageSquare size={20} />
+                                <span>{contactBlock?.content?.title || 'ช่องทางติดต่อ'}</span>
+                            </button>
+                        </div>
+                    ) : null}
 
                     {/* Share Button */}
                     <div style={{
@@ -377,6 +605,83 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                 url={shareUrl} 
                 title={page.title} 
             />
+            <ContactModal
+                isOpen={showContactModal}
+                onClose={() => setShowContactModal(false)}
+                title={contactBlock?.content?.title || 'ช่องทางติดต่อ'}
+                description={contactBlock?.content?.description}
+                links={contactLinks}
+            />
+        </div>
+    );
+}
+
+function ContactModal({
+    isOpen,
+    onClose,
+    title,
+    description,
+    links,
+}: {
+    isOpen: boolean;
+    onClose: () => void;
+    title: string;
+    description?: string;
+    links: ContactLink[];
+}) {
+    if (!isOpen) return null;
+
+    return (
+        <div style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '1rem',
+            backdropFilter: 'blur(8px)'
+        }} onClick={onClose}>
+            <div style={{
+                backgroundColor: 'white',
+                borderRadius: '32px',
+                width: '100%',
+                maxWidth: '420px',
+                padding: '2.5rem 2rem',
+                position: 'relative',
+                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.3)',
+                animation: 'modalFadeIn 0.3s ease-out'
+            }} onClick={e => e.stopPropagation()}>
+                <h3 style={{ fontSize: '1.5rem', fontWeight: 900, marginBottom: '0.75rem', color: '#050579', textAlign: 'center' }}>{title}</h3>
+                {description ? (
+                    <p style={{ fontSize: '14px', lineHeight: 1.7, color: '#64748B', textAlign: 'center', marginBottom: '1.75rem' }}>
+                        {description}
+                    </p>
+                ) : null}
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '1.5rem' }}>
+                    {links.map(link => (
+                        <a
+                            key={link.name}
+                            href={link.href}
+                            target={link.href.startsWith('tel:') || link.href.startsWith('mailto:') ? undefined : '_blank'}
+                            rel={link.href.startsWith('tel:') || link.href.startsWith('mailto:') ? undefined : 'noopener noreferrer'}
+                            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.75rem', textDecoration: 'none' }}
+                        >
+                            {link.icon}
+                            <span style={{ fontSize: '12px', fontWeight: 800, color: '#64748B', letterSpacing: '0.05em', textAlign: 'center' }}>{link.name}</span>
+                        </a>
+                    ))}
+                </div>
+
+                <button 
+                    onClick={onClose}
+                    style={{ position: 'absolute', top: '1.5rem', right: '1.5rem', background: '#F1F5F9', border: 'none', borderRadius: '12px', cursor: 'pointer', color: '#64748B', padding: '0.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                    <X size={20} />
+                </button>
+            </div>
         </div>
     );
 }
@@ -503,25 +808,6 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
     const accent = theme.accent_color || '#F97316';
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
     const videoRef = useRef<HTMLVideoElement | null>(null);
-    const normalizeUrl = (value?: unknown): string | null => {
-        if (typeof value !== 'string') return null;
-        let trimmed = value.trim();
-        if (trimmed.length === 0) return null;
-        
-        // If it looks like a domain but doesn't have a protocol, add https://
-        // Don't add for relative paths starting with / or # or common protocols
-        if (!trimmed.startsWith('http://') && 
-            !trimmed.startsWith('https://') && 
-            !trimmed.startsWith('mailto:') && 
-            !trimmed.startsWith('tel:') && 
-            !trimmed.startsWith('/') && 
-            !trimmed.startsWith('#')) {
-            trimmed = 'https://' + trimmed;
-        }
-        
-        return trimmed;
-    };
-    
     switch (block.type) {
         case 'text':
             return (
@@ -979,6 +1265,8 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                     pageSlug={pageSlug} 
                 />
             );
+        case 'contact':
+            return null;
         default:
             return null;
     }

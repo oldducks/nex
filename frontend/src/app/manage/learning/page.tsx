@@ -9,7 +9,7 @@ export default function LearningCenterPage() {
   return (
     <div className="min-h-screen bg-[#EEF0FF] selection:bg-[#F97316]/20">
       <ManageTopBar 
-        backHref="/manage/control-center" 
+        backHref="/manage/control" 
         title="Nex Center" 
         subtitle="ศูนย์การเรียนรู้"
       />
@@ -37,7 +37,7 @@ export default function LearningCenterPage() {
               </div>
               
               <Link 
-                href="/manage/control-center"
+                href="/manage/control"
                 className="group flex items-center gap-2 text-sm font-black uppercase tracking-widest text-[#64748B] transition-colors hover:text-[#050579]"
               >
                 <ArrowLeft size={16} className="transition-transform group-hover:-translate-x-1" />

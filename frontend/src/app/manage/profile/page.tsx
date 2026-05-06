@@ -543,7 +543,7 @@ export default function ProfileV2Page() {
       <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/85 backdrop-blur-md">
         <div className="relative mx-auto flex h-24 w-full max-w-md items-center px-4">
           <Link
-            href="/manage/control-center"
+            href="/manage/control"
             className="absolute left-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group"
             title="ย้อนกลับ"
           >
@@ -562,7 +562,7 @@ export default function ProfileV2Page() {
           </div>
 
           <Link
-            href="/manage/control-center"
+            href="/manage/control"
             className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group"
             title="กลับไปหน้าจัดการ"
           >

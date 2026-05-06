@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   ExternalLink,
+  Globe,
   Image as ImageIcon,
   Italic,
   Loader2,
@@ -37,7 +38,7 @@ const MAX_LANDING_PAGE_VIDEO_BLOCKS = 20;
 
 interface Block {
   id: string;
-  type: "text" | "image" | "video" | "button" | "form" | "location";
+  type: "text" | "image" | "video" | "button" | "form" | "location" | "contact";
   content: any;
 }
 
@@ -310,7 +311,87 @@ function getDefaultBlockContent(type: Block["type"]) {
   if (type === "video") return { url: "", autoplay: false };
   if (type === "button") return { text: "", link: "" };
   if (type === "location") return { title: "ที่ตั้งของเรา", address: "", embed_url: "", map_url: "" };
+  if (type === "contact") {
+    return {
+      title: "ช่องทางติดต่อ",
+      description: "เลือกลิงก์ที่ต้องการให้ลูกค้ากดติดต่อได้ทันที",
+      line: "",
+      facebook: "",
+      phone: "",
+      whatsapp: "",
+      telegram: "",
+      discord: "",
+      x: "",
+      instagram: "",
+      tiktok: "",
+      youtube: "",
+      linkedin: "",
+      website: "",
+      email: "",
+    };
+  }
   return { title: "ติดต่อเรา", description: "", mode: "internal", form_id: "", external_url: "" };
+}
+
+function ContactBlockEditor({
+  block,
+  onUpdate,
+}: {
+  block: Block;
+  onUpdate: (content: any) => void;
+}) {
+  const updateField = (field: string, value: string) =>
+    onUpdate({
+      ...block.content,
+      [field]: value,
+    });
+
+  const contactFields = [
+    { key: "line", label: "LINE หรือ LINE ID", placeholder: "@nexsolution หรือ https://line.me/..." },
+    { key: "facebook", label: "Facebook", placeholder: "nexsolution.cloud หรือ https://facebook.com/..." },
+    { key: "phone", label: "เบอร์โทรศัพท์", placeholder: "0895546652" },
+    { key: "whatsapp", label: "WhatsApp", placeholder: "0895546652 หรือ https://wa.me/..." },
+    { key: "telegram", label: "Telegram", placeholder: "nexsolution หรือ https://t.me/..." },
+    { key: "discord", label: "Discord", placeholder: "invite code หรือ https://discord.gg/..." },
+    { key: "x", label: "X", placeholder: "nexsolution หรือ https://x.com/..." },
+    { key: "instagram", label: "Instagram", placeholder: "nexsolution.cloud หรือ https://instagram.com/..." },
+    { key: "tiktok", label: "TikTok", placeholder: "nexsolution หรือ https://tiktok.com/@..." },
+    { key: "youtube", label: "YouTube", placeholder: "@nexsolution หรือ https://youtube.com/..." },
+    { key: "linkedin", label: "LinkedIn", placeholder: "company/nexsolution หรือ https://linkedin.com/..." },
+    { key: "website", label: "เว็บไซต์", placeholder: "https://nexsolution.cloud" },
+    { key: "email", label: "อีเมล", placeholder: "hello@nexsolution.cloud" },
+  ] as const;
+
+  return (
+    <div className="space-y-3 rounded-2xl border border-[#D9E1F2] bg-white p-4">
+      <input
+        value={block.content.title || ""}
+        onChange={(e) => updateField("title", e.target.value)}
+        placeholder="หัวข้อปุ่ม"
+        className="h-11 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm font-bold text-[#050579] outline-none"
+      />
+      <textarea
+        value={block.content.description || ""}
+        onChange={(e) => updateField("description", e.target.value)}
+        placeholder="คำอธิบายสั้น ๆ ใต้หัวข้อ"
+        className="min-h-20 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none"
+      />
+
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {contactFields.map((field) => (
+          <div key={field.key} className="space-y-2 rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-3">
+            <div className="text-[11px] font-black uppercase tracking-[0.12em] text-[#64748B]">{field.label}</div>
+            <input
+              value={block.content[field.key] || ""}
+              onChange={(e) => updateField(field.key, e.target.value)}
+              placeholder={field.placeholder}
+              className="h-11 w-full rounded-xl border border-[#D9E1F2] bg-white px-4 text-sm text-[#0F172A] outline-none"
+            />
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 }
 
 function TextStyleControls({
@@ -552,6 +633,8 @@ function RenderBlockEditor({
       );
     case "location":
       return <LocationBlockEditor block={block} onUpdate={onUpdate} />;
+    case "contact":
+      return <ContactBlockEditor block={block} onUpdate={onUpdate} />;
     default:
       return null;
   }
@@ -816,6 +899,54 @@ function RenderPreviewBlock({
           )}
         </section>
       );
+    case "contact": {
+      const entries = [
+        ["LINE", block.content.line],
+        ["Facebook", block.content.facebook],
+        ["โทรศัพท์", block.content.phone],
+        ["WhatsApp", block.content.whatsapp],
+        ["Telegram", block.content.telegram],
+        ["Discord", block.content.discord],
+        ["X", block.content.x],
+        ["Instagram", block.content.instagram],
+        ["TikTok", block.content.tiktok],
+        ["YouTube", block.content.youtube],
+        ["LinkedIn", block.content.linkedin],
+        ["เว็บไซต์", block.content.website],
+        ["อีเมล", block.content.email],
+      ].filter(([, value]) => typeof value === "string" && value.trim().length > 0);
+
+      return (
+        <section className="px-5 py-8 text-center">
+          <div className="rounded-3xl border border-[#D9E1F2] bg-[#F8FAFF] p-5">
+            <div className="text-xs font-black uppercase tracking-[0.18em] text-[#94A3B8]">Footer action</div>
+            <h3 className="mt-2 text-2xl font-black text-[#050579]">
+              {block.content.title || "ช่องทางติดต่อ"}
+            </h3>
+            <p className="mt-2 text-sm leading-6 text-[#64748B]">
+              {block.content.description || "ปุ่มนี้จะแสดงเหนือปุ่มแชร์หน้าในหน้า public"}
+            </p>
+            <div className="mt-5 inline-flex rounded-full border border-[#D9E1F2] bg-white px-5 py-3 text-sm font-black text-[#050579] shadow-[0_14px_30px_-24px_rgba(5,5,121,0.25)]">
+              ช่องทางติดต่อ
+            </div>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              {entries.length > 0 ? (
+                entries.map(([label]) => (
+                  <span
+                    key={label}
+                    className="inline-flex rounded-full border border-[#D9E1F2] bg-white px-3 py-2 text-xs font-bold text-[#64748B]"
+                  >
+                    {label}
+                  </span>
+                ))
+              ) : (
+                <span className="text-sm font-medium text-[#94A3B8]">ยังไม่ได้ใส่ช่องทางติดต่อ</span>
+              )}
+            </div>
+          </div>
+        </section>
+      );
+    }
     default:
       return null;
   }
@@ -853,6 +984,7 @@ export default function LandingPageEditorV2() {
 
   const imageBlockCount = page?.content_blocks.filter((block) => block.type === "image").length || 0;
   const videoBlockCount = page?.content_blocks.filter((block) => block.type === "video").length || 0;
+  const contactBlockCount = page?.content_blocks.filter((block) => block.type === "contact").length || 0;
 
   useEffect(() => {
     if (!token) {
@@ -1006,6 +1138,14 @@ export default function LandingPageEditorV2() {
       });
       return;
     }
+    if (type === "contact" && contactBlockCount >= 1) {
+      setToast({
+        message: "เพิ่มช่องทางติดต่อได้ 1 section ต่อ 1 หน้า",
+        type: "error",
+        isVisible: true,
+      });
+      return;
+    }
     const newBlock: Block = {
       id: Date.now().toString(),
       type,
@@ -1045,6 +1185,14 @@ export default function LandingPageEditorV2() {
     if (!page) return;
     const targetBlock = page.content_blocks.find((block) => block.id === blockId);
     if (!targetBlock || targetBlock.type === nextType) return;
+    if (nextType === "contact" && contactBlockCount >= 1 && targetBlock.type !== "contact") {
+      setToast({
+        message: "หน้านี้มี section ช่องทางติดต่ออยู่แล้ว",
+        type: "error",
+        isVisible: true,
+      });
+      return;
+    }
 
     const currentContent = JSON.stringify(targetBlock.content || {});
     const defaultCurrentContent = JSON.stringify(getDefaultBlockContent(targetBlock.type));
@@ -1202,7 +1350,7 @@ export default function LandingPageEditorV2() {
           <div className="text-[11px] font-black uppercase tracking-[0.16em] text-[#94A3B8]">Sections</div>
           <h2 className="mt-1 text-xl font-black text-[#050579]">สร้างหน้าโดยเลือก section ทีละส่วน</h2>
           <p className="mt-2 text-sm leading-6 text-[#64748B]">
-            เลือกประเภท section จาก 6 ปุ่มเดิม แล้วกรอกข้อมูลและดูตัวอย่างของ section นั้นได้ใน card เดียวกัน
+            เลือกประเภท section จากปุ่มด้านล่าง แล้วกรอกข้อมูลและดูตัวอย่างของ section นั้นได้ใน card เดียวกัน
           </p>
 
           <div className="mt-4 space-y-4">
@@ -1231,6 +1379,7 @@ export default function LandingPageEditorV2() {
                           <option value="button">ปุ่ม</option>
                           <option value="form">ฟอร์ม</option>
                           <option value="location">ที่ตั้ง</option>
+                          <option value="contact">ช่องทางติดต่อ</option>
                         </select>
                         <button
                           type="button"
@@ -1315,6 +1464,12 @@ export default function LandingPageEditorV2() {
                 <BlockTypeButton icon={MousePointer2} label="ปุ่ม" onClick={() => addBlock("button")} />
                 <BlockTypeButton icon={MessageSquare} label="ฟอร์ม" onClick={() => addBlock("form")} />
                 <BlockTypeButton icon={MapPin} label="ที่ตั้ง" onClick={() => addBlock("location")} />
+                <BlockTypeButton
+                  icon={Globe}
+                  label={contactBlockCount >= 1 ? "มีช่องทางติดต่อแล้ว" : "ช่องทางติดต่อ"}
+                  onClick={() => addBlock("contact")}
+                  disabled={contactBlockCount >= 1}
+                />
               </div>
             </div>
           </div>

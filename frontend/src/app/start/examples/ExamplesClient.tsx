@@ -38,10 +38,46 @@ export default function ExamplesClient() {
           </Link>
           <div className="flex items-center gap-2">
             <Link
-              href="/start"
+              href="/start#products"
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
-              ← กลับหน้าหลัก
+              ผลิตภัณฑ์
+            </Link>
+            <Link
+              href="/start#compare"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
+            >
+              เปรียบเทียบ
+            </Link>
+            <Link
+              href="/start#pricing"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
+            >
+              ราคา
+            </Link>
+            <Link
+              href="/start#contact"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
+            >
+              ติดต่อ
+            </Link>
+            <Link
+              href="/start/examples"
+              className="hidden sm:block text-[14px] text-[#050579] font-semibold px-[14px] py-[6px] rounded-lg bg-[#EEF0FF] transition-all"
+            >
+              ตัวอย่าง
+            </Link>
+            <Link
+              href="/start/enterprise"
+              className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
+            >
+              ลูกค้าองค์กร
+            </Link>
+            <Link
+              href="/login"
+              className="hidden sm:block text-[14px] text-[#050579] px-4 py-[7px] rounded-lg border border-[#D9E1F2] hover:border-[#050579] transition-all"
+            >
+              เข้าสู่ระบบ
             </Link>
             <Link
               href="/register"

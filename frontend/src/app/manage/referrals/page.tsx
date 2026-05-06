@@ -178,7 +178,7 @@ export default function ReferralsPage() {
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-[#EEF0FF] text-[#0F172A]">
       <ManageTopBar
-        backHref="/manage/control-center"
+        backHref="/manage/control"
         subtitle="Referral Program"
         title="Nex Team"
         actions={(

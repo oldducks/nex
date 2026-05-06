@@ -551,7 +551,7 @@ export default function DigitalMediaLibraryPage() {
     <div className="min-h-screen bg-background text-foreground" style={featureVars}>
       <header className="sticky top-0 z-40 border-b border-foreground/10 bg-white/90 backdrop-blur-xl">
         <div className="mx-auto flex max-w-3xl items-center gap-3 px-4 py-4 sm:px-6">
-          <Link href="/manage/control-center" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-white text-foreground/65 transition-all hover:border-primary/30 hover:text-primary">
+          <Link href="/manage/control" className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border border-foreground/10 bg-white text-foreground/65 transition-all hover:border-primary/30 hover:text-primary">
             <ArrowLeft size={18} />
           </Link>
           <div className="min-w-0">

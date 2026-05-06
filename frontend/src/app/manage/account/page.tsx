@@ -45,7 +45,7 @@ export default function AccountSettingsPage() {
              <header className="fixed top-0 left-0 right-0 z-50 border-b border-[#D9E1F2] bg-white/82 backdrop-blur-xl">
                 <div className="max-w-5xl mx-auto px-6 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-6">
-                        <Link href="/manage/control-center" className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-white">
+                        <Link href="/manage/control" className="flex h-11 w-11 items-center justify-center rounded-2xl border border-[#D9E1F2] bg-[#F6F8FF] transition-colors hover:bg-white">
                             <ArrowLeft size={20} className="text-[#64748B]" />
                         </Link>
                         <div>

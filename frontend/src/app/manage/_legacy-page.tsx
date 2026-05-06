@@ -372,7 +372,7 @@ export default function Dashboard() {
     return (
         <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] transition-colors duration-500">
             <ManageTopBar
-                backHref="/manage/control-center"
+                backHref="/manage/control"
                 title="แคตตาล็อกสินค้า"
                 actions={(
                     <>

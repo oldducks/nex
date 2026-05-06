@@ -69,7 +69,7 @@ export default function LeadsPage() {
     <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.14),transparent_34%),radial-gradient(circle_at_top_center,rgba(191,219,254,0.28),transparent_42%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_55%,#e8eeff_100%)]" />
       <ManageTopBar
-        backHref="/manage/control-center"
+        backHref="/manage/control"
         subtitle="ระบบบริหารลูกค้าเป้าหมาย"
         title="รายชื่อติดต่อ"
         actions={(

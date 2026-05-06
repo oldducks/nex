@@ -73,7 +73,7 @@ function LoginContent() {
             if (data.must_change_password) {
                 router.push('/force-change-password');
             } else {
-                router.push('/manage/control-center');
+                router.push('/manage/control');
             }
         } catch (err: any) {
             setError(err.message);

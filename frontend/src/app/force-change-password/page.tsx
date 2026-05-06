@@ -76,7 +76,7 @@ export default function ForceChangePasswordPage() {
             if (res.ok) {
                 setMessage({ type: 'success', text: 'เปลี่ยนรหัสผ่านสำเร็จ! กำลังพาไปหน้า Control Center...' });
                 setTimeout(() => {
-                    router.push('/manage/control-center');
+                    router.push('/manage/control');
                 }, 1500);
             } else {
                 const error = await res.text();

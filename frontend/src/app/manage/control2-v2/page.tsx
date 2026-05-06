@@ -6,7 +6,6 @@ import { usePathname, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import {
   ArrowRight,
-  BadgeHelp,
   BarChart3,
   BookOpen,
   CreditCard,
@@ -51,7 +50,6 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "namecard", label: "ออกแบบนามบัตร", href: "/manage/namecard", icon: CreditCard },
   { id: "leads", label: "ข้อมูลจากแบบฟอร์ม", href: "/manage/leads", icon: Users },
   { id: "account", label: "ตั้งค่าบัญชี", href: "/manage/account", icon: Settings },
-  { id: "control-center", label: "ศูนย์ควบคุมเดิม", href: "/manage/control-center", icon: BadgeHelp },
 ];
 
 const CORE_IDS = new Set(["catalog", "landing-pages", "qr", "forms"]);

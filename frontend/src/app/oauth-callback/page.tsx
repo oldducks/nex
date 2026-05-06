@@ -95,7 +95,7 @@ function OAuthCallbackContent() {
         }
 
         if (oauthStatus === 'success') {
-            setTimeout(() => router.push('/manage/control-center'), 1200);
+            setTimeout(() => router.push('/manage/control'), 1200);
             return;
         }
 

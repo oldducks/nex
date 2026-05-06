@@ -74,7 +74,7 @@ function RegisterContent() {
       if (!res.ok) throw new Error(data.message || 'การลงทะเบียนล้มเหลว');
       
       // Successfully registered and logged in (via cookies)
-      router.push('/manage/control-center');
+      router.push('/manage/control');
     } catch (err: any) {
       setError(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
     } finally {

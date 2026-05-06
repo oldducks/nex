@@ -346,7 +346,7 @@ export default function ManageQrPage() {
       <nav className="sticky top-0 z-50 border-b border-[#D9E1F2] bg-white/85 backdrop-blur-md">
         <div className="relative mx-auto flex h-24 w-full max-w-md items-center px-4 md:max-w-5xl md:px-6">
           <Link
-            href="/manage/control-center"
+            href="/manage/control"
             className="group absolute left-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] md:left-6"
             title="ย้อนกลับ"
           >

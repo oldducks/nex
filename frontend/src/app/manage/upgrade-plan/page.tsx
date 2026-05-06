@@ -192,7 +192,7 @@ export default function UpgradePlanPage() {
 
   return (
     <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
-      <ManageTopBar backHref="/manage/control-center" title="อัปเกรดแพ็กเกจ" subtitle="Upgrade Plan" />
+      <ManageTopBar backHref="/manage/control" title="อัปเกรดแพ็กเกจ" subtitle="Upgrade Plan" />
 
       <main className="mx-auto w-full max-w-3xl px-4 py-6 md:px-6 md:py-10">
         <section className="rounded-[28px] border border-[#D9E1F2] bg-white p-5 shadow-[0_24px_60px_-42px_rgba(5,5,121,0.2)] md:p-8">

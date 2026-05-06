@@ -205,7 +205,7 @@ export default function NamecardEditor() {
     return (
         <div className="min-h-screen bg-background text-foreground transition-colors duration-500">
             <ManageTopBar
-                backHref="/manage/control-center"
+                backHref="/manage/control"
                 subtitle="ระบบจัดการนามบัตร"
                 title="เครื่องมือสร้างนามบัตร"
                 actions={(

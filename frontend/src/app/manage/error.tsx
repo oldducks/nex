@@ -43,7 +43,7 @@ export default function ManageError({
             ลองใหม่
           </button>
           <Link
-            href="/manage/control-center"
+            href="/manage/control"
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] px-5 py-3 text-sm font-black text-[#0F172A] transition-colors hover:bg-white"
           >
             <ArrowLeft size={16} />

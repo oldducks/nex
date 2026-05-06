@@ -50,7 +50,7 @@ export default function InlineRegisterForm() {
 
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'การลงทะเบียนล้มเหลว');
-      router.push('/manage/control-center');
+      router.push('/manage/control');
     } catch (err: any) {
       setError(err.message || 'เกิดข้อผิดพลาด กรุณาลองใหม่');
     } finally {
