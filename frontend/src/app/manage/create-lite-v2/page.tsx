@@ -24,6 +24,7 @@ type FabricObject = import("fabric").FabricObject;
 type MobilePanel = "quick" | "text" | "background" | "layers";
 
 const PRESET_COLORS = [
+  "rgba(0,0,0,0)",
   "#FFFFFF",
   "#EEF0FF",
   "#F8FAFC",
@@ -589,17 +590,34 @@ export default function CreateLiteV2Page() {
     const canvas = fabricCanvasRef.current;
     if (!canvas) return;
 
+    const originalBackgroundColor = canvas.backgroundColor;
+    const shouldUseTransparentBackground = format === "png";
+
+    if (shouldUseTransparentBackground) {
+      canvas.backgroundColor = "rgba(0,0,0,0)";
+      canvas.renderAll();
+    }
+
     const dataUrl = canvas.toDataURL({
       format,
       quality: format === "jpeg" ? 0.96 : 1,
       multiplier: 2,
     });
 
+    if (shouldUseTransparentBackground) {
+      canvas.backgroundColor = originalBackgroundColor;
+      canvas.renderAll();
+    }
+
     const link = document.createElement("a");
     link.href = dataUrl;
     link.download = `nex-editor-${Date.now()}.${format === "jpeg" ? "jpg" : "png"}`;
     link.click();
-    setStatusMessage(`ส่งออก ${format.toUpperCase()} เรียบร้อยแล้ว`);
+    setStatusMessage(
+      format === "png"
+        ? "ส่งออก PNG พื้นหลังใสเรียบร้อยแล้ว"
+        : `ส่งออก ${format.toUpperCase()} เรียบร้อยแล้ว`
+    );
   };
 
   const clearCanvas = () => {
@@ -688,14 +706,31 @@ export default function CreateLiteV2Page() {
             className={`h-12 rounded-2xl border transition ${
               backgroundColor === color ? "border-[#050579] ring-2 ring-[#050579]/20" : "border-[#D9E1F2]"
             }`}
-            style={{ backgroundColor: color }}
-            title={color}
-          />
+            style={color === "rgba(0,0,0,0)" ? {
+              backgroundImage:
+                "linear-gradient(45deg,#E2E8F0 25%,transparent 25%,transparent 75%,#E2E8F0 75%,#E2E8F0),linear-gradient(45deg,#E2E8F0 25%,transparent 25%,transparent 75%,#E2E8F0 75%,#E2E8F0)",
+              backgroundPosition: "0 0, 8px 8px",
+              backgroundSize: "16px 16px",
+              backgroundColor: "#FFFFFF",
+            } : { backgroundColor: color }}
+            title={color === "rgba(0,0,0,0)" ? "พื้นหลังใส" : color}
+          >
+            {color === "rgba(0,0,0,0)" ? (
+              <span className="text-[10px] font-black text-[#475569]">ใส</span>
+            ) : null}
+          </button>
         ))}
       </div>
+      <button
+        type="button"
+        onClick={() => setBackgroundColor("rgba(0,0,0,0)")}
+        className="w-full rounded-2xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm font-black text-[#475569]"
+      >
+        ลบพื้นหลังงานให้ใส
+      </button>
       <input
         type="color"
-        value={backgroundColor}
+        value={backgroundColor === "rgba(0,0,0,0)" ? "#FFFFFF" : backgroundColor}
         onChange={(event) => setBackgroundColor(event.target.value)}
         className="h-11 w-full cursor-pointer rounded-2xl border border-[#D9E1F2] bg-white p-1"
       />
@@ -916,7 +951,7 @@ export default function CreateLiteV2Page() {
         className="flex items-center justify-center gap-2 rounded-2xl bg-[#FF6B00] px-4 py-3 text-sm font-black text-white shadow-[0_18px_40px_-24px_rgba(255,107,0,0.6)]"
       >
         <Download size={16} />
-        Export PNG
+        Export PNG ใส
       </button>
       <button
         type="button"

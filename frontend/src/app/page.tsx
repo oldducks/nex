@@ -108,7 +108,7 @@ export default function LandingPage() {
                     }`}
                   >
                     <span className="relative flex items-center justify-center gap-3">
-                    <span className={item.primary ? "text-lg sm:text-[1.2rem]" : undefined}>
+                    <span className="text-lg font-bold sm:text-[1.2rem]">
                       {actionLabel}
                     </span>
                     </span>
