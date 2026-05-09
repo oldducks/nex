@@ -54,7 +54,16 @@ type PublicAiImageSettings = {
   updated_at: Date | null;
 };
 
+type LearningMediaExampleOverride = {
+  title?: string;
+  category?: string;
+  description?: string;
+  thumbnailUrl?: string;
+  livePreviewUrl?: string;
+};
+
 const AI_IMAGE_KEY = 'ai_image_config';
+const LEARNING_MEDIA_EXAMPLES_KEY = 'learning_media_examples_overrides';
 
 export type AiImageRuntimeConfig = {
   connection_mode: 'cloud_run_proxy' | 'api_key';
@@ -206,6 +215,58 @@ export class AdminSettingsService implements OnModuleInit {
       api_key: payload.api_key_encrypted ? this.decrypt(payload.api_key_encrypted) : '',
       is_enabled: payload.is_enabled,
     };
+  }
+
+  async getLearningMediaExampleOverrides(): Promise<Record<string, LearningMediaExampleOverride>> {
+    const entity = await this.settingsRepository.findOne({
+      where: { setting_key: LEARNING_MEDIA_EXAMPLES_KEY },
+    });
+
+    if (!entity?.payload || typeof entity.payload !== 'object' || Array.isArray(entity.payload)) {
+      return {};
+    }
+
+    return entity.payload as Record<string, LearningMediaExampleOverride>;
+  }
+
+  async updateLearningMediaExampleOverride(
+    slug: string,
+    payload: LearningMediaExampleOverride,
+    userId: number,
+  ): Promise<Record<string, LearningMediaExampleOverride>> {
+    const current = await this.settingsRepository.findOne({
+      where: { setting_key: LEARNING_MEDIA_EXAMPLES_KEY },
+    });
+
+    const currentPayload =
+      current?.payload && typeof current.payload === 'object' && !Array.isArray(current.payload)
+        ? (current.payload as Record<string, LearningMediaExampleOverride>)
+        : {};
+
+    const nextOverride: LearningMediaExampleOverride = {
+      ...(payload.title !== undefined ? { title: payload.title.trim() } : {}),
+      ...(payload.category !== undefined ? { category: payload.category.trim() } : {}),
+      ...(payload.description !== undefined ? { description: payload.description.trim() } : {}),
+      ...(payload.thumbnailUrl !== undefined ? { thumbnailUrl: payload.thumbnailUrl.trim() } : {}),
+      ...(payload.livePreviewUrl !== undefined ? { livePreviewUrl: payload.livePreviewUrl.trim() } : {}),
+    };
+
+    const nextPayload = {
+      ...currentPayload,
+      [slug]: {
+        ...(currentPayload[slug] || {}),
+        ...nextOverride,
+      },
+    };
+
+    await this.settingsRepository.save({
+      id: current?.id,
+      setting_key: LEARNING_MEDIA_EXAMPLES_KEY,
+      payload: nextPayload,
+      updated_by: userId,
+    });
+
+    return nextPayload;
   }
 
   private toPayload(raw: Record<string, any> | undefined | null): AiImageSettingsPayload {

@@ -10,6 +10,8 @@ import * as os from 'os';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import TelegramBot from 'node-telegram-bot-api';
+import { nanoid } from 'nanoid';
+import { R2StorageService } from './r2-storage.service';
 
 const execAsync = promisify(exec);
 
@@ -23,6 +25,7 @@ export class UploadsService implements OnModuleInit {
   constructor(
     @InjectQueue('upload-processing') private uploadQueue: Queue,
     private readonly configService: ConfigService,
+    private readonly r2StorageService: R2StorageService,
   ) {}
 
   onModuleInit() {
@@ -86,6 +89,32 @@ export class UploadsService implements OnModuleInit {
     return { jobId: job.id };
   }
 
+  async createDirectVideoUpload(fileName: string, contentType: string, userId: number) {
+    const safeExtension = this.getSafeVideoExtension(fileName, contentType);
+    const objectKey = `${userId}/incoming-videos/${Date.now()}-${nanoid(10)}${safeExtension}`;
+    const uploadUrl = await this.r2StorageService.createSignedUploadUrl(objectKey, contentType);
+
+    return {
+      objectKey,
+      uploadUrl,
+    };
+  }
+
+  async enqueueVideoFromR2(objectKey: string, userId: number) {
+    const exists = await this.r2StorageService.exists(objectKey);
+    if (!exists) {
+      throw new BadRequestException('Uploaded R2 object not found');
+    }
+
+    const job = await this.uploadQueue.add('process-video', {
+      type: 'video',
+      sourceR2Key: objectKey,
+      userId,
+    });
+
+    return { jobId: job.id };
+  }
+
   async getJobStatus(jobId: string) {
     const job = await this.uploadQueue.getJob(jobId);
     if (!job) return null;
@@ -102,6 +131,16 @@ export class UploadsService implements OnModuleInit {
       result,
       failedReason,
     };
+  }
+
+  private getSafeVideoExtension(fileName: string, contentType: string): string {
+    const lowerName = fileName.toLowerCase();
+    if (lowerName.endsWith('.mp4') || contentType === 'video/mp4') return '.mp4';
+    if (lowerName.endsWith('.webm') || contentType === 'video/webm') return '.webm';
+    if (lowerName.endsWith('.ogg') || contentType === 'video/ogg') return '.ogg';
+    if (lowerName.endsWith('.mov') || contentType === 'video/quicktime') return '.mov';
+    if (lowerName.endsWith('.avi') || contentType === 'video/x-msvideo') return '.avi';
+    return '.mp4';
   }
 
   private async performCleanup(forceAll = false): Promise<number> {
@@ -208,4 +247,3 @@ export class UploadsService implements OnModuleInit {
     }
   }
 }
-

@@ -372,7 +372,9 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
     const theme = page.theme_config || {};
     const primary = theme.primary_color || '#050579';
     const accent = theme.accent_color || '#F97316';
-    const shareUrl = `${SITE_URL}/lp/${page.id}`;
+    const shareUrl = typeof window !== 'undefined'
+        ? window.location.href
+        : `${SITE_URL}/lp/${page.slug}${page.referral_code ? `?ref=${encodeURIComponent(page.referral_code)}` : ''}`;
     const referralCode = page.referral_code?.trim() || 'ZXQ0KPCR';
     const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
     const baseSans = "var(--font-sans), 'Noto Sans Thai', 'Segoe UI', system-ui, -apple-system, sans-serif";
@@ -441,6 +443,7 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                             pageId={page.id}
                             pageSlug={page.slug}
                             contentBlocks={page.content_blocks}
+                            referralCode={referralCode}
                         />
                     </div>
                 ))}
@@ -803,7 +806,7 @@ function ShareModal({ isOpen, onClose, url, title }: { isOpen: boolean, onClose:
     );
 }
 
-function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, contentBlocks }: { block: Block, theme: any, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string, contentBlocks: Block[] }) {
+function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, contentBlocks, referralCode }: { block: Block, theme: any, isLight: boolean, ownerUid?: string, pageId: number, pageSlug: string, contentBlocks: Block[], referralCode?: string }) {
     const primary = theme.primary_color || '#050579';
     const accent = theme.accent_color || '#F97316';
     const [isVideoPlaying, setIsVideoPlaying] = useState(false);
@@ -1048,6 +1051,33 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                             </button>
                         )}
                     </div>
+                    
+                    {/* Add "Try system" button specifically for page ID 42 */}
+                    {pageId === 42 && (
+                        <div style={{ marginTop: '2rem', textAlign: 'center' }}>
+                            <a 
+                                href={`https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode || 'ZXQ0KPCR')}`}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: '1rem',
+                                    padding: '1.25rem 2.5rem',
+                                    backgroundColor: '#F97316',
+                                    color: 'white',
+                                    borderRadius: '24px',
+                                    fontWeight: 900,
+                                    fontSize: '1.25rem',
+                                    textDecoration: 'none',
+                                    boxShadow: '0 20px 40px rgba(249,115,22,0.3)',
+                                    border: '2px solid rgba(255,255,255,0.1)'
+                                }}
+                            >
+                                ทดลองใช้ระบบ <ChevronRight size={24} />
+                            </a>
+                        </div>
+                    )}
                 </div>
             );
         }

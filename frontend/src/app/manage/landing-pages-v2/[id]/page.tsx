@@ -24,6 +24,7 @@ import {
   Type,
   Video,
   MessageSquare,
+  ChevronRight,
 } from "lucide-react";
 import ManageTopBar from "@/components/ManageTopBar";
 import { VideoUpload } from "@/components/VideoUpload";
@@ -644,10 +645,12 @@ function RenderPreviewBlock({
   block,
   theme,
   forms,
+  pageId,
 }: {
   block: Block;
   theme: any;
   forms: FormOption[];
+  pageId?: string;
 }) {
   const primary = theme?.primary_color || "#4F46E5";
 
@@ -712,6 +715,20 @@ function RenderPreviewBlock({
               controls
               className="w-full rounded-2xl"
             />
+          )}
+
+          {/* Add "Try system" button specifically for page ID 42 in Preview */}
+          {String(pageId) === "42" && (
+            <div className="mt-6 text-center">
+              <div 
+                className="inline-flex items-center gap-2 rounded-2xl bg-[#F97316] px-6 py-4 text-base font-black text-white shadow-lg"
+              >
+                ทดลองใช้ระบบ <ChevronRight size={20} />
+              </div>
+              <p className="mt-2 text-[10px] font-bold text-[#94A3B8]">
+                * ปุ่มนี้จะแสดงในหน้าจริงพร้อมลิงก์ Referral ของคุณ
+              </p>
+            </div>
           )}
         </section>
       );
@@ -1426,7 +1443,7 @@ export default function LandingPageEditorV2() {
 
                     <div className="flex justify-center">
                       <div className="w-full max-w-[375px] overflow-hidden rounded-[24px] border border-[#D9E1F2] bg-white shadow-[0_20px_40px_-28px_rgba(15,23,42,0.35)]">
-                        <RenderPreviewBlock block={block} theme={page.theme_config} forms={forms} />
+                        <RenderPreviewBlock block={block} theme={page.theme_config} forms={forms} pageId={id} />
                       </div>
                     </div>
                   </div>

@@ -1,4 +1,4 @@
-import { Body, Controller, ForbiddenException, Get, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateAiImageSettingsDto } from './dto/update-ai-image-settings.dto';
 import { AdminSettingsService } from './admin-settings.service';
@@ -18,6 +18,28 @@ export class AdminSettingsController {
   async getAiImageSettings(@Request() req: any) {
     this.ensureSuperAdmin(req);
     return this.adminSettingsService.getAiImageSettings();
+  }
+
+  @Get('learning-media/examples')
+  async getLearningMediaExamples() {
+    return this.adminSettingsService.getLearningMediaExampleOverrides();
+  }
+
+  @Patch('learning-media/examples/:slug')
+  async updateLearningMediaExample(
+    @Request() req: any,
+    @Param('slug') slug: string,
+    @Body()
+    dto: {
+      title?: string;
+      category?: string;
+      description?: string;
+      thumbnailUrl?: string;
+      livePreviewUrl?: string;
+    },
+  ) {
+    this.ensureSuperAdmin(req);
+    return this.adminSettingsService.updateLearningMediaExampleOverride(slug, dto, req.user.sub);
   }
 
   @Patch('ai-image')

@@ -28,10 +28,11 @@ interface LandingPage {
     is_published: boolean;
 }
 
-async function getLandingPage(slug: string): Promise<LandingPage | null> {
+async function getLandingPage(slug: string, referralCode?: string): Promise<LandingPage | null> {
     try {
         const baseUrl = getApiUrl();
-        const res = await fetch(`${baseUrl}/api/landing-pages/public/${slug}`, {
+        const query = referralCode ? `?ref=${encodeURIComponent(referralCode)}` : '';
+        const res = await fetch(`${baseUrl}/api/landing-pages/public/${slug}${query}`, {
             cache: 'no-store'
         });
         if (!res.ok) return null;
@@ -95,9 +96,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
     };
 }
 
-export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+export default async function Page({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ slug: string }>;
+    searchParams?: Promise<{ ref?: string }>;
+}) {
     const { slug } = await params;
-    const page = await getLandingPage(slug);
+    const resolvedSearchParams = searchParams ? await searchParams : undefined;
+    const page = await getLandingPage(slug, resolvedSearchParams?.ref);
 
     if (!page || !page.is_published) {
         return (

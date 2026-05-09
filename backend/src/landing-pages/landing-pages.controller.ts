@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { LandingPagesService } from './landing-pages.service';
 import { CreateLandingPageDto, UpdateLandingPageDto } from './dto/landing-page.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -9,17 +9,17 @@ export class LandingPagesController {
 
     // Public endpoint to view a landing page
     @Get('public/:slug')
-    async findBySlug(@Param('slug') slug: string) {
-        const page = await this.service.findBySlug(slug);
+    async findBySlug(@Param('slug') slug: string, @Query('ref') referralCode?: string) {
+        const page = await this.service.findBySlug(slug, referralCode);
 
         // ส่ง uid ของเจ้าของเพจออกไปด้วย เพื่อใช้กับ Analytics / Form Integration ฝั่ง frontend
         const ownerUid = (page as any).user?.uid ?? null;
-        const referralCode = (page as any).user?.referral_code ?? null;
+        const pageReferralCode = (page as any).referral_code ?? (page as any).user?.referral_code ?? null;
 
         return {
             ...page,
             owner_uid: ownerUid,
-            referral_code: referralCode,
+            referral_code: pageReferralCode,
         };
     }
 

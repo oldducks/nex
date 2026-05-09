@@ -11,6 +11,18 @@ function ensureHttps(url: string): string {
     }
     return `https://${trimmed}`;
 }
+
+function normalizePhone(value?: string | null): string {
+    if (!value) return '';
+    return value.replace(/[^\d+]/g, '');
+}
+
+function buildLineHref(value?: string | null): string | null {
+    if (!value?.trim()) return null;
+    const trimmed = value.trim();
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    return `https://line.me/R/ti/p/${encodeURIComponent(trimmed.startsWith('@') ? trimmed : `@${trimmed}`)}`;
+}
 import { QrCodeImage } from '../../../components/QrCode';
 import { ProfilePageClient } from '../../../components/ProfilePageClient';
 import { VideoEmbed } from '../../../components/VideoEmbed';
@@ -21,6 +33,7 @@ import { VcfDownloadButton } from '../../../components/VcfDownload';
 
 import { SaveToHomeButton } from '../../../components/SaveToHomeButton';
 import { QrCodeDownloadActions } from '../../../components/QrCodeDownloadActions';
+import { PublicProfileFooterActions } from '../../../components/PublicProfileFooterActions';
 import { Metadata } from 'next';
 import { formatPhoneNumber } from '../../../lib/phone-utils';
 
@@ -128,6 +141,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
         backgrounds = [],
         gallery = [],
         full_name,
+        line_id,
         position,
         company_name,
         profile_pic_position,
@@ -181,6 +195,39 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     const profileThumbUrl = getThumbUrl(profile_pic_url || '');
     const logoUrl = logo?.url ? getImageUrl(logo.url) : '';
     const profileUrl = `${SITE_URL}/${data.url_prefix}/${uid}`;
+    const footerContactLinks = [
+        ...((phones || []).filter((phone: any) => phone?.value?.trim()).map((phone: any) => ({
+            name: phone.label || 'โทรศัพท์',
+            href: `tel:${normalizePhone(phone.value)}`,
+            platform: 'phone',
+        }))),
+        ...((emails || []).filter((email: any) => email?.value?.trim()).map((email: any) => ({
+            name: email.label || 'อีเมล',
+            href: `mailto:${email.value.trim()}`,
+            platform: 'email',
+        }))),
+        ...((websites || []).filter((site: any) => site?.url?.trim()).map((site: any) => ({
+            name: site.label || 'เว็บไซต์',
+            href: ensureHttps(site.url),
+            platform: 'website',
+        }))),
+        ...(line_id?.trim()
+            ? [{
+                name: 'LINE',
+                href: buildLineHref(line_id) || '',
+                platform: 'line',
+            }]
+            : []),
+        ...((social_links_json || []).filter((link: any) => link?.url?.trim()).map((link: any) => ({
+            name: String(link.type || link.platform || 'Link'),
+            href: ensureHttps(link.url),
+            platform: String(link.type || link.platform || 'website').toLowerCase(),
+        }))),
+    ].filter(
+        (link, index, array) =>
+            link.href &&
+            array.findIndex((item) => item.href === link.href && item.platform === link.platform) === index,
+    );
     const primaryPhone = formatPhoneNumber(
         phones?.find((phone: any) => phone?.value?.trim())?.value || ''
     );
@@ -582,6 +629,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
                                 profilePicUrl={profileImageUrl}
                             />
                         )}
+
+                        <PublicProfileFooterActions
+                            shareUrl={profileUrl}
+                            shareTitle={displayName}
+                            contactLinks={footerContactLinks}
+                            contactTitle="ช่องทางการติดต่อ"
+                            contactDescription="เลือกช่องทางที่สะดวกเพื่อเชื่อมต่อกับเจ้าของนามบัตรได้ทันที"
+                        />
 
                         <a
                             href={referralRegisterUrl}

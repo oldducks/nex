@@ -10,7 +10,47 @@ export type LearningMediaExample = {
   contentSections: Array<{ title: string; body: string }>;
 };
 
+export type LearningMediaExampleOverride = Partial<
+  Pick<LearningMediaExample, "title" | "category" | "description" | "thumbnailUrl" | "livePreviewUrl">
+>;
+
 export const LEARNING_MEDIA_EXAMPLES: LearningMediaExample[] = [
+  {
+    slug: "sun-operation-pet-food",
+    title: "Build your premium pet food brand with Sun Operation",
+    category: "อุตสาหกรรมและบริการ",
+    description:
+      "🐾 Build your premium pet food brand with Sun Operation 🇹🇭✨\nOEM & ODM manufacturer specializing in Dry Food 🥣 Wet Food 🍖 and Freeze-Dried Products ❄️ with world-class standards, natural ingredients 🌿 and complete export solutions 🌎\n🚀 Ready to launch your brand globally?\n📩 Contact us today — we’re ready to support your success! 👇",
+    thumbnailUrl: "/nex_logo_nobg.png",
+    livePreviewUrl: "https://nexsolution.cloud/lp/44",
+    tags: ["OEM/ODM", "Pet Food", "Export Solution"],
+    suggestedUseCase:
+      "เหมาะสำหรับโรงงานผู้ผลิตสินค้า OEM/ODM ที่ต้องการนำเสนอมาตรฐานโรงงานและบริการรับผลิตแบบครบวงจร",
+    contentSections: [
+      {
+        title: "โครงหน้าแนะนำ",
+        body: "เน้นการโชว์ศักยภาพโรงงาน มาตรฐานการผลิต และประเภทสินค้าที่รับผลิต พร้อมปุ่มติดต่อขอรับคำปรึกษา",
+      },
+    ],
+  },
+  {
+    slug: "ford-sukhumvit-62",
+    title: "Ford Sukhumvit 62 - แรง เท่ ดุดัน",
+    category: "ยานยนต์",
+    description:
+      "🔥 Ford ที่คุณอยากได้… \n✅️ อาจเหลือให้จองแค่วันนี้!\n🚗 แรง เท่ ดุดัน ครบทุกฟีลการขับขี่\n💥 โปรเด็ด ดอกเบี้ยพิเศษ ของแถมจัดเต็ม\n📍 Ford Auto Gallery Sukhumvit 62\nรีบมาลองขับ แล้วคุณจะหยุดมองคันนี้ไม่ได้ 😎\nติดต่อ จอรายละเอียด หรือลองขับ คลิก👇",
+    thumbnailUrl: "/nex_logo_nobg.png",
+    livePreviewUrl: "https://nexsolution.cloud/lp/43",
+    tags: ["รถยนต์ Ford", "โปรโมชันรถใหม่", "นัดลองขับ"],
+    suggestedUseCase:
+      "เหมาะสำหรับตัวแทนจำหน่ายรถยนต์ที่ต้องการทำหน้าเซลล์เพจสำหรับรถรุ่นยอดนิยมหรือแคมเปญโปรโมชันระยะสั้น",
+    contentSections: [
+      {
+        title: "โครงหน้าแนะนำ",
+        body: "ใช้ภาพรถที่ดุดัน สรุปข้อเสนอพิเศษและของแถม และมีปุ่มนัดลองขับหรือขอรายละเอียดที่ชัดเจน",
+      },
+    ],
+  },
   {
     slug: "univa-ai-studio-brand-system",
     title: "รับสร้างเเบรนด์ วางระบบการขาย การตลาด ครบวงจร",
@@ -315,6 +355,20 @@ export const LEARNING_MEDIA_EXAMPLES: LearningMediaExample[] = [
   },
 ];
 
-export function getLearningMediaExampleBySlug(slug: string) {
-  return LEARNING_MEDIA_EXAMPLES.find((item) => item.slug === slug);
+export function mergeLearningMediaExamples(
+  overrides?: Record<string, LearningMediaExampleOverride>
+) {
+  if (!overrides) return LEARNING_MEDIA_EXAMPLES;
+
+  return LEARNING_MEDIA_EXAMPLES.map((item) => ({
+    ...item,
+    ...(overrides[item.slug] || {}),
+  }));
+}
+
+export function getLearningMediaExampleBySlug(
+  slug: string,
+  overrides?: Record<string, LearningMediaExampleOverride>
+) {
+  return mergeLearningMediaExamples(overrides).find((item) => item.slug === slug);
 }

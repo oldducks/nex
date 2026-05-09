@@ -9,15 +9,19 @@ import {
   ChevronRight,
   Copy,
   Download,
+  Eye,
   Gift,
   Loader2,
   Lock,
   LogOut,
+  Pencil,
   QrCode,
+  Share2,
   Smartphone,
   Users,
 } from "lucide-react";
 import { QrCodeImage } from "@/components/QrCode";
+import { PublicShareModal } from "@/components/PublicProfileFooterActions";
 
 type MeResponse = {
   subscription_tier?: string;
@@ -70,6 +74,7 @@ export default function ReferralsV2Page() {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [tree, setTree] = useState<ReferralTreeNode[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
 
   const token = Cookies.get("token");
 
@@ -88,7 +93,7 @@ export default function ReferralsV2Page() {
   const referralCode = stats?.referralCode ?? null;
   const referralUrl =
     referralCode && typeof window !== "undefined"
-      ? `${window.location.origin}/register?ref=${referralCode}`
+      ? `${window.location.origin}/lp/42?ref=${encodeURIComponent(referralCode)}`
       : "";
 
   const loadReferralData = useCallback(
@@ -207,6 +212,16 @@ export default function ReferralsV2Page() {
     document.body.removeChild(downloadLink);
   };
 
+  const openPreview = () => {
+    if (!referralUrl) return;
+    window.open(referralUrl, "_blank", "noopener,noreferrer");
+  };
+
+  const shareReferralLink = () => {
+    if (!referralUrl) return;
+    setShowShareModal(true);
+  };
+
   if (!token) return null;
 
   if (loading) {
@@ -267,6 +282,18 @@ export default function ReferralsV2Page() {
                 {referralUrl || "ยังไม่พบลิงก์แนะนำสมาชิก"}
               </div>
 
+              {isAdmin ? (
+                <div className="mt-3">
+                  <Link
+                    href="/manage/landing-pages/42"
+                    className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
+                  >
+                    <Pencil size={16} />
+                    แก้ไขหน้าแม่แบบพันธมิตรส่วนกลาง
+                  </Link>
+                </div>
+              ) : null}
+
               <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
                 <button
                   type="button"
@@ -286,6 +313,28 @@ export default function ReferralsV2Page() {
                 >
                   <Download size={18} />
                   ดาวน์โหลด QR
+                </button>
+              </div>
+
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <button
+                  type="button"
+                  onClick={shareReferralLink}
+                  disabled={!referralUrl}
+                  className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
+                >
+                  <Share2 size={18} />
+                  แชร์
+                </button>
+
+                <button
+                  type="button"
+                  onClick={openPreview}
+                  disabled={!referralUrl}
+                  className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
+                >
+                  <Eye size={18} />
+                  ดูเนื้อหา
                 </button>
               </div>
             </section>
@@ -457,6 +506,12 @@ export default function ReferralsV2Page() {
           </button>
         </div>
       </section>
+      <PublicShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={referralUrl}
+        title="ลิงก์แนะนำสมาชิก NEX"
+      />
     </main>
   );
 }

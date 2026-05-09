@@ -83,6 +83,7 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                     clearInterval(interval);
                     setUploading(false);
                     setProgress(100);
+                    showToast('อัปโหลดและประมวลผลวิดีโอสำเร็จ', 'success');
                     onChange({
                         url: status.result.url,
                         autoplay: value?.autoplay ?? false,
@@ -95,12 +96,124 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                     setUploading(false);
                     showToast(`ประมวลผลวิดีโอไม่สำเร็จ: ${status.failedReason || 'Unknown error'}`, 'error');
                 } else {
-                    setProgress(status.progress || 0);
+                    const backendProgress = typeof status.progress === 'number' ? status.progress : 0;
+                    setProgress(Math.max(70, Math.min(100, 70 + Math.round(backendProgress * 0.3))));
                 }
             } catch (err) {
                 console.error('Polling error:', err);
             }
         }, 1500);
+    };
+
+    const uploadFileToSignedUrl = async (signedUrl: string, file: File) => {
+        await new Promise<void>((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('PUT', signedUrl, true);
+            xhr.setRequestHeader('Content-Type', file.type);
+
+            xhr.upload.onprogress = (event) => {
+                if (!event.lengthComputable) return;
+                const uploadPercent = Math.round((event.loaded / event.total) * 65);
+                setProgress(Math.min(65, Math.max(1, uploadPercent)));
+            };
+
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) {
+                    setProgress(70);
+                    resolve();
+                } else {
+                    reject(new Error(`Direct upload failed: ${xhr.status}`));
+                }
+            };
+
+            xhr.onerror = () => reject(new Error('Direct upload network error'));
+            xhr.onabort = () => reject(new Error('Direct upload aborted'));
+            xhr.send(file);
+        });
+    };
+
+    const uploadViaR2Direct = async (file: File) => {
+        const initRes = await fetch(`${API_URL}/uploads/video/direct/init`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                fileName: file.name,
+                contentType: file.type,
+                fileSize: file.size,
+            }),
+        });
+
+        if (!initRes.ok) {
+            throw new Error(`Init direct upload failed: ${initRes.status}`);
+        }
+
+        const initData = await initRes.json();
+        if (!initData?.uploadUrl || !initData?.objectKey) {
+            throw new Error('Direct upload init missing upload URL');
+        }
+
+        await uploadFileToSignedUrl(initData.uploadUrl, file);
+
+        const completeRes = await fetch(`${API_URL}/uploads/video/direct/complete`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                objectKey: initData.objectKey,
+            }),
+        });
+
+        if (!completeRes.ok) {
+            const completeError = await completeRes.text();
+            throw new Error(`Complete direct upload failed: ${completeRes.status} - ${completeError}`);
+        }
+
+        const completeData = await completeRes.json();
+        if (!completeData?.jobId) {
+            throw new Error('Direct upload complete missing job id');
+        }
+
+        pollJobStatus(String(completeData.jobId));
+    };
+
+    const uploadViaLegacyApi = async (file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const res = await fetch(`${API_URL}/uploads/video`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`
+            },
+            body: formData
+        });
+
+        if (!res.ok) {
+            const errorText = await res.text();
+            throw new Error(`Upload failed: ${res.status} - ${errorText}`);
+        }
+
+        const data = await res.json();
+        if (data.jobId) {
+            setProgress(70);
+            pollJobStatus(data.jobId);
+            return;
+        }
+
+        setUploading(false);
+        onChange({
+            url: data.url,
+            autoplay: value?.autoplay ?? false,
+            link_url: value?.link_url ?? '',
+            link_enabled: value?.link_enabled ?? false,
+            enabled: true
+        });
+        showToast('อัปโหลดวิดีโอสำเร็จ', 'success');
     };
 
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -126,44 +239,20 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
         console.log(`API_URL: ${API_URL}, Token: ${token ? 'exists' : 'missing'}`);
 
         try {
-            const formData = new FormData();
-            formData.append('file', file);
-
-            console.log('Sending upload request...');
-            const res = await fetch(`${API_URL}/uploads/video`, {
-                method: 'POST',
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-                body: formData
-            });
-
-            console.log('Response status:', res.status);
-            if (!res.ok) {
-                const errorText = await res.text();
-                console.error('Upload error:', errorText);
-                throw new Error(`Upload failed: ${res.status} - ${errorText}`);
-            }
-
-            const data = await res.json();
-            if (data.jobId) {
-                pollJobStatus(data.jobId);
-            } else {
-                setUploading(false);
-                onChange({
-                    url: data.url,
-                    autoplay: value?.autoplay ?? false,
-                    link_url: value?.link_url ?? '',
-                    link_enabled: value?.link_enabled ?? false,
-                    enabled: true
-                });
-                showToast('อัปโหลดวิดีโอสำเร็จ', 'success');
-            }
+            console.log('Sending direct upload request to R2...');
+            await uploadViaR2Direct(file);
         } catch (error: unknown) {
             console.error('Upload error:', error);
-            const message = error instanceof Error ? error.message : 'กรุณาลองใหม่';
-            showToast(`อัพโหลดวิดีโอไม่สำเร็จ: ${message}`, 'error');
-            setUploading(false);
+            try {
+                showToast('กำลังสลับไปใช้โหมดอัปโหลดสำรอง...', 'info');
+                setProgress(5);
+                await uploadViaLegacyApi(file);
+            } catch (fallbackError: unknown) {
+                console.error('Fallback upload error:', fallbackError);
+                const message = fallbackError instanceof Error ? fallbackError.message : 'กรุณาลองใหม่';
+                showToast(`อัพโหลดวิดีโอไม่สำเร็จ: ${message}`, 'error');
+                setUploading(false);
+            }
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
         }
@@ -243,7 +332,7 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                                         />
                                     </div>
                                     <p className="text-xs font-black uppercase tracking-widest text-primary italic font-mono">
-                                        กำลังอัพโหลดและบีบอัดวิดีโอ...
+                                        {progress < 70 ? 'กำลังส่งไฟล์วิดีโอขึ้น R2...' : 'กำลังประมวลผลวิดีโอบนเซิร์ฟเวอร์...'}
                                     </p>
                                 </div>
                             ) : (
@@ -254,6 +343,7 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                                     <div>
                                         <h3 className="text-lg font-black text-primary uppercase tracking-wider">คลิกที่นี่เพื่ออัพโหลดวิดีโอ</h3>
                                         <p className="text-sm text-foreground/60 mt-2 font-medium">รองรับ MP4, WebM, OGG (สูงสุด 200MB)</p>
+                                        <p className="text-xs text-[#64748B] mt-1 font-semibold">ไฟล์จะอัปโหลดตรงขึ้น Cloudflare R2 เพื่อลดปัญหาไฟล์ใหญ่</p>
                                     </div>
                                 </div>
                             )}

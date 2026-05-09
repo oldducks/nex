@@ -34,6 +34,7 @@ interface LandingPage {
 
 interface MeProfile {
     subscription_tier?: string;
+    feature_config?: Record<string, boolean>;
     user?: {
         role?: string;
     } | null;
@@ -78,6 +79,7 @@ export default function LandingPagesListPage() {
         isVisible: false,
     });
     const [isAdmin, setIsAdmin] = useState(false);
+    const [hasUnlimitedLandingPages, setHasUnlimitedLandingPages] = useState(false);
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
     const token = Cookies.get('token');
@@ -97,7 +99,7 @@ export default function LandingPagesListPage() {
     };
 
     const openCreatePageModal = () => {
-        if (!isAdmin && pages.length >= 1) {
+        if (!isAdmin && !hasUnlimitedLandingPages && pages.length >= 1) {
             showToast('ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน', 'error');
             return;
         }
@@ -117,6 +119,7 @@ export default function LandingPagesListPage() {
                 setIsAdmin(
                     profileData.user?.role === 'super_admin' || profileData.user?.role === 'group_admin'
                 );
+                setHasUnlimitedLandingPages(profileData.feature_config?.unlimited_landing_pages === true);
             }
 
             const res = await fetch(`${API_URL}/landing-pages`, {
@@ -163,7 +166,7 @@ export default function LandingPagesListPage() {
 
     const createPage = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!isAdmin && pages.length >= 1) {
+        if (!isAdmin && !hasUnlimitedLandingPages && pages.length >= 1) {
             setShowModal(false);
             showToast('ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน', 'error');
             return;

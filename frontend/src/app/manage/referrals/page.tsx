@@ -12,10 +12,14 @@ import {
   Crown,
   Users,
   Download,
+  Eye,
+  Pencil,
+  Share2,
 } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
 import { QrCodeImage } from '@/components/QrCode';
 import { QrCodeDownloadActions } from '@/components/QrCodeDownloadActions';
+import { PublicShareModal } from '@/components/PublicProfileFooterActions';
 
 interface UserData {
   id: number;
@@ -57,6 +61,7 @@ export default function ReferralsPage() {
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [tree, setTree] = useState<ReferralTreeNode[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   
   const token = Cookies.get('token');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -138,7 +143,7 @@ export default function ReferralsPage() {
   };
 
   const referralUrl = user?.referral_code 
-    ? typeof window !== 'undefined' ? `${window.location.origin}/register?ref=${user.referral_code}` : '' 
+    ? typeof window !== 'undefined' ? `${window.location.origin}/lp/42?ref=${encodeURIComponent(user.referral_code)}` : '' 
     : '';
 
   const downloadQrCode = () => {
@@ -163,6 +168,16 @@ export default function ReferralsPage() {
     } catch (err) {
       console.error('Copy failed:', err);
     }
+  };
+
+  const openPreview = () => {
+    if (!referralUrl) return;
+    window.open(referralUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const shareReferralLink = () => {
+    if (!referralUrl) return;
+    setShowShareModal(true);
   };
 
   const getProfilePic = (pic?: string) => {
@@ -315,6 +330,17 @@ export default function ReferralsPage() {
               <div className="absolute top-0 right-0 -m-8 h-48 w-48 rounded-full bg-[#EEF2FF] blur-3xl" />
               <div className="relative z-10">
                  <h3 className="text-2xl font-black mb-6 text-[#050579]">แบ่งปันลิงก์</h3>
+                 {user?.role === 'super_admin' || user?.role === 'group_admin' ? (
+                   <div className="mb-5">
+                     <button
+                       onClick={() => router.push('/manage/landing-pages/42')}
+                       className="inline-flex items-center gap-2 rounded-xl border border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3 text-sm font-black text-[#050579] transition-all hover:bg-white"
+                     >
+                       <Pencil size={16} />
+                       แก้ไขหน้าแม่แบบพันธมิตรส่วนกลาง
+                     </button>
+                   </div>
+                 ) : null}
                  <div className="space-y-6">
                     <div className="flex flex-col sm:flex-row gap-3">
                        <div className="flex-1 rounded-xl bg-[#F8FAFF] p-4 font-mono text-sm break-all border border-[#D9E1F2] self-center text-[#334155]">
@@ -326,6 +352,25 @@ export default function ReferralsPage() {
                        >
                          {copiedLink ? <Check size={20} /> : <Copy size={20} />}
                          {copiedLink ? 'คัดลอกแล้ว' : 'คัดลอกลิงก์'}
+                       </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                       <button
+                         onClick={shareReferralLink}
+                         disabled={!referralUrl}
+                         className="flex items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-6 py-4 font-black text-[#050579] transition-all hover:bg-[#F8FAFF] disabled:cursor-not-allowed disabled:opacity-50"
+                       >
+                         <Share2 size={18} />
+                         แชร์
+                       </button>
+                       <button
+                         onClick={openPreview}
+                         disabled={!referralUrl}
+                         className="flex items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-6 py-4 font-black text-[#050579] transition-all hover:bg-[#F8FAFF] disabled:cursor-not-allowed disabled:opacity-50"
+                       >
+                         <Eye size={18} />
+                         ดูเนื้อหา
                        </button>
                     </div>
                     
@@ -368,6 +413,13 @@ export default function ReferralsPage() {
 
       </main>
       
+      <PublicShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        url={referralUrl}
+        title="ลิงก์แนะนำสมาชิก NEX"
+      />
+
       <div className="h-20" />
     </div>
   );

@@ -1,20 +1,55 @@
+"use client";
+
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import Cookies from "js-cookie";
+import { useParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { ExternalLink } from "lucide-react";
 import ManageTopBar from "@/components/ManageTopBar";
-import { getLearningMediaExampleBySlug } from "@/features/learning-media/example-shops";
+import {
+  getLearningMediaExampleBySlug,
+  type LearningMediaExample,
+  type LearningMediaExampleOverride,
+} from "@/features/learning-media/example-shops";
 
-type LearningMediaExampleDetailPageProps = {
-  params: { slug: string } | Promise<{ slug: string }>;
-};
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
 
-export default async function LearningMediaExampleDetailPage({ params }: LearningMediaExampleDetailPageProps) {
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
-  const item = getLearningMediaExampleBySlug(slug);
+export default function LearningMediaExampleDetailPage() {
+  const params = useParams<{ slug: string }>();
+  const slug = typeof params?.slug === "string" ? params.slug : "";
+  const token = Cookies.get("token");
+  const [item, setItem] = useState<LearningMediaExample | null>(() => getLearningMediaExampleBySlug(slug) || null);
+
+  useEffect(() => {
+    if (!slug || !token) return;
+
+    const loadOverride = async () => {
+      try {
+        const response = await fetch(`${API_URL}/admin/settings/learning-media/examples`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+        const overrides = (await response.json()) as Record<string, LearningMediaExampleOverride>;
+        setItem(getLearningMediaExampleBySlug(slug, overrides) || null);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadOverride();
+  }, [slug, token]);
 
   if (!item) {
-    notFound();
+    return (
+      <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
+        <ManageTopBar backHref="/manage/learning-media/examples" title="ไม่พบตัวอย่าง" subtitle="Learning Media" />
+        <main className="mx-auto w-full max-w-md px-4 py-5">
+          <section className="rounded-[24px] border border-[#D9E1F2] bg-white p-4">
+            <p className="text-sm font-bold text-[#475569]">ไม่พบข้อมูลตัวอย่างนี้</p>
+          </section>
+        </main>
+      </div>
+    );
   }
 
   const landingPageBuilderHref = "/manage/landing-pages-v2";

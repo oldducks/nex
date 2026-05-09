@@ -24,8 +24,9 @@ export class CatalogsService {
   async create(user_id: number, createCatalogDto: CreateCatalogDto) {
     const user = await this.usersRepository.findOneBy({ id: user_id });
     const isAdmin = user?.role === UserRole.SUPER_ADMIN || user?.role === UserRole.GROUP_ADMIN;
+    const hasUnlimitedCatalogs = user?.feature_config?.unlimited_catalogs === true;
 
-    if (!isAdmin) {
+    if (!isAdmin && !hasUnlimitedCatalogs) {
       const existingCount = await this.catalogsRepository.count({ where: { user_id } });
       if (existingCount >= 1) {
         throw new ConflictException('ต้องการสร้างเพิ่มกรุณาติดต่อแอดมิน');

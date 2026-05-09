@@ -959,6 +959,20 @@ export default function SuperAdminDashboard() {
                         <Layout size={14} />
                         จัดการเทมเพลต
                     </button>
+                    <Link
+                        href="/manage/learning-media/examples"
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-4 py-2 text-sm font-bold text-[#334155] transition-all hover:bg-[#F8FAFF]"
+                    >
+                        <BookOpen size={14} />
+                        จัดการตัวอย่างร้านค้า
+                    </Link>
+                    <Link
+                        href="/manage/landing-pages/42"
+                        className="inline-flex items-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-4 py-2 text-sm font-bold text-[#334155] transition-all hover:bg-[#F8FAFF]"
+                    >
+                        <ExternalLink size={14} />
+                        จัดการพันธมิตรธุรกิจส่วนกลาง
+                    </Link>
                 </div>
 
                 {activeTab === 'users' ? (
@@ -2186,4 +2200,3 @@ export default function SuperAdminDashboard() {
         </div>
     );
 }
-

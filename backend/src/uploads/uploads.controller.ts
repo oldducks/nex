@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  Body,
   Controller,
   Get,
   Param,
@@ -107,6 +108,52 @@ export class UploadsController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Post('video/direct/init')
+  async initDirectVideoUpload(
+    @Body() body: { fileName?: string; contentType?: string; fileSize?: number },
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub;
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    const fileName = body?.fileName?.trim();
+    const contentType = body?.contentType?.trim();
+    const fileSize = Number(body?.fileSize || 0);
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
+
+    if (!fileName || !contentType || !allowedTypes.includes(contentType)) {
+      throw new BadRequestException('Invalid video metadata');
+    }
+
+    if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > 200 * 1024 * 1024) {
+      throw new BadRequestException('Video file size must be between 1 byte and 200MB');
+    }
+
+    return await this.uploadsService.createDirectVideoUpload(fileName, contentType, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('video/direct/complete')
+  async completeDirectVideoUpload(
+    @Body() body: { objectKey?: string },
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub;
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    const objectKey = body?.objectKey?.trim();
+    if (!objectKey) {
+      throw new BadRequestException('Missing uploaded object key');
+    }
+
+    return await this.uploadsService.enqueueVideoFromR2(objectKey, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('job/:id')
   async getJobStatus(@Param('id') id: string) {
     const status = await this.uploadsService.getJobStatus(id);
@@ -116,4 +163,3 @@ export class UploadsController {
     return status;
   }
 }
-
