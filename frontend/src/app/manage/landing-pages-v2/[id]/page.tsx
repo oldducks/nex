@@ -120,11 +120,6 @@ function ImageBlockEditor({
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      alert("ไฟล์มีขนาดเกิน 5MB");
-      return;
-    }
-
     const formData = new FormData();
     formData.append("file", file);
 
@@ -186,7 +181,7 @@ function ImageBlockEditor({
           <>
             <ImageIcon className="mb-3 text-[#94A3B8]" size={34} />
             <p className="font-bold text-[#050579]">กดเพื่ออัปโหลดรูปภาพ</p>
-            <p className="mt-1 text-xs text-[#94A3B8]">JPG, PNG, GIF, WebP สูงสุด 5MB</p>
+            <p className="mt-1 text-xs text-[#94A3B8]">JPG, PNG, GIF, WebP ระบบจะปรับขนาดและแปลงไฟล์ให้อัตโนมัติ</p>
           </>
         )}
       </button>

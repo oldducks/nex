@@ -158,6 +158,14 @@ export class ReferralsService {
                 email: ref.referred?.email,
                 uid: ref.referred?.uid,
                 profilePic: ref.referred?.profile?.profile_pic_url,
+                fullName:
+                    ref.referred?.profile?.full_name ||
+                    ref.referred?.email?.split('@')[0] ||
+                    '',
+                phone:
+                    ref.referred?.profile?.mobile ||
+                    ref.referred?.profile?.phones?.find((item) => typeof item?.value === 'string' && item.value.trim().length > 0)?.value ||
+                    '',
                 subscription_tier: ref.referred?.subscription_tier || 'free',
             },
             commission: typeof ref.commission_amount === 'string' ? parseFloat(ref.commission_amount) : ref.commission_amount,

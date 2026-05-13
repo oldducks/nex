@@ -46,6 +46,8 @@ type ReferralTreeNode = {
   level: number;
   referredUser?: {
     id?: number;
+    fullName?: string;
+    phone?: string;
     email?: string;
     uid?: string;
     profilePic?: string;
@@ -54,6 +56,10 @@ type ReferralTreeNode = {
   commission: number | string;
   status: string;
   createdAt: string | Date;
+};
+
+type CentralPartnerShareSettings = {
+  pitch: string;
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -75,6 +81,9 @@ export default function ReferralsV2Page() {
   const [tree, setTree] = useState<ReferralTreeNode[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [sharePitch, setSharePitch] = useState("");
+  const [sharePitchDraft, setSharePitchDraft] = useState("");
+  const [savingSharePitch, setSavingSharePitch] = useState(false);
 
   const token = Cookies.get("token");
 
@@ -100,14 +109,24 @@ export default function ReferralsV2Page() {
     async (accessToken: string) => {
       setRefreshing(true);
       try {
-        const [statsRes, treeRes] = await Promise.all([
+        const requests: Promise<Response>[] = [
           fetch(`${API_URL}/referrals/stats`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
           fetch(`${API_URL}/referrals/tree`, {
             headers: { Authorization: `Bearer ${accessToken}` },
           }),
-        ]);
+        ];
+
+        if (isAdmin) {
+          requests.push(
+            fetch(`${API_URL}/admin/settings/central-partner-share`, {
+              headers: { Authorization: `Bearer ${accessToken}` },
+            }),
+          );
+        }
+
+        const [statsRes, treeRes, shareSettingsRes] = await Promise.all(requests);
 
         if (statsRes.ok) {
           const statsData = (await statsRes.json()) as ReferralStats;
@@ -123,13 +142,19 @@ export default function ReferralsV2Page() {
           });
           setTree(sorted);
         }
+
+        if (shareSettingsRes?.ok) {
+          const shareSettings = (await shareSettingsRes.json()) as CentralPartnerShareSettings;
+          setSharePitch(shareSettings.pitch || "");
+          setSharePitchDraft(shareSettings.pitch || "");
+        }
       } catch (error) {
         console.error("Referral data fetch failed:", error);
       } finally {
         setRefreshing(false);
       }
     },
-    [],
+    [isAdmin],
   );
 
   useEffect(() => {
@@ -222,6 +247,36 @@ export default function ReferralsV2Page() {
     setShowShareModal(true);
   };
 
+  const saveSharePitch = async () => {
+    if (!token || !isAdmin) return;
+
+    setSavingSharePitch(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/settings/central-partner-share`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pitch: sharePitchDraft.trim() }),
+      });
+
+      if (!res.ok) {
+        throw new Error(`Save failed: ${res.status}`);
+      }
+
+      const data = (await res.json()) as CentralPartnerShareSettings;
+      setSharePitch(data.pitch || "");
+      setSharePitchDraft(data.pitch || "");
+      window.alert("บันทึกคำโปรยเรียบร้อยแล้ว");
+    } catch (error) {
+      console.error("Share pitch save failed:", error);
+      window.alert("บันทึกคำโปรยไม่สำเร็จ");
+    } finally {
+      setSavingSharePitch(false);
+    }
+  };
+
   if (!token) return null;
 
   if (loading) {
@@ -280,6 +335,47 @@ export default function ReferralsV2Page() {
 
               <div className={`mt-4 rounded-2xl px-4 py-3 text-sm leading-relaxed break-all ${MUTED_SURFACE} ${TEXT_BODY}`}>
                 {referralUrl || "ยังไม่พบลิงก์แนะนำสมาชิก"}
+              </div>
+
+              <div className={`mt-3 rounded-2xl p-4 ${MUTED_SURFACE}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className={`text-sm font-bold ${TEXT_PRIMARY}`}>คำโปรยพร้อมลิงก์เวลานำไปแชร์</p>
+                    <p className={`mt-1 text-xs leading-relaxed ${TEXT_SECONDARY}`}>
+                      ข้อความนี้จะถูกใช้ตอนกดแชร์ลิงก์แนะนำสมาชิก เพื่อให้ผู้รับเห็นคำชวนก่อนเข้าหน้า sale page
+                    </p>
+                  </div>
+                  {isAdmin ? (
+                    <span className="inline-flex rounded-full bg-[#FFF1E8] px-3 py-1 text-[11px] font-bold text-[#C2410C]">
+                      Admin Edit
+                    </span>
+                  ) : null}
+                </div>
+
+                {isAdmin ? (
+                  <div className="mt-3 space-y-3">
+                    <textarea
+                      value={sharePitchDraft}
+                      onChange={(event) => setSharePitchDraft(event.target.value)}
+                      rows={5}
+                      className="w-full rounded-2xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none transition focus:border-[#F97316] focus:ring-2 focus:ring-[#FDBA74]"
+                      placeholder="ใส่คำโปรยที่จะใช้แชร์พร้อมลิงก์ referral"
+                    />
+                    <button
+                      type="button"
+                      onClick={saveSharePitch}
+                      disabled={savingSharePitch}
+                      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-60 ${CTA_PRIMARY}`}
+                    >
+                      {savingSharePitch ? <Loader2 size={16} className="animate-spin" /> : <Pencil size={16} />}
+                      {savingSharePitch ? "กำลังบันทึก..." : "บันทึกคำโปรย"}
+                    </button>
+                  </div>
+                ) : sharePitch ? (
+                  <p className={`mt-3 whitespace-pre-line text-sm leading-relaxed ${TEXT_BODY}`}>{sharePitch}</p>
+                ) : (
+                  <p className={`mt-3 text-sm ${TEXT_MUTED}`}>ยังไม่ได้ตั้งคำโปรยสำหรับลิงก์ส่วนกลางนี้</p>
+                )}
               </div>
 
               {isAdmin ? (
@@ -401,8 +497,14 @@ export default function ReferralsV2Page() {
                             ผู้สมัครลำดับ {index + 1}
                           </p>
                           <h3 className={`mt-1 truncate text-sm font-bold ${TEXT_PRIMARY}`}>
-                            {item.referredUser?.email || "Unknown User"}
+                            {item.referredUser?.fullName || item.referredUser?.email || "Unknown User"}
                           </h3>
+                          {item.referredUser?.phone ? (
+                            <p className={`mt-1 text-xs ${TEXT_SECONDARY}`}>โทร: {item.referredUser.phone}</p>
+                          ) : null}
+                          {item.referredUser?.email ? (
+                            <p className={`mt-1 truncate text-xs ${TEXT_SECONDARY}`}>{item.referredUser.email}</p>
+                          ) : null}
                           <p className={`mt-1 text-xs ${TEXT_SECONDARY}`}>UID: {item.referredUser?.uid || "---"}</p>
                         </div>
 
@@ -511,6 +613,7 @@ export default function ReferralsV2Page() {
         onClose={() => setShowShareModal(false)}
         url={referralUrl}
         title="ลิงก์แนะนำสมาชิก NEX"
+        shareText={sharePitch}
       />
     </main>
   );

@@ -44,12 +44,14 @@ export class UploadsProcessor extends WorkerHost {
 
       const [imageBuffer, thumbBuffer] = await Promise.all([
         sharp(tempFilePath)
-          .resize(2000, 2000, { fit: 'inside', withoutEnlargement: true })
-          .webp({ quality: 80 })
+          .rotate()
+          .resize(2560, 2560, { fit: 'inside', withoutEnlargement: true })
+          .webp({ quality: 86, effort: 4 })
           .toBuffer(),
         sharp(tempFilePath)
-          .resize(200, 200, { fit: 'cover' })
-          .webp({ quality: 70 })
+          .rotate()
+          .resize(320, 320, { fit: 'cover' })
+          .webp({ quality: 78, effort: 4 })
           .toBuffer(),
       ]);
 

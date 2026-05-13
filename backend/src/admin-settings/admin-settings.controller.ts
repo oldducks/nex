@@ -14,6 +14,12 @@ export class AdminSettingsController {
     }
   }
 
+  private ensureAdmin(req: any) {
+    if (req.user?.role !== 'super_admin' && req.user?.role !== 'group_admin') {
+      throw new ForbiddenException('Only admin can update central partner settings');
+    }
+  }
+
   @Get('ai-image')
   async getAiImageSettings(@Request() req: any) {
     this.ensureSuperAdmin(req);
@@ -23,6 +29,20 @@ export class AdminSettingsController {
   @Get('learning-media/examples')
   async getLearningMediaExamples() {
     return this.adminSettingsService.getLearningMediaExampleOverrides();
+  }
+
+  @Get('central-partner-share')
+  async getCentralPartnerShareSettings() {
+    return this.adminSettingsService.getCentralPartnerShareSettings();
+  }
+
+  @Patch('central-partner-share')
+  async updateCentralPartnerShareSettings(
+    @Request() req: any,
+    @Body() dto: { pitch?: string },
+  ) {
+    this.ensureAdmin(req);
+    return this.adminSettingsService.updateCentralPartnerShareSettings(dto, req.user.sub);
   }
 
   @Patch('learning-media/examples/:slug')

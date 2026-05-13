@@ -47,11 +47,17 @@ interface ReferralTreeNode {
     email: string;
     uid: string;
     profilePic?: string;
+    fullName?: string;
+    phone?: string;
     subscription_tier?: string;
   };
   commission: number | string;
   status: string;
   createdAt: string | Date;
+}
+
+interface CentralPartnerShareSettings {
+  pitch: string;
 }
 
 export default function ReferralsPage() {
@@ -62,6 +68,9 @@ export default function ReferralsPage() {
   const [tree, setTree] = useState<ReferralTreeNode[]>([]);
   const [copiedLink, setCopiedLink] = useState(false);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [sharePitch, setSharePitch] = useState('');
+  const [sharePitchDraft, setSharePitchDraft] = useState('');
+  const [savingSharePitch, setSavingSharePitch] = useState(false);
   
   const token = Cookies.get('token');
   const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -97,6 +106,18 @@ export default function ReferralsPage() {
         }
       })
       .catch(err => console.error('Tree fetch failed:', err));
+
+    fetch(`${API_URL}/admin/settings/central-partner-share`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(res => res.json())
+      .then((data: CentralPartnerShareSettings) => {
+        if (typeof data?.pitch === 'string') {
+          setSharePitch(data.pitch);
+          setSharePitchDraft(data.pitch);
+        }
+      })
+      .catch((err) => console.error('Share pitch fetch failed:', err));
   }, [API_URL, token]);
 
   useEffect(() => {
@@ -178,6 +199,33 @@ export default function ReferralsPage() {
   const shareReferralLink = () => {
     if (!referralUrl) return;
     setShowShareModal(true);
+  };
+
+  const saveSharePitch = async () => {
+    if (!sharePitchDraft.trim()) return;
+    setSavingSharePitch(true);
+    try {
+      const res = await fetch(`${API_URL}/admin/settings/central-partner-share`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ pitch: sharePitchDraft }),
+      });
+
+      if (!res.ok) {
+        throw new Error('save failed');
+      }
+
+      const data = await res.json();
+      setSharePitch(data.pitch || sharePitchDraft.trim());
+      setSharePitchDraft(data.pitch || sharePitchDraft.trim());
+    } catch (error) {
+      console.error('Save share pitch failed:', error);
+    } finally {
+      setSavingSharePitch(false);
+    }
   };
 
   const getProfilePic = (pic?: string) => {
@@ -281,7 +329,9 @@ export default function ReferralsPage() {
                              </td>
                              <td className="py-4 px-8">
                                 <div className="flex flex-col min-w-[200px]">
-                                   <span className="text-sm font-bold text-[#050579]">{item.referredUser?.email || 'Unknown User'}</span>
+                                   <span className="text-sm font-bold text-[#050579]">{item.referredUser?.fullName || item.referredUser?.email || 'Unknown User'}</span>
+                                   <span className="text-xs text-[#475569]">{item.referredUser?.phone || '-'}</span>
+                                   <span className="text-[10px] text-[#94A3B8]">{item.referredUser?.email || '-'}</span>
                                    <span className="text-[10px] text-[#94A3B8]">UID: {item.referredUser?.uid || '---'}</span>
                                 </div>
                              </td>
@@ -342,6 +392,30 @@ export default function ReferralsPage() {
                    </div>
                  ) : null}
                  <div className="space-y-6">
+                    <div className="rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF] p-4">
+                       <div className="mb-2 text-[10px] font-black uppercase tracking-widest text-[#64748B]">คำโปรยพร้อมลิงก์เวลานำไปแชร์</div>
+                       {user?.role === 'super_admin' || user?.role === 'group_admin' ? (
+                         <div className="space-y-3">
+                           <textarea
+                             value={sharePitchDraft}
+                             onChange={(event) => setSharePitchDraft(event.target.value)}
+                             rows={5}
+                             className="w-full rounded-xl border border-[#D9E1F2] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none"
+                             placeholder="ใส่คำโปรยสำหรับแชร์ลิงก์"
+                           />
+                           <button
+                             onClick={saveSharePitch}
+                             disabled={savingSharePitch || !sharePitchDraft.trim()}
+                             className="inline-flex items-center justify-center rounded-xl bg-[#F97316] px-5 py-3 text-sm font-black text-white transition hover:bg-[#EA580C] disabled:cursor-not-allowed disabled:opacity-60"
+                           >
+                             {savingSharePitch ? 'กำลังบันทึก...' : 'บันทึกคำโปรย'}
+                           </button>
+                         </div>
+                       ) : (
+                         <p className="text-sm leading-7 text-[#334155] whitespace-pre-line">{sharePitch || '-'}</p>
+                       )}
+                    </div>
+
                     <div className="flex flex-col sm:flex-row gap-3">
                        <div className="flex-1 rounded-xl bg-[#F8FAFF] p-4 font-mono text-sm break-all border border-[#D9E1F2] self-center text-[#334155]">
                           {referralUrl || 'Loading link...'}
@@ -418,6 +492,7 @@ export default function ReferralsPage() {
         onClose={() => setShowShareModal(false)}
         url={referralUrl}
         title="ลิงก์แนะนำสมาชิก NEX"
+        shareText={sharePitch}
       />
 
       <div className="h-20" />

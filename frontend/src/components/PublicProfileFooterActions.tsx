@@ -57,17 +57,21 @@ export function PublicShareModal({
   onClose,
   url,
   title,
+  shareText,
 }: {
   isOpen: boolean;
   onClose: () => void;
   url: string;
   title: string;
+  shareText?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
   useLockBodyScroll(isOpen);
 
   if (!isOpen) return null;
+
+  const shareMessage = shareText?.trim() ? `${shareText.trim()}\n${url}` : url;
 
   const shareLinks = [
     {
@@ -77,7 +81,7 @@ export function PublicShareModal({
           <LineIcon size={28} />
         </div>
       ),
-      href: `https://social-plugins.line.me/lineit/share?url=${encodeURIComponent(url)}`,
+      href: `https://line.me/R/msg/text/?${encodeURIComponent(shareMessage)}`,
     },
     {
       name: "Facebook",
@@ -95,13 +99,13 @@ export function PublicShareModal({
           <Twitter size={24} fill="currentColor" />
         </div>
       ),
-      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+      href: `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(shareText?.trim() || title)}`,
     },
   ];
 
   const handleCopy = async () => {
     try {
-      await navigator.clipboard.writeText(url);
+      await navigator.clipboard.writeText(shareMessage);
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch (error) {
@@ -120,6 +124,12 @@ export function PublicShareModal({
           <h3 style={{ fontSize: "1.5rem", fontWeight: 900, marginBottom: "2rem", color: "#050579", textAlign: "center" }}>
             แชร์หน้านี้
           </h3>
+
+          {shareText?.trim() ? (
+            <div style={{ marginBottom: "1.5rem", borderRadius: "20px", backgroundColor: "#F8FAFF", border: "1px solid #D9E1F2", padding: "1rem", color: "#334155", fontSize: "14px", lineHeight: 1.7 }}>
+              {shareText.trim()}
+            </div>
+          ) : null}
 
           <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1.5rem", marginBottom: "1.75rem" }}>
             {shareLinks.map((link) => (
@@ -156,7 +166,7 @@ export function PublicShareModal({
             }}
           >
             <Copy size={18} />
-            {copied ? "คัดลอกลิงก์แล้ว" : "คัดลอกลิงก์หน้านี้"}
+            {copied ? "คัดลอกข้อความแล้ว" : "คัดลอกข้อความพร้อมลิงก์"}
           </button>
 
           <button

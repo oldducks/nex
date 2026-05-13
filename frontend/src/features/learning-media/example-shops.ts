@@ -21,7 +21,7 @@ export const LEARNING_MEDIA_EXAMPLES: LearningMediaExample[] = [
     category: "อุตสาหกรรมและบริการ",
     description:
       "🐾 Build your premium pet food brand with Sun Operation 🇹🇭✨\nOEM & ODM manufacturer specializing in Dry Food 🥣 Wet Food 🍖 and Freeze-Dried Products ❄️ with world-class standards, natural ingredients 🌿 and complete export solutions 🌎\n🚀 Ready to launch your brand globally?\n📩 Contact us today — we’re ready to support your success! 👇",
-    thumbnailUrl: "/nex_logo_nobg.png",
+    thumbnailUrl: "/api/uploads/31/1778308477447-x0li1d.webp",
     livePreviewUrl: "https://nexsolution.cloud/lp/44",
     tags: ["OEM/ODM", "Pet Food", "Export Solution"],
     suggestedUseCase:
@@ -39,7 +39,7 @@ export const LEARNING_MEDIA_EXAMPLES: LearningMediaExample[] = [
     category: "ยานยนต์",
     description:
       "🔥 Ford ที่คุณอยากได้… \n✅️ อาจเหลือให้จองแค่วันนี้!\n🚗 แรง เท่ ดุดัน ครบทุกฟีลการขับขี่\n💥 โปรเด็ด ดอกเบี้ยพิเศษ ของแถมจัดเต็ม\n📍 Ford Auto Gallery Sukhumvit 62\nรีบมาลองขับ แล้วคุณจะหยุดมองคันนี้ไม่ได้ 😎\nติดต่อ จอรายละเอียด หรือลองขับ คลิก👇",
-    thumbnailUrl: "/nex_logo_nobg.png",
+    thumbnailUrl: "/api/uploads/31/1778314435120-z9ymqk.webp",
     livePreviewUrl: "https://nexsolution.cloud/lp/43",
     tags: ["รถยนต์ Ford", "โปรโมชันรถใหม่", "นัดลองขับ"],
     suggestedUseCase:

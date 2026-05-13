@@ -62,8 +62,15 @@ type LearningMediaExampleOverride = {
   livePreviewUrl?: string;
 };
 
+type CentralPartnerShareSettings = {
+  pitch: string;
+};
+
 const AI_IMAGE_KEY = 'ai_image_config';
 const LEARNING_MEDIA_EXAMPLES_KEY = 'learning_media_examples_overrides';
+const CENTRAL_PARTNER_SHARE_KEY = 'central_partner_share_settings';
+const DEFAULT_CENTRAL_PARTNER_PITCH =
+  'แนะนำระบบ NEX Solution ที่ช่วยคุณสร้าง Sale Page, E-Catalog, QR Code และเครื่องมือปิดการขายได้ในลิงก์เดียว ใช้งานง่ายบนมือถือ พร้อมระบบหลังบ้านที่พร้อมต่อยอดธุรกิจทันที สนใจดูตัวอย่างและเริ่มใช้งาน คลิกที่ลิงก์นี้ได้เลย';
 
 export type AiImageRuntimeConfig = {
   connection_mode: 'cloud_run_proxy' | 'api_key';
@@ -267,6 +274,51 @@ export class AdminSettingsService implements OnModuleInit {
     });
 
     return nextPayload;
+  }
+
+  async getCentralPartnerShareSettings(): Promise<CentralPartnerShareSettings> {
+    const entity = await this.settingsRepository.findOne({
+      where: { setting_key: CENTRAL_PARTNER_SHARE_KEY },
+    });
+
+    const pitch =
+      entity?.payload &&
+      typeof entity.payload === 'object' &&
+      !Array.isArray(entity.payload) &&
+      typeof (entity.payload as Record<string, unknown>).pitch === 'string' &&
+      (entity.payload as Record<string, string>).pitch.trim().length > 0
+        ? (entity.payload as Record<string, string>).pitch.trim()
+        : DEFAULT_CENTRAL_PARTNER_PITCH;
+
+    return { pitch };
+  }
+
+  async updateCentralPartnerShareSettings(
+    payload: Partial<CentralPartnerShareSettings>,
+    userId: number,
+  ): Promise<CentralPartnerShareSettings> {
+    const current = await this.settingsRepository.findOne({
+      where: { setting_key: CENTRAL_PARTNER_SHARE_KEY },
+    });
+
+    const currentPayload =
+      current?.payload && typeof current.payload === 'object' && !Array.isArray(current.payload)
+        ? (current.payload as Record<string, string>)
+        : {};
+
+    const nextPitch = payload.pitch?.trim() || DEFAULT_CENTRAL_PARTNER_PITCH;
+
+    await this.settingsRepository.save({
+      id: current?.id,
+      setting_key: CENTRAL_PARTNER_SHARE_KEY,
+      payload: {
+        ...currentPayload,
+        pitch: nextPitch,
+      },
+      updated_by: userId,
+    });
+
+    return { pitch: nextPitch };
   }
 
   private toPayload(raw: Record<string, any> | undefined | null): AiImageSettingsPayload {
