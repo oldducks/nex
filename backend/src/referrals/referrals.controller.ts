@@ -61,4 +61,13 @@ export class ReferralsController {
         }
         return this.referralsService.getAllReferrals(parseInt(page), parseInt(limit));
     }
+
+    @Get('admin/tree/:userId')
+    @UseGuards(JwtAuthGuard)
+    async getAdminTree(@Request() req, @Param('userId') userId: string) {
+        if (req.user.role !== 'super_admin') {
+            throw new ForbiddenException('Only super admin can view referral tree');
+        }
+        return this.referralsService.getReferralTree(parseInt(userId, 10));
+    }
 }

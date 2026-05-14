@@ -164,6 +164,23 @@ interface UserPublicLinks {
     landingPages: PublicLink[];
 }
 
+interface ReferralTreeItem {
+    id: number;
+    level: number;
+    referredUser: {
+        id: number;
+        email: string;
+        uid: string;
+        profilePic?: string | null;
+        fullName?: string | null;
+        phone?: string | null;
+        subscription_tier?: 'free' | 'premium';
+    };
+    commission: number;
+    status: string;
+    createdAt: string;
+}
+
 const AI_IMAGE_MODELS = [
     { value: 'gemini-2.5-flash-image', label: 'Gemini 2.5 Flash Image (Recommended)' },
     { value: 'gemini-3.1-flash-image-preview', label: 'Gemini 3.1 Flash Image Preview (Pro)' },
@@ -226,6 +243,9 @@ export default function SuperAdminDashboard() {
     const [reportError, setReportError] = useState<string | null>(null);
     const [publicLinks, setPublicLinks] = useState<UserPublicLinks | null>(null);
     const [publicLinksLoading, setPublicLinksLoading] = useState(false);
+    const [referralTree, setReferralTree] = useState<ReferralTreeItem[]>([]);
+    const [referralTreeLoading, setReferralTreeLoading] = useState(false);
+    const [editUserForm, setEditUserForm] = useState({ full_name: '', email: '', mobile: '' });
 
     const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
 
@@ -314,6 +334,50 @@ export default function SuperAdminDashboard() {
         };
         fetchPublicLinks();
     }, [detailUserId, API_URL]);
+
+    useEffect(() => {
+        const fetchReferralTree = async () => {
+            if (!detailUserId) {
+                setReferralTree([]);
+                return;
+            }
+
+            setReferralTreeLoading(true);
+            const token = Cookies.get('token');
+            try {
+                const res = await fetch(`${API_URL}/referrals/admin/tree/${detailUserId}`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (res.ok) {
+                    const data = await res.json();
+                    setReferralTree(Array.isArray(data) ? data : []);
+                } else {
+                    setReferralTree([]);
+                }
+            } catch (error) {
+                console.error('Failed to fetch referral tree:', error);
+                setReferralTree([]);
+            }
+            setReferralTreeLoading(false);
+        };
+
+        fetchReferralTree();
+    }, [detailUserId, API_URL]);
+
+    useEffect(() => {
+        const currentDetailUser = (dashboardData?.users || []).find((user) => user.id === detailUserId) || null;
+
+        if (!currentDetailUser) {
+            setEditUserForm({ full_name: '', email: '', mobile: '' });
+            return;
+        }
+
+        setEditUserForm({
+            full_name: currentDetailUser.full_name || '',
+            email: currentDetailUser.email || '',
+            mobile: currentDetailUser.mobile || '',
+        });
+    }, [detailUserId, dashboardData?.users]);
 
     const toggleUserActive = async (userId: number) => {
         setActionLoading(userId);
@@ -481,6 +545,41 @@ export default function SuperAdminDashboard() {
             }
         } catch (error) {
             console.error('Update role failed:', error);
+        }
+        setActionLoading(null);
+    };
+
+    const saveUserProfile = async (userId: number) => {
+        setActionLoading(userId);
+        const token = Cookies.get('token');
+        try {
+            const res = await fetch(`${API_URL}/users/${userId}`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify(editUserForm)
+            });
+
+            if (!res.ok) {
+                const errorBody = await res.json().catch(() => ({}));
+                throw new Error(errorBody?.message || 'update user failed');
+            }
+
+            const updated = await res.json();
+            setDashboardData(prev => prev ? {
+                ...prev,
+                users: prev.users.map(u => u.id === userId ? {
+                    ...u,
+                    email: updated.email || editUserForm.email,
+                    full_name: updated.profile?.full_name ?? editUserForm.full_name,
+                    mobile: updated.profile?.mobile ?? editUserForm.mobile,
+                } : u)
+            } : null);
+        } catch (error) {
+            console.error('Update user profile failed:', error);
+            alert(error instanceof Error ? error.message : 'บันทึกข้อมูลผู้ใช้ไม่สำเร็จ');
         }
         setActionLoading(null);
     };
@@ -1851,6 +1950,53 @@ export default function SuperAdminDashboard() {
                                         <p className="font-semibold text-[#0F172A]">{detailUser.expiration_date ? formatDate(detailUser.expiration_date) : 'ไม่จำกัด'}</p>
                                     </div>
                                 </div>
+
+                                <div className="space-y-3 rounded-2xl border border-[#D9E1F2] bg-[#FFF7ED] p-4">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <div>
+                                            <h4 className="text-sm font-bold text-[#9A3412]">แก้ไขข้อมูลผู้ใช้</h4>
+                                            <p className="text-xs text-[#C2410C]">ปรับชื่อ เบอร์โทร และอีเมลของบัญชีนี้ได้จากตรงนี้</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => saveUserProfile(detailUser.id)}
+                                            disabled={actionLoading === detailUser.id}
+                                            className="inline-flex items-center gap-2 rounded-xl bg-[#F97316] px-4 py-2 text-sm font-bold text-white hover:bg-[#EA580C] disabled:opacity-60"
+                                        >
+                                            {actionLoading === detailUser.id ? <Loader2 size={16} className="animate-spin" /> : <Save size={16} />}
+                                            บันทึกข้อมูล
+                                        </button>
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                                        <label className="space-y-1 sm:col-span-2">
+                                            <span className="text-xs font-bold text-[#7C2D12]">ชื่อ - นามสกุล</span>
+                                            <input
+                                                value={editUserForm.full_name}
+                                                onChange={(e) => setEditUserForm((prev) => ({ ...prev, full_name: e.target.value }))}
+                                                className="w-full rounded-xl border border-[#FED7AA] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none focus:border-[#F97316]"
+                                                placeholder="กรอกชื่อผู้ใช้"
+                                            />
+                                        </label>
+                                        <label className="space-y-1">
+                                            <span className="text-xs font-bold text-[#7C2D12]">อีเมล</span>
+                                            <input
+                                                value={editUserForm.email}
+                                                onChange={(e) => setEditUserForm((prev) => ({ ...prev, email: e.target.value }))}
+                                                className="w-full rounded-xl border border-[#FED7AA] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none focus:border-[#F97316]"
+                                                placeholder="example@email.com"
+                                            />
+                                        </label>
+                                        <label className="space-y-1">
+                                            <span className="text-xs font-bold text-[#7C2D12]">เบอร์โทรศัพท์</span>
+                                            <input
+                                                value={editUserForm.mobile}
+                                                onChange={(e) => setEditUserForm((prev) => ({ ...prev, mobile: e.target.value }))}
+                                                className="w-full rounded-xl border border-[#FED7AA] bg-white px-4 py-3 text-sm text-[#0F172A] outline-none focus:border-[#F97316]"
+                                                placeholder="08x-xxx-xxxx"
+                                            />
+                                        </label>
+                                    </div>
+                                </div>
                                 
                                 {/* Public Links Section */}
                                 <div className="space-y-3">
@@ -1932,6 +2078,53 @@ export default function SuperAdminDashboard() {
                                         </div>
                                     ) : (
                                         <p className="text-xs text-red-500">ไม่สามารถโหลดข้อมูลลิงก์ได้</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-3">
+                                    <h4 className="text-sm font-bold text-[#0F172A] flex items-center gap-2">
+                                        <Users size={16} className="text-[#050579]" />
+                                        รายชื่อผู้สมัคร / สาย Referral
+                                    </h4>
+
+                                    {referralTreeLoading ? (
+                                        <div className="flex items-center gap-2 text-sm text-[#64748B] py-2">
+                                            <Loader2 size={14} className="animate-spin" />
+                                            กำลังโหลดรายชื่อผู้สมัคร...
+                                        </div>
+                                    ) : referralTree.length > 0 ? (
+                                        <div className="space-y-3">
+                                            {referralTree.map((item) => (
+                                                <div key={item.id} className="rounded-xl border border-[#D9E1F2] bg-white p-4">
+                                                    <div className="flex flex-wrap items-start justify-between gap-3">
+                                                        <div className="space-y-1">
+                                                            <p className="text-sm font-bold text-[#050579]">
+                                                                {item.referredUser.fullName || item.referredUser.uid || '-'}
+                                                            </p>
+                                                            <p className="text-xs text-[#64748B]">{item.referredUser.email || '-'}</p>
+                                                            <p className="text-xs text-[#64748B]">เบอร์โทร: {item.referredUser.phone || '-'}</p>
+                                                        </div>
+                                                        <div className="text-right">
+                                                            <p className="text-xs font-bold uppercase tracking-wider text-[#94A3B8]">Level {item.level}</p>
+                                                            <p className="text-xs text-[#64748B]">{formatDateTime(item.createdAt)}</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                                                        <span className="rounded-full bg-[#EEF2FF] px-3 py-1 text-xs font-bold text-[#4338CA]">
+                                                            แผน {item.referredUser.subscription_tier || 'free'}
+                                                        </span>
+                                                        <span className="rounded-full bg-[#F8FAFC] px-3 py-1 text-xs font-bold text-[#475569]">
+                                                            สถานะ {item.status}
+                                                        </span>
+                                                        <span className="rounded-full bg-[#ECFDF5] px-3 py-1 text-xs font-bold text-[#059669]">
+                                                            คอมมิชชั่น {Number(item.commission || 0).toFixed(2)}
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    ) : (
+                                        <p className="text-xs text-[#64748B] italic">ยังไม่มีรายชื่อผู้สมัครหรือสาย referral ของผู้ใช้นี้</p>
                                     )}
                                 </div>
 

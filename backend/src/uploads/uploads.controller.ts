@@ -11,7 +11,7 @@ import {
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { diskStorage, memoryStorage } from 'multer';
 import { extname, join } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { promises as fsp } from 'fs';
@@ -151,6 +151,72 @@ export class UploadsController {
     }
 
     return await this.uploadsService.enqueueVideoFromR2(objectKey, userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('video/chunked/init')
+  async initChunkedVideoUpload(
+    @Body() body: { fileName?: string; contentType?: string; fileSize?: number; totalChunks?: number },
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub;
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    return await this.uploadsService.createChunkedVideoUploadSession(
+      body?.fileName || '',
+      body?.contentType || '',
+      Number(body?.fileSize || 0),
+      Number(body?.totalChunks || 0),
+      userId,
+    );
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('video/chunked/:uploadId/chunk')
+  @UseInterceptors(
+    FileInterceptor('chunk', {
+      storage: memoryStorage(),
+      limits: {
+        fileSize: 12 * 1024 * 1024,
+      },
+    }),
+  )
+  async uploadChunkedVideoChunk(
+    @Param('uploadId') uploadId: string,
+    @UploadedFile() file: Express.Multer.File,
+    @Body() body: { index?: string | number },
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub;
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
+    }
+    if (!file?.buffer?.length) {
+      throw new BadRequestException('Missing upload chunk');
+    }
+
+    const index = Number(body?.index);
+    if (!Number.isInteger(index) || index < 0) {
+      throw new BadRequestException('Invalid chunk index');
+    }
+
+    return await this.uploadsService.storeChunkedVideoChunk(uploadId, userId, index, file.buffer);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post('video/chunked/:uploadId/complete')
+  async completeChunkedVideoUpload(
+    @Param('uploadId') uploadId: string,
+    @Request() req: any,
+  ) {
+    const userId = req.user?.sub;
+    if (!userId) {
+      throw new BadRequestException('User not authenticated');
+    }
+
+    return await this.uploadsService.completeChunkedVideoUpload(uploadId, userId);
   }
 
   @UseGuards(JwtAuthGuard)

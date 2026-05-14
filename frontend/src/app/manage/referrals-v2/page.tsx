@@ -216,7 +216,8 @@ export default function ReferralsV2Page() {
     if (!referralUrl) return;
 
     try {
-      await navigator.clipboard.writeText(referralUrl);
+      const shareMessage = sharePitch.trim() ? `${sharePitch.trim()}\n${referralUrl}` : referralUrl;
+      await navigator.clipboard.writeText(shareMessage);
       setCopiedLink(true);
       window.setTimeout(() => setCopiedLink(false), 2000);
     } catch (error) {

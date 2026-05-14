@@ -139,14 +139,28 @@ export class DigitalMediaController {
     return this.digitalMediaService.getPublicTemplateBySlug(slug);
   }
 
+  @Get('daily-quota')
+  getDailyQuota(@Request() req: { user?: { sub?: number; role?: string } }) {
+    return this.digitalMediaService.getDailyQuotaStatus({
+      userId: req.user?.sub,
+      role: req.user?.role,
+    });
+  }
+
   @Post('generate')
-  generate(@Body() dto: GenerateFromTemplateDto) {
-    return this.digitalMediaService.generateFromTemplate(dto);
+  generate(@Request() req: { user?: { sub?: number; role?: string } }, @Body() dto: GenerateFromTemplateDto) {
+    return this.digitalMediaService.generateFromTemplate(dto, {
+      userId: req.user?.sub,
+      role: req.user?.role,
+    });
   }
 
   @Post('generate-async')
-  generateAsync(@Body() dto: GenerateFromTemplateDto) {
-    return this.digitalMediaService.startGenerateFromTemplate(dto);
+  generateAsync(@Request() req: { user?: { sub?: number; role?: string } }, @Body() dto: GenerateFromTemplateDto) {
+    return this.digitalMediaService.startGenerateFromTemplate(dto, {
+      userId: req.user?.sub,
+      role: req.user?.role,
+    });
   }
 
   @Get('jobs/:jobId')
@@ -156,7 +170,7 @@ export class DigitalMediaController {
 
   @Post('video/generate')
   generateVideoDirect(
-    @Request() req: { user?: { role?: string } },
+    @Request() req: { user?: { sub?: number; role?: string } },
     @Body()
     body: {
       reference_image_url?: string;
@@ -168,16 +182,22 @@ export class DigitalMediaController {
       throw new ForbiddenException('Coming soon');
     }
 
-    return this.digitalMediaService.generateVideoDirect({
-      reference_image_url: String(body.reference_image_url || '').trim(),
-      prompt: String(body.prompt || '').trim(),
-      aspect_ratio: body.aspect_ratio === '16:9' ? '16:9' : '9:16',
-    });
+    return this.digitalMediaService.generateVideoDirect(
+      {
+        reference_image_url: String(body.reference_image_url || '').trim(),
+        prompt: String(body.prompt || '').trim(),
+        aspect_ratio: body.aspect_ratio === '16:9' ? '16:9' : '9:16',
+      },
+      {
+        userId: req.user?.sub,
+        role: req.user?.role,
+      },
+    );
   }
 
   @Post('video/generate-async')
   generateVideoDirectAsync(
-    @Request() req: { user?: { role?: string } },
+    @Request() req: { user?: { sub?: number; role?: string } },
     @Body()
     body: {
       reference_image_url?: string;
@@ -189,22 +209,35 @@ export class DigitalMediaController {
       throw new ForbiddenException('Coming soon');
     }
 
-    return this.digitalMediaService.startGenerateVideoDirect({
-      reference_image_url: String(body.reference_image_url || '').trim(),
-      prompt: String(body.prompt || '').trim(),
-      aspect_ratio: body.aspect_ratio === '16:9' ? '16:9' : '9:16',
-    });
+    return this.digitalMediaService.startGenerateVideoDirect(
+      {
+        reference_image_url: String(body.reference_image_url || '').trim(),
+        prompt: String(body.prompt || '').trim(),
+        aspect_ratio: body.aspect_ratio === '16:9' ? '16:9' : '9:16',
+      },
+      {
+        userId: req.user?.sub,
+        role: req.user?.role,
+      },
+    );
   }
 
   @Post('image/generate-async')
   generateImageDirectAsync(
+    @Request() req: { user?: { sub?: number; role?: string } },
     @Body() body: GenerateImageDirectDto,
   ) {
-    return this.digitalMediaService.startGenerateImageDirect({
-      prompt: String(body.prompt || '').trim(),
-      reference_image_urls: Array.isArray(body.reference_image_urls) ? body.reference_image_urls : [],
-      aspect_ratio: body.aspect_ratio,
-    });
+    return this.digitalMediaService.startGenerateImageDirect(
+      {
+        prompt: String(body.prompt || '').trim(),
+        reference_image_urls: Array.isArray(body.reference_image_urls) ? body.reference_image_urls : [],
+        aspect_ratio: body.aspect_ratio,
+      },
+      {
+        userId: req.user?.sub,
+        role: req.user?.role,
+      },
+    );
   }
 
   @Post('upload-image')

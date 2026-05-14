@@ -31,6 +31,13 @@ interface GalleryTemplate {
   status: "draft" | "active" | "inactive";
 }
 
+interface DailyQuotaStatus {
+  limit: number;
+  used: number;
+  remaining: number | null;
+  unlimited: boolean;
+}
+
 const featureVars: CSSProperties = {
   ["--background" as string]: "#EEF0FF",
   ["--foreground" as string]: "#0F172A",
@@ -77,6 +84,7 @@ export default function DigitalMediaLibraryPage() {
   const [videoOutputUrl, setVideoOutputUrl] = useState<string | null>(null);
   const [videoStatusText, setVideoStatusText] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
+  const [dailyQuota, setDailyQuota] = useState<DailyQuotaStatus | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -149,6 +157,26 @@ export default function DigitalMediaLibraryPage() {
     void loadTemplates();
   }, [API_URL, checkingAuth, token, mediaMode]);
 
+  useEffect(() => {
+    if (!token || checkingAuth) return;
+
+    const loadQuota = async () => {
+      try {
+        const res = await fetch(`${API_URL}/digital-media/daily-quota`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("โหลดโควตารายวันไม่สำเร็จ");
+        const data = (await res.json()) as DailyQuotaStatus;
+        setDailyQuota(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadQuota();
+  }, [API_URL, checkingAuth, token]);
+
   const categories = useMemo(() => {
     const map = new Map<string, string>();
     for (const template of templates) {
@@ -188,6 +216,8 @@ export default function DigitalMediaLibraryPage() {
       ? "mx-auto w-full max-w-[760px]"
       : "mx-auto w-full max-w-[360px] sm:max-w-[400px]";
   const isSuperAdmin = currentUserRole === "super_admin";
+  const isUnlimited = dailyQuota?.unlimited || isSuperAdmin;
+  const noQuotaRemaining = !isUnlimited && dailyQuota !== null && (dailyQuota.remaining ?? 0) <= 0;
 
   const handleVideoReferenceUpload = async (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -442,6 +472,11 @@ export default function DigitalMediaLibraryPage() {
         throw new Error("ระบบไม่ได้ส่ง job กลับมา");
       }
 
+      setDailyQuota((prev) =>
+        prev && !prev.unlimited
+          ? { ...prev, used: prev.used + 1, remaining: Math.max(0, (prev.remaining ?? 0) - 1) }
+          : prev,
+      );
       setVideoGenerationJobId(data.job_id);
       setVideoStatusText("กำลังสร้างวิดีโอ 8 วินาที อาจใช้เวลาสักครู่ ระบบจะอัปเดตผลลัพธ์อัตโนมัติ");
     } catch (error) {
@@ -507,6 +542,11 @@ export default function DigitalMediaLibraryPage() {
         throw new Error("ระบบไม่ได้ส่ง job กลับมา");
       }
 
+      setDailyQuota((prev) =>
+        prev && !prev.unlimited
+          ? { ...prev, used: prev.used + 1, remaining: Math.max(0, (prev.remaining ?? 0) - 1) }
+          : prev,
+      );
       setImageGenerationJobId(data.job_id);
       setImageStatusText("กำลังสร้างภาพจาก prompt ระบบจะอัปเดตผลลัพธ์อัตโนมัติ");
     } catch (error) {
@@ -563,104 +603,31 @@ export default function DigitalMediaLibraryPage() {
 
       <main className="mx-auto max-w-3xl px-4 py-4 sm:px-6 sm:py-6">
         <section className="pb-28 pt-1">
-          <div className="mb-3 inline-flex rounded-2xl border border-foreground/10 bg-white p-1">
-            <button type="button" onClick={() => setMediaMode("image")} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${mediaMode === "image" ? "bg-primary text-white" : "text-foreground/70"}`}>
-              <ImageIcon size={16} />รูปภาพ
-            </button>
-            <button type="button" onClick={() => setMediaMode("video")} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${mediaMode === "video" ? "bg-primary text-white" : "text-foreground/70"}`}>
-              <Video size={16} />วิดีโอ
-            </button>
+          <div className="mb-4 rounded-[28px] border border-foreground/10 bg-white p-4 shadow-sm">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/40">Daily Usage</p>
+                <h2 className="mt-1 text-base font-black text-foreground">กำหนดการใช้งานต่อวัน</h2>
+                <p className="mt-1 text-sm text-foreground/60">
+                  {isUnlimited
+                    ? "บัญชี admin สร้างงานได้ไม่จำกัดจำนวน"
+                    : `บัญชีทั่วไปสร้างงาน AI ได้สูงสุดวันละ ${dailyQuota?.limit ?? 3} งาน ระบบจะรีเซ็ตให้อัตโนมัติในวันถัดไป`}
+                </p>
+              </div>
+              <div className={`rounded-2xl px-4 py-3 text-sm font-black ${isUnlimited ? "bg-[#EEF2FF] text-[#050579]" : noQuotaRemaining ? "bg-[#FFF1E8] text-[#C2410C]" : "bg-[#F8FAFC] text-[#0F172A]"}`}>
+                {isUnlimited
+                  ? "Admin Unlimited"
+                  : `${dailyQuota?.used ?? 0}/${dailyQuota?.limit ?? 3} งานวันนี้${dailyQuota ? ` เหลือ ${dailyQuota.remaining ?? 0}` : ""}`}
+              </div>
+            </div>
           </div>
 
-          {mediaMode === "video" ? (
-            <div className="space-y-4">
-              {isSuperAdmin ? (
-                <>
-                  <div className="rounded-[28px] border border-[var(--glass-border)] bg-white p-5">
-                    <h3 className="text-lg font-black text-foreground">สร้างวิดีโอจาก Prompt</h3>
-                    <p className="mt-1 text-sm text-foreground/60">ไม่ใช้เทมเพลต: อัปโหลดรูปอ้างอิง + ใส่บทพูด + เลือกอัตราส่วน (8 วินาที)</p>
+          <div className="mb-3 inline-flex items-center gap-2 rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm font-black text-primary">
+            <ImageIcon size={16} />
+            สร้างได้เฉพาะรูปภาพ
+          </div>
 
-                    <div className="mt-4 space-y-4">
-                      <div>
-                        <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">รูปอ้างอิง *</p>
-                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-foreground/10 bg-background px-4 py-2.5 text-sm font-bold text-foreground/70">
-                          <Upload size={15} />{videoUploading ? "กำลังอัปโหลด..." : "อัปโหลดรูปอ้างอิง"}
-                          <input type="file" accept="image/*" className="hidden" onChange={handleVideoReferenceUpload} />
-                        </label>
-                        {videoReferenceImageUrl ? (
-                          <div className="mt-3 rounded-2xl border border-foreground/10 bg-background/50 p-3">
-                            <div className={videoFrameClassName}>
-                              <div className="overflow-hidden rounded-2xl border border-foreground/10 bg-white/80" style={ratioStyle}>
-                                <img src={videoReferenceImageUrl} alt="Reference preview" className="h-full w-full object-contain" />
-                              </div>
-                            </div>
-                          </div>
-                        ) : null}
-                      </div>
-
-                      <div>
-                        <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">บทพูด / Prompt *</p>
-                        <textarea
-                          value={videoPrompt}
-                          onChange={(event) => setVideoPrompt(event.target.value)}
-                          placeholder="เช่น ผู้หญิงพูดสวัสดีและแนะนำโครงการบ้านใหม่แบบมั่นใจ"
-                          className="w-full min-h-[120px] rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm text-foreground outline-none focus:border-primary/30 focus:ring-2 focus:ring-primary/15"
-                        />
-                      </div>
-
-                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                        <div>
-                          <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">อัตราส่วน</p>
-                          <select value={videoAspectRatio} onChange={(event) => setVideoAspectRatio(event.target.value === "16:9" ? "16:9" : "9:16")} className="w-full rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm font-semibold text-foreground outline-none">
-                            <option value="9:16">9:16 (ค่าเริ่มต้น)</option>
-                            <option value="16:9">16:9</option>
-                          </select>
-                        </div>
-                        <div>
-                          <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">ความยาว</p>
-                          <div className="rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm font-semibold text-foreground/70">8 วินาที (คงที่)</div>
-                        </div>
-                      </div>
-
-                      <button type="button" onClick={handleGenerateVideo} disabled={videoGenerating || videoUploading} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-black text-white shadow-lg shadow-[var(--glow)] disabled:opacity-60">
-                        {videoGenerating ? <Loader2 size={15} className="animate-spin" /> : <Video size={15} />} {videoGenerating ? "กำลังสร้างวิดีโอ..." : "สร้างวิดีโอ"}
-                      </button>
-
-                      {videoStatusText ? <p className="text-sm text-[#050579]">{videoStatusText}</p> : null}
-                      {videoError ? <p className="text-sm text-red-500">{videoError}</p> : null}
-                    </div>
-                  </div>
-
-                  {videoOutputUrl ? (
-                    <div className="rounded-[28px] border border-[var(--glass-border)] bg-white p-5">
-                      <div className="mb-3 flex items-center justify-between gap-3">
-                        <p className="text-base font-black text-foreground">ผลลัพธ์วิดีโอ</p>
-                        <button type="button" onClick={handleSaveVideo} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white">
-                          <Download size={14} /> บันทึกคลิป
-                        </button>
-                      </div>
-                      <div className={videoFrameClassName}>
-                        <div className="overflow-hidden rounded-2xl border border-foreground/10 bg-black" style={ratioStyle}>
-                          <video src={videoOutputUrl} controls playsInline className="h-full w-full object-cover" />
-                        </div>
-                      </div>
-                    </div>
-                  ) : null}
-                </>
-              ) : (
-                <div className="rounded-[28px] border border-[var(--glass-border)] bg-white p-6 text-center">
-                  <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/8 text-primary">
-                    <Video size={24} />
-                  </div>
-                  <h3 className="mt-4 text-lg font-black text-foreground">Coming soon</h3>
-                  <p className="mt-2 text-sm leading-6 text-foreground/60">
-                    ฟีเจอร์สร้างวิดีโอเปิดให้ใช้งานเฉพาะ Super Admin ในช่วงนี้
-                  </p>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="space-y-4">
+          <div className="space-y-4">
               <div className="inline-flex rounded-2xl border border-foreground/10 bg-white p-1">
                 <button type="button" onClick={() => setImageMode("template")} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${imageMode === "template" ? "bg-primary text-white" : "text-foreground/70"}`}>
                   <ImageIcon size={15} /> เทมเพลต
@@ -723,10 +690,11 @@ export default function DigitalMediaLibraryPage() {
                         </select>
                       </div>
 
-                      <button type="button" onClick={handleGeneratePromptImage} disabled={imageGenerating || imageUploading} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-black text-white shadow-lg shadow-[var(--glow)] disabled:opacity-60">
+                      <button type="button" onClick={handleGeneratePromptImage} disabled={imageGenerating || imageUploading || noQuotaRemaining} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-black text-white shadow-lg shadow-[var(--glow)] disabled:opacity-60">
                         {imageGenerating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />} {imageGenerating ? "กำลังสร้างภาพ..." : "สร้างภาพ"}
                       </button>
 
+                      {noQuotaRemaining ? <p className="text-sm font-semibold text-[#C2410C]">วันนี้คุณใช้สิทธิ์สร้างงานครบแล้ว กรุณาลองใหม่พรุ่งนี้</p> : null}
                       {imageStatusText ? <p className="text-sm text-[#050579]">{imageStatusText}</p> : null}
                       {imageError ? <p className="text-sm text-red-500">{imageError}</p> : null}
                     </div>
@@ -815,12 +783,11 @@ export default function DigitalMediaLibraryPage() {
                   </div>
                 </>
               )}
-            </div>
-          )}
+          </div>
         </section>
       </main>
 
-      {mediaMode === "image" && imageMode === "template" && selectedTemplate ? (
+      {imageMode === "template" && selectedTemplate ? (
         <div className="sticky bottom-0 z-30 border-t border-foreground/10 bg-background/95 px-4 py-3 backdrop-blur-xl sm:px-6">
           <div className="mx-auto flex max-w-3xl flex-col">
             <Link href={`/manage/digital-media-v1/templates/${selectedTemplate.slug}`} className="inline-flex items-center justify-center rounded-2xl bg-accent px-4 py-3 text-sm font-black text-white shadow-lg shadow-[var(--glow)] transition-all hover:opacity-95">

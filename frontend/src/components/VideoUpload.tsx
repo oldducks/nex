@@ -20,6 +20,8 @@ interface VideoUploadProps {
 }
 
 export function VideoUpload({ value, onChange, className = '' }: VideoUploadProps) {
+    const CHUNK_SIZE = 8 * 1024 * 1024;
+    const LARGE_VIDEO_THRESHOLD = 100 * 1024 * 1024;
     const [uploading, setUploading] = useState(false);
     const [progress, setProgress] = useState(0);
     const [showSettings, setShowSettings] = useState(false);
@@ -216,6 +218,80 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
         showToast('อัปโหลดวิดีโอสำเร็จ', 'success');
     };
 
+    const uploadViaChunkedApi = async (file: File) => {
+        const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+
+        const initRes = await fetch(`${API_URL}/uploads/video/chunked/init`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bearer ${token}`,
+            },
+            body: JSON.stringify({
+                fileName: file.name,
+                contentType: file.type,
+                fileSize: file.size,
+                totalChunks,
+            }),
+        });
+
+        if (!initRes.ok) {
+            const errorText = await initRes.text();
+            throw new Error(`Init chunked upload failed: ${initRes.status} - ${errorText}`);
+        }
+
+        const initData = await initRes.json();
+        if (!initData?.uploadId) {
+            throw new Error('Chunked upload init missing upload id');
+        }
+
+        const uploadId = String(initData.uploadId);
+        for (let index = 0; index < totalChunks; index += 1) {
+            const start = index * CHUNK_SIZE;
+            const end = Math.min(file.size, start + CHUNK_SIZE);
+            const chunk = file.slice(start, end);
+            const formData = new FormData();
+            formData.append('chunk', chunk, `${file.name}.part${index}`);
+            formData.append('index', String(index));
+
+            const chunkRes = await fetch(`${API_URL}/uploads/video/chunked/${uploadId}/chunk`, {
+                method: 'POST',
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            if (!chunkRes.ok) {
+                const errorText = await chunkRes.text();
+                throw new Error(`Chunk upload failed at part ${index + 1}/${totalChunks}: ${chunkRes.status} - ${errorText}`);
+            }
+
+            const uploadPercent = Math.round(((index + 1) / totalChunks) * 65);
+            setProgress(Math.min(65, Math.max(1, uploadPercent)));
+        }
+
+        const completeRes = await fetch(`${API_URL}/uploads/video/chunked/${uploadId}/complete`, {
+            method: 'POST',
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+        });
+
+        if (!completeRes.ok) {
+            const errorText = await completeRes.text();
+            throw new Error(`Complete chunked upload failed: ${completeRes.status} - ${errorText}`);
+        }
+
+        const completeData = await completeRes.json();
+        if (!completeData?.jobId) {
+            throw new Error('Chunked upload complete missing job id');
+        }
+
+        setProgress(70);
+        pollJobStatus(String(completeData.jobId));
+    };
+
     const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
@@ -239,19 +315,34 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
         console.log(`API_URL: ${API_URL}, Token: ${token ? 'exists' : 'missing'}`);
 
         try {
-            console.log('Sending direct upload request to R2...');
-            await uploadViaR2Direct(file);
+            if (file.size > LARGE_VIDEO_THRESHOLD) {
+                showToast('ไฟล์ใหญ่มาก ระบบจะอัปโหลดแบบแบ่งส่วนเพื่อให้เสถียรกว่าเดิม', 'info');
+                await uploadViaChunkedApi(file);
+            } else {
+                console.log('Sending direct upload request to R2...');
+                await uploadViaR2Direct(file);
+            }
         } catch (error: unknown) {
             console.error('Upload error:', error);
             try {
-                showToast('กำลังสลับไปใช้โหมดอัปโหลดสำรอง...', 'info');
+                if (file.size > LARGE_VIDEO_THRESHOLD) {
+                    throw error;
+                }
+                showToast('กำลังสลับไปใช้โหมดอัปโหลดแบบแบ่งส่วน...', 'info');
                 setProgress(5);
-                await uploadViaLegacyApi(file);
+                await uploadViaChunkedApi(file);
             } catch (fallbackError: unknown) {
                 console.error('Fallback upload error:', fallbackError);
-                const message = fallbackError instanceof Error ? fallbackError.message : 'กรุณาลองใหม่';
-                showToast(`อัพโหลดวิดีโอไม่สำเร็จ: ${message}`, 'error');
-                setUploading(false);
+                try {
+                    showToast('กำลังสลับไปใช้โหมดอัปโหลดสำรองสุดท้าย...', 'info');
+                    setProgress(5);
+                    await uploadViaLegacyApi(file);
+                } catch (legacyError: unknown) {
+                    console.error('Legacy upload error:', legacyError);
+                    const message = legacyError instanceof Error ? legacyError.message : 'กรุณาลองใหม่';
+                    showToast(`อัพโหลดวิดีโอไม่สำเร็จ: ${message}`, 'error');
+                    setUploading(false);
+                }
             }
         } finally {
             if (fileInputRef.current) fileInputRef.current.value = '';
@@ -332,7 +423,7 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                                         />
                                     </div>
                                     <p className="text-xs font-black uppercase tracking-widest text-primary italic font-mono">
-                                        {progress < 70 ? 'กำลังส่งไฟล์วิดีโอขึ้น R2...' : 'กำลังประมวลผลวิดีโอบนเซิร์ฟเวอร์...'}
+                                        {progress < 70 ? 'กำลังอัปโหลดวิดีโอแบบแบ่งส่วน/ตรงขึ้นระบบ...' : 'กำลังประมวลผลวิดีโอบนเซิร์ฟเวอร์...'}
                                     </p>
                                 </div>
                             ) : (
@@ -343,7 +434,7 @@ export function VideoUpload({ value, onChange, className = '' }: VideoUploadProp
                                     <div>
                                         <h3 className="text-lg font-black text-primary uppercase tracking-wider">คลิกที่นี่เพื่ออัพโหลดวิดีโอ</h3>
                                         <p className="text-sm text-foreground/60 mt-2 font-medium">รองรับ MP4, WebM, OGG (สูงสุด 200MB)</p>
-                                        <p className="text-xs text-[#64748B] mt-1 font-semibold">ไฟล์จะอัปโหลดตรงขึ้น Cloudflare R2 เพื่อลดปัญหาไฟล์ใหญ่</p>
+                                        <p className="text-xs text-[#64748B] mt-1 font-semibold">ไฟล์ใหญ่จะสลับเป็นโหมดอัปโหลดแบบแบ่งส่วนอัตโนมัติ เพื่อลดปัญหาเกิน 100MB</p>
                                     </div>
                                 </div>
                             )}

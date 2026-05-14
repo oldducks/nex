@@ -7,6 +7,9 @@ export class DigitalMediaGenerationJob {
   @PrimaryGeneratedColumn()
   id: number;
 
+  @Column({ type: 'int', nullable: true })
+  user_id: number | null;
+
   @Column({ type: 'int' })
   template_id: number;
 

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs';
+import { createWriteStream, existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'fs';
 import { promises as fsp } from 'fs';
 import { join } from 'path';
 import { InjectQueue } from '@nestjs/bullmq';
@@ -20,6 +20,7 @@ export class UploadsService implements OnModuleInit {
   private readonly logger = new Logger(UploadsService.name);
   private readonly uploadsBaseDir = join(process.cwd(), 'uploads');
   private readonly tempDir = join(process.cwd(), 'uploads', 'temp');
+  private readonly chunkedDir = join(process.cwd(), 'uploads', 'temp', 'chunked');
   private bot: TelegramBot | null = null;
 
   constructor(
@@ -115,6 +116,107 @@ export class UploadsService implements OnModuleInit {
     return { jobId: job.id };
   }
 
+  async createChunkedVideoUploadSession(
+    fileName: string,
+    contentType: string,
+    fileSize: number,
+    totalChunks: number,
+    userId: number,
+  ) {
+    const safeExtension = this.getSafeVideoExtension(fileName, contentType);
+    const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime', 'video/x-msvideo'];
+    if (!fileName?.trim() || !contentType?.trim() || !allowedTypes.includes(contentType)) {
+      throw new BadRequestException('Invalid video metadata');
+    }
+    if (!Number.isFinite(fileSize) || fileSize <= 0 || fileSize > 200 * 1024 * 1024) {
+      throw new BadRequestException('Video file size must be between 1 byte and 200MB');
+    }
+    if (!Number.isInteger(totalChunks) || totalChunks <= 0 || totalChunks > 200) {
+      throw new BadRequestException('Invalid chunk count');
+    }
+
+    const uploadId = `${Date.now()}-${nanoid(10)}`;
+    const sessionDir = join(this.chunkedDir, uploadId);
+    await fsp.mkdir(sessionDir, { recursive: true });
+    await fsp.writeFile(
+      join(sessionDir, 'meta.json'),
+      JSON.stringify({
+        uploadId,
+        fileName,
+        contentType,
+        fileSize,
+        totalChunks,
+        userId,
+        extension: safeExtension,
+        createdAt: new Date().toISOString(),
+      }),
+      'utf8',
+    );
+
+    return { uploadId, chunkSize: 8 * 1024 * 1024 };
+  }
+
+  async storeChunkedVideoChunk(uploadId: string, userId: number, index: number, buffer: Buffer) {
+    const meta = await this.readChunkedUploadMeta(uploadId);
+    if (meta.userId !== userId) {
+      throw new BadRequestException('Upload session does not belong to this user');
+    }
+    if (index >= meta.totalChunks) {
+      throw new BadRequestException('Chunk index out of range');
+    }
+
+    const sessionDir = join(this.chunkedDir, uploadId);
+    await fsp.writeFile(join(sessionDir, `${index}.part`), buffer);
+    return { ok: true, index };
+  }
+
+  async completeChunkedVideoUpload(uploadId: string, userId: number) {
+    const meta = await this.readChunkedUploadMeta(uploadId);
+    if (meta.userId !== userId) {
+      throw new BadRequestException('Upload session does not belong to this user');
+    }
+
+    const sessionDir = join(this.chunkedDir, uploadId);
+    const outputPath = join(this.tempDir, `chunked-${uploadId}${meta.extension}`);
+    const writer = createWriteStream(outputPath);
+
+    try {
+      let totalBytes = 0;
+      for (let index = 0; index < meta.totalChunks; index += 1) {
+        const chunkPath = join(sessionDir, `${index}.part`);
+        const stats = await fsp.stat(chunkPath).catch(() => null);
+        if (!stats?.isFile()) {
+          throw new BadRequestException(`Missing chunk ${index + 1}/${meta.totalChunks}`);
+        }
+        totalBytes += stats.size;
+        const chunkBuffer = await fsp.readFile(chunkPath);
+        const canContinue = writer.write(chunkBuffer);
+        if (!canContinue) {
+          await new Promise<void>((resolve, reject) => {
+            writer.once('drain', () => resolve());
+            writer.once('error', reject);
+          });
+        }
+      }
+      writer.end();
+      await new Promise<void>((resolve, reject) => {
+        writer.on('finish', () => resolve());
+        writer.on('error', reject);
+      });
+
+      if (Math.abs(totalBytes - meta.fileSize) > 0) {
+        this.logger.warn(`Chunked upload size mismatch for ${uploadId}: expected ${meta.fileSize}, got ${totalBytes}`);
+      }
+
+      await fsp.rm(sessionDir, { recursive: true, force: true }).catch(() => undefined);
+      return this.enqueueVideo(outputPath, userId);
+    } catch (error) {
+      writer.destroy();
+      await fsp.unlink(outputPath).catch(() => undefined);
+      throw error;
+    }
+  }
+
   async getJobStatus(jobId: string) {
     const job = await this.uploadQueue.getJob(jobId);
     if (!job) return null;
@@ -143,6 +245,25 @@ export class UploadsService implements OnModuleInit {
     return '.mp4';
   }
 
+  private async readChunkedUploadMeta(uploadId: string): Promise<{
+    uploadId: string;
+    fileName: string;
+    contentType: string;
+    fileSize: number;
+    totalChunks: number;
+    userId: number;
+    extension: string;
+    createdAt: string;
+  }> {
+    const sessionDir = join(this.chunkedDir, uploadId);
+    const metaPath = join(sessionDir, 'meta.json');
+    const raw = await fsp.readFile(metaPath, 'utf8').catch(() => null);
+    if (!raw) {
+      throw new BadRequestException('Upload session not found');
+    }
+    return JSON.parse(raw);
+  }
+
   private async performCleanup(forceAll = false): Promise<number> {
     let count = 0;
     if (existsSync(this.tempDir)) {
@@ -155,10 +276,14 @@ export class UploadsService implements OnModuleInit {
         try {
           const stats = await fsp.stat(filePath);
           if (forceAll || now - stats.mtimeMs > mask) {
-            await fsp.unlink(filePath);
+            if (stats.isDirectory()) {
+              await fsp.rm(filePath, { recursive: true, force: true });
+            } else {
+              await fsp.unlink(filePath);
+            }
             count++;
           }
-        } catch (err) {
+        } catch (err: any) {
           this.logger.error(`Failed to delete temp file ${file}: ${err.message}`);
         }
       }

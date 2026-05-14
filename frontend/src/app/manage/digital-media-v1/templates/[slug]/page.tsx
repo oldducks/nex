@@ -53,6 +53,13 @@ interface GenerationJobResponse {
   error_message?: string;
 }
 
+interface DailyQuotaStatus {
+  limit: number;
+  used: number;
+  remaining: number | null;
+  unlimited: boolean;
+}
+
 const featureVars: CSSProperties = {
   ["--background" as string]: "#EEF0FF",
   ["--foreground" as string]: "#0F172A",
@@ -93,6 +100,7 @@ export default function DigitalMediaTemplateDetailPage() {
   const [generationError, setGenerationError] = useState<string | null>(null);
   const [generationSuccess, setGenerationSuccess] = useState<string | null>(null);
   const [selectedAspectRatio, setSelectedAspectRatio] = useState<AspectRatio>("9:16");
+  const [dailyQuota, setDailyQuota] = useState<DailyQuotaStatus | null>(null);
 
   useEffect(() => {
     if (!token) {
@@ -152,6 +160,26 @@ export default function DigitalMediaTemplateDetailPage() {
     void loadTemplate();
   }, [API_URL, checkingAuth, slug, token]);
 
+  useEffect(() => {
+    if (!token || checkingAuth) return;
+
+    const loadQuota = async () => {
+      try {
+        const res = await fetch(`${API_URL}/digital-media/daily-quota`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store",
+        });
+        if (!res.ok) throw new Error("โหลดโควตารายวันไม่สำเร็จ");
+        const data = (await res.json()) as DailyQuotaStatus;
+        setDailyQuota(data);
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    void loadQuota();
+  }, [API_URL, checkingAuth, token]);
+
   const sortedFields = useMemo(
     () => [...(template?.fields || [])].sort((a, b) => a.sort_order - b.sort_order || a.id - b.id),
     [template?.fields],
@@ -159,6 +187,8 @@ export default function DigitalMediaTemplateDetailPage() {
 
   const mediaType: MediaType = (template?.media_type || "image") as MediaType;
   const isVideoTemplate = mediaType === "video";
+  const isUnlimited = dailyQuota?.unlimited || false;
+  const noQuotaRemaining = isVideoTemplate && !isUnlimited && dailyQuota !== null && (dailyQuota.remaining ?? 0) <= 0;
 
   const previewRatio = selectedAspectRatio;
   const ratioStyle =
@@ -438,6 +468,11 @@ export default function DigitalMediaTemplateDetailPage() {
       }
 
       const data = (await res.json()) as GenerationJobResponse;
+      setDailyQuota((prev) =>
+        prev && !prev.unlimited
+          ? { ...prev, used: prev.used + 1, remaining: Math.max(0, (prev.remaining ?? 0) - 1) }
+          : prev,
+      );
       setGenerationJobId(data.job_id);
       setGenerationStatusText(
         isVideoTemplate
@@ -642,6 +677,28 @@ export default function DigitalMediaTemplateDetailPage() {
       </header>
 
       <main className="mx-auto max-w-3xl px-4 py-5 sm:px-6 sm:py-6">
+        <div className="mb-4 rounded-[28px] border border-foreground/10 bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.18em] text-foreground/40">Daily Usage</p>
+              <h2 className="mt-1 text-base font-black text-foreground">กำหนดการใช้งานต่อวัน</h2>
+              <p className="mt-1 text-sm text-foreground/60">
+                {isUnlimited
+                  ? "บัญชี admin สร้างงานได้ไม่จำกัดจำนวน"
+                  : `บัญชีทั่วไปสร้างงาน AI ได้สูงสุดวันละ ${dailyQuota?.limit ?? 3} งาน ระบบจะรีเซ็ตให้อัตโนมัติในวันถัดไป`}
+              </p>
+            </div>
+            <div className={`rounded-2xl px-4 py-3 text-sm font-black ${isUnlimited ? "bg-[#EEF2FF] text-[#050579]" : noQuotaRemaining ? "bg-[#FFF1E8] text-[#C2410C]" : "bg-[#F8FAFC] text-[#0F172A]"}`}>
+              {isUnlimited
+                ? "Admin Unlimited"
+                : `${dailyQuota?.used ?? 0}/${dailyQuota?.limit ?? 3} งานวันนี้${dailyQuota ? ` เหลือ ${dailyQuota.remaining ?? 0}` : ""}`}
+            </div>
+          </div>
+          {!isVideoTemplate ? (
+            <p className="mt-2 text-xs text-foreground/45">หน้า template แบบรูปภาพจะช่วยจัด Prompt และเนื้อหาให้ ส่วนโควตารายวันจะนับเมื่อมีการส่งงาน AI สร้างภาพจริง</p>
+          ) : null}
+        </div>
+
         {loading ? (
           <div className={`${shellClass} flex min-h-[320px] items-center justify-center p-6`}>
             <Loader2 className="animate-spin text-primary" size={28} />
@@ -655,6 +712,20 @@ export default function DigitalMediaTemplateDetailPage() {
               className="mt-4 inline-flex items-center justify-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary"
             >
               กลับไปเลือก template
+            </Link>
+          </div>
+        ) : isVideoTemplate ? (
+          <div className={`${shellClass} p-6 text-center`}>
+            <AlertCircle className="mx-auto text-primary/50" size={26} />
+            <p className="mt-3 text-lg font-black text-foreground">ปิดการสร้างวิดีโอไว้ชั่วคราว</p>
+            <p className="mt-2 text-sm leading-6 text-foreground/60">
+              ตอนนี้เมนูนี้เปิดให้สร้างได้เฉพาะรูปภาพเท่านั้น กรุณากลับไปเลือก template รูปภาพเพื่อใช้งานต่อ
+            </p>
+            <Link
+              href="/manage/digital-media-v1"
+              className="mt-4 inline-flex items-center justify-center rounded-full border border-primary/20 bg-primary/5 px-4 py-2 text-sm font-semibold text-primary"
+            >
+              กลับไปหน้าเลือก template
             </Link>
           </div>
         ) : (
@@ -809,13 +880,13 @@ export default function DigitalMediaTemplateDetailPage() {
         )}
       </main>
 
-      {template ? (
+      {template && !isVideoTemplate ? (
         <div className="sticky bottom-0 z-30 border-t border-foreground/10 bg-background/95 px-4 py-3 backdrop-blur-xl sm:px-6">
           <div className="mx-auto flex max-w-3xl flex-col">
             <button
               type="button"
               onClick={handlePrimaryAction}
-              disabled={isGenerating}
+              disabled={isGenerating || noQuotaRemaining}
               className="inline-flex items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-black text-white shadow-lg shadow-[var(--glow)] transition-all hover:opacity-95 disabled:opacity-60"
             >
               {isGenerating ? <Loader2 size={15} className="animate-spin" /> : <Sparkles size={15} />}
@@ -827,6 +898,7 @@ export default function DigitalMediaTemplateDetailPage() {
                   ? "สร้างวิดีโอจากข้อมูลนี้"
                   : "สร้าง Prompt จากข้อมูลนี้"}
             </button>
+            {noQuotaRemaining ? <p className="mt-2 text-sm font-semibold text-[#C2410C]">วันนี้คุณใช้สิทธิ์สร้างงานครบแล้ว กรุณาลองใหม่พรุ่งนี้</p> : null}
             {generationSuccess ? <p className="mt-2 text-sm text-green-600">{generationSuccess}</p> : null}
             {generationStatusText ? <p className="mt-2 text-sm text-[#050579]">{generationStatusText}</p> : null}
             {generationError ? <p className="mt-2 text-sm text-red-500">{generationError}</p> : null}

@@ -111,7 +111,10 @@ export class UsersService {
   }
 
   findOne(id: number) {
-    return this.usersRepository.findOneBy({ id });
+    return this.usersRepository.findOne({
+      where: { id },
+      relations: ['profile'],
+    });
   }
 
   findOneByEmail(email: string) {
@@ -199,7 +202,75 @@ export class UsersService {
   }
 
   async update(id: number, updateUserDto: UpdateUserDto) {
-    await this.usersRepository.update(id, updateUserDto);
+    const user = await this.usersRepository.findOne({
+      where: { id },
+      relations: ['profile'],
+    });
+    if (!user) {
+      return null;
+    }
+
+    const userUpdates: Partial<User> = {};
+    const profileUpdates: Partial<Profile> = {};
+
+    if (Object.prototype.hasOwnProperty.call(updateUserDto, 'email')) {
+      const normalizedEmail = updateUserDto.email?.trim().toLowerCase() || null;
+
+      if (normalizedEmail) {
+        const existingUser = await this.findOneByEmail(normalizedEmail);
+        if (existingUser && existingUser.id !== id) {
+          throw new ConflictException('อีเมลนี้ถูกใช้งานแล้ว');
+        }
+      }
+
+      userUpdates.email = normalizedEmail || user.email;
+      profileUpdates.email_contact = normalizedEmail ?? undefined;
+      profileUpdates.emails = normalizedEmail
+        ? [{ label: 'Email', value: normalizedEmail }]
+        : [];
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateUserDto, 'mobile')) {
+      const normalizedMobile = updateUserDto.mobile?.trim() || null;
+
+      if (normalizedMobile) {
+        const existingPhone = await this.findOneByPhone(normalizedMobile);
+        if (existingPhone && existingPhone.id !== id) {
+          throw new ConflictException('เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว');
+        }
+      }
+
+      profileUpdates.mobile = normalizedMobile ?? undefined;
+      profileUpdates.phones = normalizedMobile
+        ? [{ label: 'Phone', value: normalizedMobile }]
+        : [];
+    }
+
+    if (Object.prototype.hasOwnProperty.call(updateUserDto, 'full_name')) {
+      const normalizedFullName = updateUserDto.full_name?.trim() || null;
+      profileUpdates.full_name = normalizedFullName ?? undefined;
+      profileUpdates.names_i18n = normalizedFullName
+        ? [{ lang: 'th', value: normalizedFullName }]
+        : [];
+    }
+
+    if (Object.keys(userUpdates).length > 0) {
+      await this.usersRepository.update(id, userUpdates);
+    }
+
+    if (Object.keys(profileUpdates).length > 0) {
+      if (user.profile) {
+        await this.profilesRepository.update({ user_id: id }, profileUpdates);
+      } else {
+        await this.profilesRepository.save(
+          this.profilesRepository.create({
+            user_id: id,
+            ...profileUpdates,
+          } as Partial<Profile>),
+        );
+      }
+    }
+
     return this.findOne(id);
   }
 
@@ -348,12 +419,15 @@ export class UsersService {
     const result = await this.usersRepository
       .createQueryBuilder()
       .update()
-      .set({ is_active: false })
+      .set({
+        is_active: true,
+        subscription_tier: 'free',
+        feature_config: DEFAULT_FEATURE_CONFIG_LOCKED as any,
+      })
       .where('expiration_date IS NOT NULL')
       .andWhere('expiration_date < :now', { now })
-      .andWhere('is_active = true')
       .execute();
-    return { disabledCount: result.affected || 0 };
+    return { downgradedCount: result.affected || 0 };
   }
 
   async clearMustChangePassword(id: number) {
@@ -367,7 +441,7 @@ export class UsersService {
 
     // Merge with existing config (or default if empty)
     const currentConfig = this.getResolvedFeatureConfig(user.feature_config);
-    const updatedConfig = { ...currentConfig, ...featureConfigDto };
+    const updatedConfig = this.enforceAlwaysOnProfile({ ...currentConfig, ...featureConfigDto });
 
     await this.usersRepository.update(userId, { feature_config: updatedConfig as any });
     return this.findOne(userId);
@@ -377,8 +451,18 @@ export class UsersService {
     const user = await this.findOne(userId);
     if (!user) return DEFAULT_FEATURE_CONFIG_LOCKED;
     
-    // Admins and Premium users always have all features enabled
-    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.GROUP_ADMIN || user.subscription_tier === 'premium') {
+    // Admins always have all features enabled
+    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.GROUP_ADMIN) {
+      return DEFAULT_FEATURE_CONFIG_ALL_ENABLED;
+    }
+
+    // Expired accounts downgrade to the free digital-card tier immediately.
+    if (this.isExpired(user)) {
+      return DEFAULT_FEATURE_CONFIG_LOCKED;
+    }
+
+    // Non-expired premium keeps all features.
+    if (user.subscription_tier === 'premium') {
       return DEFAULT_FEATURE_CONFIG_ALL_ENABLED;
     }
 
@@ -395,21 +479,45 @@ export class UsersService {
     }
 
     // Fill in any missing keys, defaulting to false if not found (since it's now explicit)
+    return this.enforceAlwaysOnProfile({
+      catalog: config.catalog ?? false,
+      leads: config.leads ?? false,
+      namecard: config.namecard ?? false,
+      'landing-pages': config['landing-pages'] ?? false,
+      analytics: config.analytics ?? false,
+      profile: true,
+      referrals: config.referrals ?? false,
+    });
+  }
+
+  private isExpired(user: Pick<User, 'expiration_date' | 'role'>): boolean {
+    if (user.role === UserRole.SUPER_ADMIN || user.role === UserRole.GROUP_ADMIN) {
+      return false;
+    }
+
+    if (!user.expiration_date) {
+      return false;
+    }
+
+    return new Date(user.expiration_date).getTime() < Date.now();
+  }
+
+  // Bulk update feature config for all users (admin migration)
+  async setAllUsersFeatureConfig(config: FeatureConfig) {
+    const result = await this.usersRepository.update({}, { feature_config: this.enforceAlwaysOnProfile(config) as any });
+    return { updatedCount: result.affected || 0 };
+  }
+
+  private enforceAlwaysOnProfile(config: Record<string, any>): FeatureConfig {
     return {
       catalog: config.catalog ?? false,
       leads: config.leads ?? false,
       namecard: config.namecard ?? false,
       'landing-pages': config['landing-pages'] ?? false,
       analytics: config.analytics ?? false,
-      profile: config.profile ?? false,
+      profile: true,
       referrals: config.referrals ?? false,
     };
-  }
-
-  // Bulk update feature config for all users (admin migration)
-  async setAllUsersFeatureConfig(config: FeatureConfig) {
-    const result = await this.usersRepository.update({}, { feature_config: config as any });
-    return { updatedCount: result.affected || 0 };
   }
 
   // OAuth Methods

@@ -183,7 +183,8 @@ export default function ReferralsPage() {
   const copyToClipboard = async () => {
     if (!referralUrl) return;
     try {
-      await navigator.clipboard.writeText(referralUrl);
+      const shareMessage = sharePitch.trim() ? `${sharePitch.trim()}\n${referralUrl}` : referralUrl;
+      await navigator.clipboard.writeText(shareMessage);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (err) {

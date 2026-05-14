@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, Logger, NotFoundException, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Between, Repository } from 'typeorm';
 import { createHash } from 'crypto';
 import { existsSync, mkdirSync } from 'fs';
 import { promises as fsPromises } from 'fs';
@@ -41,6 +41,13 @@ const REFERENCE_IMAGE_FIELD_KEYS = new Set([
   'source_image',
 ]);
 
+const DIGITAL_MEDIA_DAILY_LIMIT = 3;
+
+type RequesterContext = {
+  userId?: number | null;
+  role?: string | null;
+};
+
 
 @Injectable()
 export class DigitalMediaService implements OnModuleInit {
@@ -68,6 +75,17 @@ export class DigitalMediaService implements OnModuleInit {
       where: activeOnly ? { is_active: true } : {},
       order: { sort_order: 'ASC', id: 'ASC' },
     });
+  }
+
+  async getDailyQuotaStatus(requester: RequesterContext) {
+    const unlimited = this.isUnlimitedRequester(requester);
+    const used = unlimited || !requester.userId ? 0 : await this.getTodayUsageCount(requester.userId);
+    return {
+      limit: DIGITAL_MEDIA_DAILY_LIMIT,
+      used,
+      remaining: unlimited ? null : Math.max(0, DIGITAL_MEDIA_DAILY_LIMIT - used),
+      unlimited,
+    };
   }
 
   async createCategory(dto: CreateCategoryDto) {
@@ -349,8 +367,9 @@ export class DigitalMediaService implements OnModuleInit {
   }
 
 
-  async generateFromTemplate(dto: GenerateFromTemplateDto) {
-    const { job, template, finalPrompt, finalNegativePrompt, aspectRatio } = await this.createGenerationJob(dto);
+  async generateFromTemplate(dto: GenerateFromTemplateDto, requester: RequesterContext = {}) {
+    await this.assertWithinDailyQuota(requester);
+    const { job, template, finalPrompt, finalNegativePrompt, aspectRatio } = await this.createGenerationJob(dto, requester.userId);
 
     try {
       const generated = await this.runGenerationJob(job.id, template, dto, finalPrompt, aspectRatio);
@@ -371,8 +390,9 @@ export class DigitalMediaService implements OnModuleInit {
     }
   }
 
-  async startGenerateFromTemplate(dto: GenerateFromTemplateDto) {
-    const { job, template, finalPrompt, finalNegativePrompt, aspectRatio } = await this.createGenerationJob(dto);
+  async startGenerateFromTemplate(dto: GenerateFromTemplateDto, requester: RequesterContext = {}) {
+    await this.assertWithinDailyQuota(requester);
+    const { job, template, finalPrompt, finalNegativePrompt, aspectRatio } = await this.createGenerationJob(dto, requester.userId);
 
     void this.runGenerationJob(job.id, template, dto, finalPrompt, aspectRatio).catch((error) => {
       this.logger.error(
@@ -462,7 +482,8 @@ export class DigitalMediaService implements OnModuleInit {
     reference_image_url: string;
     prompt: string;
     aspect_ratio?: '9:16' | '16:9';
-  }) {
+  }, requester: RequesterContext = {}) {
+    await this.assertWithinDailyQuota(requester);
     const normalized = this.normalizeDirectVideoInput(input);
     const result = await this.generateDirectVideoOutput(normalized);
 
@@ -479,11 +500,13 @@ export class DigitalMediaService implements OnModuleInit {
     reference_image_url: string;
     prompt: string;
     aspect_ratio?: '9:16' | '16:9';
-  }) {
+  }, requester: RequesterContext = {}) {
+    await this.assertWithinDailyQuota(requester);
     const normalized = this.normalizeDirectVideoInput(input);
     const directVideoTemplateId = await this.getDirectVideoJobTemplateId();
     const job = await this.jobRepository.save(
       this.jobRepository.create({
+        user_id: requester.userId || null,
         template_id: directVideoTemplateId,
         user_input_json: {
           reference_image_url: normalized.reference_image_url,
@@ -519,11 +542,13 @@ export class DigitalMediaService implements OnModuleInit {
     prompt: string;
     reference_image_urls?: string[];
     aspect_ratio?: '1:1' | '4:5' | '9:16' | '16:9';
-  }) {
+  }, requester: RequesterContext = {}) {
+    await this.assertWithinDailyQuota(requester);
     const normalized = this.normalizeDirectImageInput(input);
     const directImageTemplateId = await this.getDirectVideoJobTemplateId();
     const job = await this.jobRepository.save(
       this.jobRepository.create({
+        user_id: requester.userId || null,
         template_id: directImageTemplateId,
         user_input_json: {
           prompt: normalized.prompt,
@@ -720,7 +745,7 @@ export class DigitalMediaService implements OnModuleInit {
     }
   }
 
-  private async createGenerationJob(dto: GenerateFromTemplateDto) {
+  private async createGenerationJob(dto: GenerateFromTemplateDto, userId?: number | null) {
     const template = await this.templateRepository.findOne({
       where: { slug: dto.template_slug, status: 'active' },
       relations: ['fields'],
@@ -781,6 +806,7 @@ export class DigitalMediaService implements OnModuleInit {
 
     const job = await this.jobRepository.save(
       this.jobRepository.create({
+        user_id: userId || null,
         template_id: template.id,
         user_input_json: input,
         final_prompt: finalPrompt,
@@ -1504,6 +1530,54 @@ export class DigitalMediaService implements OnModuleInit {
       ALTER TABLE generation_jobs
       ADD COLUMN IF NOT EXISTS output_video_url TEXT NOT NULL DEFAULT '';
     `);
+
+    await this.jobRepository.query(`
+      ALTER TABLE generation_jobs
+      ADD COLUMN IF NOT EXISTS user_id INT NULL;
+    `);
+  }
+
+  private isUnlimitedRequester(requester: RequesterContext) {
+    return requester.role === 'super_admin' || requester.role === 'group_admin';
+  }
+
+  private getBangkokDayRange() {
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Bangkok',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    });
+    const parts = formatter.formatToParts(new Date());
+    const year = parts.find((part) => part.type === 'year')?.value || '1970';
+    const month = parts.find((part) => part.type === 'month')?.value || '01';
+    const day = parts.find((part) => part.type === 'day')?.value || '01';
+
+    return {
+      start: new Date(`${year}-${month}-${day}T00:00:00+07:00`),
+      end: new Date(`${year}-${month}-${day}T23:59:59.999+07:00`),
+    };
+  }
+
+  private async getTodayUsageCount(userId: number) {
+    const { start, end } = this.getBangkokDayRange();
+    return this.jobRepository.count({
+      where: {
+        user_id: userId,
+        created_at: Between(start, end),
+      },
+    });
+  }
+
+  private async assertWithinDailyQuota(requester: RequesterContext) {
+    if (!requester.userId || this.isUnlimitedRequester(requester)) {
+      return;
+    }
+
+    const used = await this.getTodayUsageCount(requester.userId);
+    if (used >= DIGITAL_MEDIA_DAILY_LIMIT) {
+      throw new BadRequestException(`วันนี้คุณสร้างงานครบ ${DIGITAL_MEDIA_DAILY_LIMIT} งานแล้ว กรุณาลองใหม่พรุ่งนี้`);
+    }
   }
 
   private async seedDefaults() {
