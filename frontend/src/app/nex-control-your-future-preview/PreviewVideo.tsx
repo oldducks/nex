@@ -1,22 +1,45 @@
 'use client';
 
 import { Play } from 'lucide-react';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { logMarketingAnalyticsEvent } from '@/lib/marketingAnalytics';
 
 interface PreviewVideoProps {
   src: string;
   className?: string;
+  pageKey: string;
+  videoKey?: string;
+  autoPlay?: boolean;
 }
 
-export default function PreviewVideo({ src, className }: PreviewVideoProps) {
+export default function PreviewVideo({
+  src,
+  className,
+  pageKey,
+  videoKey = 'hero-preview',
+  autoPlay = false,
+}: PreviewVideoProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [hasStarted, setHasStarted] = useState(false);
+  const hasLoggedImpression = useRef(false);
+  const startModeRef = useRef<'manual' | 'autoplay' | 'unknown'>(autoPlay ? 'autoplay' : 'unknown');
+
+  useEffect(() => {
+    if (hasLoggedImpression.current) return;
+    hasLoggedImpression.current = true;
+    void logMarketingAnalyticsEvent({
+      pageKey,
+      eventType: 'VIDEO_IMPRESSION',
+      videoKey,
+    });
+  }, [pageKey, videoKey]);
 
   const handlePlayClick = async () => {
     const video = videoRef.current;
     if (!video) return;
 
     try {
+      startModeRef.current = 'manual';
       setHasStarted(true);
       await video.play();
     } catch {
@@ -29,11 +52,29 @@ export default function PreviewVideo({ src, className }: PreviewVideoProps) {
       <video
         ref={videoRef}
         src={src}
+        autoPlay={autoPlay}
+        muted={autoPlay}
         controls={hasStarted}
         playsInline
         preload="metadata"
         className={className}
-        onPlay={() => setHasStarted(true)}
+        onPlay={() => {
+          setHasStarted(true);
+          const eventType = startModeRef.current === 'autoplay' ? 'VIDEO_AUTOPLAY' : 'VIDEO_PLAY';
+          startModeRef.current = 'unknown';
+          void logMarketingAnalyticsEvent({
+            pageKey,
+            eventType,
+            videoKey,
+          });
+        }}
+        onEnded={() => {
+          void logMarketingAnalyticsEvent({
+            pageKey,
+            eventType: 'VIDEO_COMPLETE',
+            videoKey,
+          });
+        }}
       >
         Your browser does not support the video tag.
       </video>

@@ -103,6 +103,49 @@ interface ExecutiveReport {
     daily: ExecutiveReportDaily[];
 }
 
+type MarketingPeriodKey = 'day' | 'week' | 'month' | 'year' | 'all';
+
+interface MarketingMetricBuckets {
+    day: number;
+    week: number;
+    month: number;
+    year: number;
+    all: number;
+}
+
+interface MarketingVideoReport {
+    key: string;
+    label: string;
+    counts: {
+        PAGE_VIEW?: MarketingMetricBuckets;
+        VIDEO_IMPRESSION: MarketingMetricBuckets;
+        VIDEO_PLAY: MarketingMetricBuckets;
+        VIDEO_AUTOPLAY: MarketingMetricBuckets;
+        VIDEO_COMPLETE: MarketingMetricBuckets;
+    };
+}
+
+interface MarketingPageReport {
+    key: string;
+    label: string;
+    path: string;
+    pageViews: MarketingMetricBuckets;
+    videos: MarketingVideoReport[];
+}
+
+interface MarketingDashboardReport {
+    generatedAt: string;
+    periods: Record<MarketingPeriodKey, string>;
+    pages: MarketingPageReport[];
+    totals: {
+        pageViews: MarketingMetricBuckets;
+        videoImpressions: MarketingMetricBuckets;
+        videoPlays: MarketingMetricBuckets;
+        videoAutoplays: MarketingMetricBuckets;
+        videoCompletions: MarketingMetricBuckets;
+    };
+}
+
 interface AiImageSettings {
     provider: 'vertex';
     connection_mode?: 'cloud_run_proxy' | 'api_key';
@@ -196,6 +239,8 @@ const AI_VIDEO_MODELS = [
     { value: 'veo-3.1-generate-preview', label: 'Veo 3.1 Generate Preview' },
 ];
 
+const MARKETING_PERIOD_ORDER: MarketingPeriodKey[] = ['day', 'week', 'month', 'year', 'all'];
+
 export default function SuperAdminDashboard() {
     const router = useRouter();
     const [activeTab, setActiveTab] = useState<'users' | 'reports' | 'api' | 'templates'>('users');
@@ -241,6 +286,9 @@ export default function SuperAdminDashboard() {
     const [executiveReport, setExecutiveReport] = useState<ExecutiveReport | null>(null);
     const [reportLoading, setReportLoading] = useState(false);
     const [reportError, setReportError] = useState<string | null>(null);
+    const [marketingReport, setMarketingReport] = useState<MarketingDashboardReport | null>(null);
+    const [marketingLoading, setMarketingLoading] = useState(false);
+    const [marketingError, setMarketingError] = useState<string | null>(null);
     const [publicLinks, setPublicLinks] = useState<UserPublicLinks | null>(null);
     const [publicLinksLoading, setPublicLinksLoading] = useState(false);
     const [referralTree, setReferralTree] = useState<ReferralTreeItem[]>([]);
@@ -730,6 +778,33 @@ export default function SuperAdminDashboard() {
         }
     }, [API_URL]);
 
+    const fetchMarketingReport = useCallback(async () => {
+        const token = Cookies.get('token');
+        if (!token) return;
+        setMarketingLoading(true);
+        setMarketingError(null);
+        try {
+            const res = await fetch(`${API_URL}/analytics/admin/marketing-dashboard`, {
+                headers: { Authorization: `Bearer ${token}` },
+            });
+            if (res.ok) {
+                const data = await res.json();
+                setMarketingReport(data);
+                setMarketingError(null);
+            } else {
+                setMarketingReport(null);
+                const body = await res.json().catch(() => ({}));
+                setMarketingError(body?.message || 'โหลดสถิติหน้าโปรโมตไม่สำเร็จ');
+            }
+        } catch (error) {
+            console.error('Failed to fetch marketing report:', error);
+            setMarketingReport(null);
+            setMarketingError('เชื่อมต่อสถิติหน้าโปรโมตไม่สำเร็จ');
+        } finally {
+            setMarketingLoading(false);
+        }
+    }, [API_URL]);
+
     const toggleTemplateStatus = async (templateId: number) => {
         const token = Cookies.get('token');
         if (!token) return;
@@ -818,6 +893,14 @@ export default function SuperAdminDashboard() {
             year: 'numeric', month: 'short', day: 'numeric',
             hour: '2-digit', minute: '2-digit'
         });
+    };
+
+    const getMarketingBucketValue = (bucket: MarketingMetricBuckets | undefined, periodKey: MarketingPeriodKey) => {
+        return bucket?.[periodKey] || 0;
+    };
+
+    const getMarketingVideoViews = (video: MarketingVideoReport, periodKey: MarketingPeriodKey) => {
+        return getMarketingBucketValue(video.counts.VIDEO_PLAY, periodKey) + getMarketingBucketValue(video.counts.VIDEO_AUTOPLAY, periodKey);
     };
 
     const aiUpdatedAtLabel = formatDateTime(aiSettings?.updated_at || null);
@@ -932,6 +1015,11 @@ export default function SuperAdminDashboard() {
         if (activeTab !== 'reports') return;
         void fetchExecutiveReport(reportPeriod);
     }, [activeTab, reportPeriod, fetchExecutiveReport]);
+
+    useEffect(() => {
+        if (activeTab !== 'reports') return;
+        void fetchMarketingReport();
+    }, [activeTab, fetchMarketingReport]);
 
     const maxDailyActivity = useMemo(() => {
         if (!executiveReport?.daily?.length) return 1;
@@ -1462,6 +1550,181 @@ export default function SuperAdminDashboard() {
                         ) : (
                             <div className="bg-white border border-[#D9E1F2] rounded-2xl p-8 text-center text-[#64748B] text-sm">
                                 {reportError || 'ยังไม่มีข้อมูลรายงาน'}
+                            </div>
+                        )}
+
+                        <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4 md:p-5">
+                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                <div>
+                                    <h2 className="text-lg font-bold flex items-center gap-2">
+                                        <Eye size={18} className="text-[#F97316]" />
+                                        สถิติหน้าโปรโมตและวิดีโอส่วนกลาง
+                                    </h2>
+                                    <p className="text-sm text-[#64748B] mt-1">
+                                        ติดตามยอดเข้าชมของหน้าโปรโมตหลัก และดูพฤติกรรมวิดีโอว่าเริ่มเล่น, autoplay และดูจบมากน้อยแค่ไหน
+                                    </p>
+                                </div>
+                                <div className="text-xs text-[#64748B]">
+                                    อัปเดตล่าสุด: {marketingReport?.generatedAt ? formatDateTime(marketingReport.generatedAt) : '-'}
+                                </div>
+                            </div>
+                        </div>
+
+                        {marketingLoading ? (
+                            <div className="bg-white border border-[#D9E1F2] rounded-2xl p-10 text-center">
+                                <Loader2 className="mx-auto animate-spin text-[#050579]" size={24} />
+                                <p className="mt-3 text-sm text-[#64748B]">กำลังโหลดสถิติหน้าโปรโมต...</p>
+                            </div>
+                        ) : marketingReport ? (
+                            <>
+                                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">ยอดเข้าชมทั้งหมด</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{marketingReport.totals.pageViews.all}</p>
+                                    </div>
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">เริ่มเล่นวิดีโอรวม</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">
+                                            {marketingReport.totals.videoPlays.all + marketingReport.totals.videoAutoplays.all}
+                                        </p>
+                                    </div>
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">กดเล่นเองรวม</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{marketingReport.totals.videoPlays.all}</p>
+                                    </div>
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">Autoplay รวม</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{marketingReport.totals.videoAutoplays.all}</p>
+                                    </div>
+                                    <div className="bg-white border border-[#D9E1F2] rounded-2xl p-4">
+                                        <p className="text-xs text-[#64748B]">ดูจบรวม</p>
+                                        <p className="mt-1 text-2xl font-black text-[#050579]">{marketingReport.totals.videoCompletions.all}</p>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    {marketingReport.pages.map((page) => (
+                                        <div key={page.key} className="bg-white border border-[#D9E1F2] rounded-2xl p-4 md:p-5">
+                                            <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between mb-4">
+                                                <div>
+                                                    <h3 className="text-base font-bold text-[#0F172A]">{page.label}</h3>
+                                                    <p className="text-xs text-[#64748B] mt-1">{page.path}</p>
+                                                </div>
+                                                <a
+                                                    href={page.path}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    className="inline-flex items-center gap-2 rounded-xl border border-[#D9E1F2] px-3 py-2 text-xs font-bold text-[#050579] hover:bg-[#F8FAFF]"
+                                                >
+                                                    เปิดหน้า
+                                                    <ExternalLink size={14} />
+                                                </a>
+                                            </div>
+
+                                            <div className="overflow-x-auto rounded-2xl border border-[#EEF0FF]">
+                                                <table className="min-w-full text-sm">
+                                                    <thead className="bg-[#F8FAFF] text-[#334155]">
+                                                        <tr>
+                                                            <th className="px-4 py-3 text-left font-bold">สถิติหน้า</th>
+                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                <th key={`${page.key}-${periodKey}`} className="px-4 py-3 text-center font-bold whitespace-nowrap">
+                                                                    {marketingReport.periods[periodKey]}
+                                                                </th>
+                                                            ))}
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr className="border-t border-[#EEF0FF]">
+                                                            <td className="px-4 py-3 font-semibold text-[#0F172A]">ยอดเข้าชมหน้า</td>
+                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                <td key={`${page.key}-view-${periodKey}`} className="px-4 py-3 text-center font-bold text-[#050579]">
+                                                                    {getMarketingBucketValue(page.pageViews, periodKey)}
+                                                                </td>
+                                                            ))}
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+
+                                            {page.videos.length ? (
+                                                <div className="mt-4 grid grid-cols-1 gap-4 xl:grid-cols-2">
+                                                    {page.videos.map((video) => (
+                                                        <div key={`${page.key}-${video.key}`} className="rounded-2xl border border-[#E8ECFF] bg-[#FAFBFF] p-4">
+                                                            <div className="mb-3">
+                                                                <p className="text-sm font-bold text-[#0F172A]">{video.label}</p>
+                                                                <p className="text-xs text-[#64748B] mt-1">คีย์วิดีโอ: {video.key}</p>
+                                                            </div>
+                                                            <div className="overflow-x-auto">
+                                                                <table className="min-w-full text-xs">
+                                                                    <thead className="text-[#475569]">
+                                                                        <tr>
+                                                                            <th className="px-2 py-2 text-left font-bold">ตัวชี้วัด</th>
+                                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                                <th key={`${page.key}-${video.key}-${periodKey}`} className="px-2 py-2 text-center font-bold whitespace-nowrap">
+                                                                                    {marketingReport.periods[periodKey]}
+                                                                                </th>
+                                                                            ))}
+                                                                        </tr>
+                                                                    </thead>
+                                                                    <tbody>
+                                                                        <tr className="border-t border-[#E8ECFF]">
+                                                                            <td className="px-2 py-2 font-semibold text-[#0F172A]">แสดงวิดีโอ</td>
+                                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                                <td key={`${page.key}-${video.key}-impression-${periodKey}`} className="px-2 py-2 text-center">
+                                                                                    {getMarketingBucketValue(video.counts.VIDEO_IMPRESSION, periodKey)}
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                        <tr className="border-t border-[#E8ECFF]">
+                                                                            <td className="px-2 py-2 font-semibold text-[#0F172A]">เริ่มเล่นรวม</td>
+                                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                                <td key={`${page.key}-${video.key}-view-${periodKey}`} className="px-2 py-2 text-center font-bold text-[#050579]">
+                                                                                    {getMarketingVideoViews(video, periodKey)}
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                        <tr className="border-t border-[#E8ECFF]">
+                                                                            <td className="px-2 py-2 font-semibold text-[#0F172A]">กดเล่นเอง</td>
+                                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                                <td key={`${page.key}-${video.key}-play-${periodKey}`} className="px-2 py-2 text-center">
+                                                                                    {getMarketingBucketValue(video.counts.VIDEO_PLAY, periodKey)}
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                        <tr className="border-t border-[#E8ECFF]">
+                                                                            <td className="px-2 py-2 font-semibold text-[#0F172A]">Autoplay</td>
+                                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                                <td key={`${page.key}-${video.key}-autoplay-${periodKey}`} className="px-2 py-2 text-center">
+                                                                                    {getMarketingBucketValue(video.counts.VIDEO_AUTOPLAY, periodKey)}
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                        <tr className="border-t border-[#E8ECFF]">
+                                                                            <td className="px-2 py-2 font-semibold text-[#0F172A]">ดูจบ</td>
+                                                                            {MARKETING_PERIOD_ORDER.map((periodKey) => (
+                                                                                <td key={`${page.key}-${video.key}-complete-${periodKey}`} className="px-2 py-2 text-center">
+                                                                                    {getMarketingBucketValue(video.counts.VIDEO_COMPLETE, periodKey)}
+                                                                                </td>
+                                                                            ))}
+                                                                        </tr>
+                                                                    </tbody>
+                                                                </table>
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            ) : (
+                                                <div className="mt-4 rounded-2xl border border-dashed border-[#D9E1F2] px-4 py-5 text-sm text-[#64748B]">
+                                                    หน้านี้ยังไม่มีวิดีโอที่ตั้งค่าติดตามไว้
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        ) : (
+                            <div className="bg-white border border-[#D9E1F2] rounded-2xl p-8 text-center text-[#64748B] text-sm">
+                                {marketingError || 'ยังไม่มีข้อมูลสถิติหน้าโปรโมต'}
                             </div>
                         )}
                     </div>

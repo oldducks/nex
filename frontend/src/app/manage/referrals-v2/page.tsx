@@ -58,8 +58,20 @@ type ReferralTreeNode = {
   createdAt: string | Date;
 };
 
-type CentralPartnerShareSettings = {
+type CentralPartnerTemplate = {
+  landingPageId: number;
   pitch: string;
+  page?: {
+    id: number;
+    title: string;
+    slug: string;
+    is_published: boolean;
+    updated_at: string;
+  } | null;
+};
+
+type CentralPartnerShareSettings = {
+  templates: CentralPartnerTemplate[];
 };
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:4000";
@@ -74,18 +86,26 @@ const CTA_PRIMARY = "bg-[#F97316] text-white hover:bg-[#EA580C]";
 
 export default function ReferralsV2Page() {
   const router = useRouter();
+  const [isClient, setIsClient] = useState(false);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [me, setMe] = useState<MeResponse | null>(null);
   const [stats, setStats] = useState<ReferralStats | null>(null);
   const [tree, setTree] = useState<ReferralTreeNode[]>([]);
-  const [copiedLink, setCopiedLink] = useState(false);
+  const [copiedTemplateId, setCopiedTemplateId] = useState<number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
+  const [shareTemplateId, setShareTemplateId] = useState<number | null>(null);
   const [sharePitch, setSharePitch] = useState("");
   const [sharePitchDraft, setSharePitchDraft] = useState("");
   const [savingSharePitch, setSavingSharePitch] = useState(false);
+  const [centralTemplates, setCentralTemplates] = useState<CentralPartnerTemplate[]>([]);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<number | null>(null);
 
-  const token = Cookies.get("token");
+  const token = isClient ? Cookies.get("token") : undefined;
+
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
 
   const isAdmin = me?.user?.role === "super_admin" || me?.user?.role === "group_admin";
   const isPremium = me?.subscription_tier === "premium";
@@ -100,10 +120,21 @@ export default function ReferralsV2Page() {
 
   const planLabel = isAdmin ? "Admin" : isPremium ? "Premium" : "Free";
   const referralCode = stats?.referralCode ?? null;
+  const selectedTemplate =
+    centralTemplates.find((item) => item.landingPageId === selectedTemplateId) ||
+    centralTemplates[0] ||
+    null;
   const referralUrl =
-    referralCode && typeof window !== "undefined"
-      ? `${window.location.origin}/lp/42?ref=${encodeURIComponent(referralCode)}`
+    referralCode && typeof window !== "undefined" && selectedTemplate
+      ? `${window.location.origin}/lp/${encodeURIComponent(selectedTemplate.page?.slug || String(selectedTemplate.landingPageId))}?ref=${encodeURIComponent(referralCode)}`
       : "";
+  const shareModalTemplate =
+    centralTemplates.find((item) => item.landingPageId === shareTemplateId) || selectedTemplate || null;
+
+  const getReferralUrlForTemplate = (template: CentralPartnerTemplate | null) => {
+    if (!template || !referralCode || typeof window === "undefined") return "";
+    return `${window.location.origin}/lp/${encodeURIComponent(template.page?.slug || String(template.landingPageId))}?ref=${encodeURIComponent(referralCode)}`;
+  };
 
   const loadReferralData = useCallback(
     async (accessToken: string) => {
@@ -145,8 +176,15 @@ export default function ReferralsV2Page() {
 
         if (shareSettingsRes?.ok) {
           const shareSettings = (await shareSettingsRes.json()) as CentralPartnerShareSettings;
-          setSharePitch(shareSettings.pitch || "");
-          setSharePitchDraft(shareSettings.pitch || "");
+          if (Array.isArray(shareSettings.templates)) {
+            setCentralTemplates(shareSettings.templates);
+            setSelectedTemplateId((current) => {
+              if (current && shareSettings.templates.some((item) => item.landingPageId === current)) {
+                return current;
+              }
+              return shareSettings.templates[0]?.landingPageId ?? null;
+            });
+          }
         }
       } catch (error) {
         console.error("Referral data fetch failed:", error);
@@ -158,6 +196,8 @@ export default function ReferralsV2Page() {
   );
 
   useEffect(() => {
+    if (!isClient) return;
+
     if (!token) {
       router.replace("/login");
       return;
@@ -204,7 +244,13 @@ export default function ReferralsV2Page() {
     return () => {
       mounted = false;
     };
-  }, [loadReferralData, router, token]);
+  }, [isClient, loadReferralData, router, token]);
+
+  useEffect(() => {
+    const nextPitch = selectedTemplate?.pitch || "";
+    setSharePitch(nextPitch);
+    setSharePitchDraft(nextPitch);
+  }, [selectedTemplate]);
 
   const handleLogout = () => {
     Cookies.remove("token");
@@ -212,14 +258,17 @@ export default function ReferralsV2Page() {
     router.push("/login");
   };
 
-  const copyToClipboard = async () => {
-    if (!referralUrl) return;
+  const copyToClipboard = async (template?: CentralPartnerTemplate | null) => {
+    const targetTemplate = template || selectedTemplate;
+    const targetUrl = getReferralUrlForTemplate(targetTemplate);
+    if (!targetUrl) return;
 
     try {
-      const shareMessage = sharePitch.trim() ? `${sharePitch.trim()}\n${referralUrl}` : referralUrl;
+      const targetPitch = template ? template.pitch : sharePitch;
+      const shareMessage = targetPitch.trim() ? `${targetPitch.trim()}\n${targetUrl}` : targetUrl;
       await navigator.clipboard.writeText(shareMessage);
-      setCopiedLink(true);
-      window.setTimeout(() => setCopiedLink(false), 2000);
+      setCopiedTemplateId(targetTemplate?.landingPageId ?? null);
+      window.setTimeout(() => setCopiedTemplateId(null), 2000);
     } catch (error) {
       console.error("Copy failed:", error);
     }
@@ -238,22 +287,26 @@ export default function ReferralsV2Page() {
     document.body.removeChild(downloadLink);
   };
 
-  const openPreview = () => {
-    if (!referralUrl) return;
-    window.open(referralUrl, "_blank", "noopener,noreferrer");
+  const openPreview = (template?: CentralPartnerTemplate | null) => {
+    const targetUrl = getReferralUrlForTemplate(template || selectedTemplate);
+    if (!targetUrl) return;
+    window.open(targetUrl, "_blank", "noopener,noreferrer");
   };
 
-  const shareReferralLink = () => {
-    if (!referralUrl) return;
+  const shareReferralLink = (template?: CentralPartnerTemplate | null) => {
+    const targetTemplate = template || selectedTemplate;
+    const targetUrl = getReferralUrlForTemplate(targetTemplate);
+    if (!targetUrl) return;
+    setShareTemplateId(targetTemplate?.landingPageId ?? null);
     setShowShareModal(true);
   };
 
   const saveSharePitch = async () => {
-    if (!token || !isAdmin) return;
+    if (!token || !isAdmin || !selectedTemplate) return;
 
     setSavingSharePitch(true);
     try {
-      const res = await fetch(`${API_URL}/admin/settings/central-partner-share`, {
+      const res = await fetch(`${API_URL}/admin/settings/central-partner-share/templates/${selectedTemplate.landingPageId}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -267,8 +320,9 @@ export default function ReferralsV2Page() {
       }
 
       const data = (await res.json()) as CentralPartnerShareSettings;
-      setSharePitch(data.pitch || "");
-      setSharePitchDraft(data.pitch || "");
+      if (Array.isArray(data.templates)) {
+        setCentralTemplates(data.templates);
+      }
       window.alert("บันทึกคำโปรยเรียบร้อยแล้ว");
     } catch (error) {
       console.error("Share pitch save failed:", error);
@@ -278,9 +332,7 @@ export default function ReferralsV2Page() {
     }
   };
 
-  if (!token) return null;
-
-  if (loading) {
+  if (!isClient || loading) {
     return (
       <main className={`flex min-h-screen items-center justify-center ${PAGE_BG} ${TEXT_BODY}`}>
         <div className="text-center">
@@ -290,6 +342,8 @@ export default function ReferralsV2Page() {
       </main>
     );
   }
+
+  if (!token) return null;
 
   return (
     <main className={`min-h-screen ${PAGE_BG} ${TEXT_BODY}`}>
@@ -338,12 +392,104 @@ export default function ReferralsV2Page() {
                 {referralUrl || "ยังไม่พบลิงก์แนะนำสมาชิก"}
               </div>
 
+              {centralTemplates.length ? (
+                <div className="mt-4 grid gap-3">
+                  {centralTemplates.map((template) => {
+                    const isSelected = template.landingPageId === selectedTemplate?.landingPageId;
+                    const templateReferralUrl = getReferralUrlForTemplate(template);
+                    const isCopied = copiedTemplateId === template.landingPageId;
+
+                    return (
+                      <article
+                        key={template.landingPageId}
+                        className={`rounded-2xl border p-4 transition ${isSelected ? "border-[#F97316] bg-[#FFF7ED]" : "border-[#D9E1F2] bg-[#F8FAFF]"}`}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTemplateId(template.landingPageId)}
+                            className="min-w-0 text-left"
+                          >
+                            <h3 className={`text-sm font-black ${TEXT_PRIMARY}`}>
+                              {template.page?.title || `Salespage #${template.landingPageId}`}
+                            </h3>
+                            <p className={`mt-1 text-xs ${TEXT_SECONDARY}`}>
+                              /lp/{template.page?.slug || template.landingPageId}
+                            </p>
+                          </button>
+
+                          <span className={`rounded-full px-3 py-1 text-[11px] font-bold ${isSelected ? "bg-[#FFF1E8] text-[#C2410C]" : "bg-white text-[#64748B]"}`}>
+                            {isSelected ? "กำลังใช้กับ QR" : "Salespage"}
+                          </span>
+                        </div>
+
+                        <div className="mt-3 rounded-2xl border border-[#D9E1F2] bg-white px-4 py-3">
+                          <p className={`text-[11px] font-semibold uppercase tracking-[0.08em] ${TEXT_MUTED}`}>คำโปรยของหน้านี้</p>
+                          <p className={`mt-2 whitespace-pre-line text-sm leading-relaxed ${TEXT_BODY}`}>
+                            {template.pitch?.trim() || "ยังไม่ได้ตั้งคำโปรย"}
+                          </p>
+                        </div>
+
+                        <div className={`mt-3 rounded-2xl border border-[#D9E1F2] bg-white px-4 py-3 text-xs break-all font-mono ${TEXT_BODY}`}>
+                          {templateReferralUrl || "ยังไม่พบลิงก์ของ Salespage นี้"}
+                        </div>
+
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                          <button
+                            type="button"
+                            onClick={() => copyToClipboard(template)}
+                            disabled={!templateReferralUrl}
+                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${CTA_PRIMARY}`}
+                          >
+                            {isCopied ? <Check size={16} /> : <Copy size={16} />}
+                            {isCopied ? "คัดลอกแล้ว" : "คัดลอกลิงก์"}
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => shareReferralLink(template)}
+                            disabled={!templateReferralUrl}
+                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
+                          >
+                            <Share2 size={16} />
+                            แชร์
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => openPreview(template)}
+                            disabled={!templateReferralUrl}
+                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
+                          >
+                            <Eye size={16} />
+                            ดูเนื้อหา
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={() => setSelectedTemplateId(template.landingPageId)}
+                            className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-xs font-bold transition ${
+                              isSelected
+                                ? "border border-[#F97316] bg-[#FFF1E8] text-[#C2410C]"
+                                : `${MUTED_SURFACE} ${TEXT_PRIMARY}`
+                            }`}
+                          >
+                            <Smartphone size={16} />
+                            {isSelected ? "เลือกอยู่" : "เลือกอันนี้"}
+                          </button>
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              ) : null}
+
               <div className={`mt-3 rounded-2xl p-4 ${MUTED_SURFACE}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className={`text-sm font-bold ${TEXT_PRIMARY}`}>คำโปรยพร้อมลิงก์เวลานำไปแชร์</p>
                     <p className={`mt-1 text-xs leading-relaxed ${TEXT_SECONDARY}`}>
-                      ข้อความนี้จะถูกใช้ตอนกดแชร์ลิงก์แนะนำสมาชิก เพื่อให้ผู้รับเห็นคำชวนก่อนเข้าหน้า sale page
+                      เลือก Salespage ที่ต้องการก่อน แล้วแก้คำโปรยเฉพาะของหน้านั้นได้จากตรงนี้
                     </p>
                   </div>
                   {isAdmin ? (
@@ -394,12 +540,12 @@ export default function ReferralsV2Page() {
               <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_220px]">
                 <button
                   type="button"
-                  onClick={copyToClipboard}
+                  onClick={() => copyToClipboard(selectedTemplate)}
                   disabled={!referralUrl}
                   className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${CTA_PRIMARY}`}
                 >
-                  {copiedLink ? <Check size={18} /> : <Copy size={18} />}
-                  {copiedLink ? "คัดลอกแล้ว" : "คัดลอกลิงก์แนะนำ"}
+                  {copiedTemplateId === selectedTemplate?.landingPageId ? <Check size={18} /> : <Copy size={18} />}
+                  {copiedTemplateId === selectedTemplate?.landingPageId ? "คัดลอกแล้ว" : "คัดลอกลิงก์แนะนำ"}
                 </button>
 
                 <button
@@ -416,7 +562,7 @@ export default function ReferralsV2Page() {
               <div className="mt-3 grid gap-3 md:grid-cols-2">
                 <button
                   type="button"
-                  onClick={shareReferralLink}
+                  onClick={() => shareReferralLink(selectedTemplate)}
                   disabled={!referralUrl}
                   className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
                 >
@@ -426,7 +572,7 @@ export default function ReferralsV2Page() {
 
                 <button
                   type="button"
-                  onClick={openPreview}
+                  onClick={() => openPreview(selectedTemplate)}
                   disabled={!referralUrl}
                   className={`flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold transition disabled:cursor-not-allowed disabled:opacity-50 ${MUTED_SURFACE} ${TEXT_PRIMARY}`}
                 >
@@ -612,9 +758,9 @@ export default function ReferralsV2Page() {
       <PublicShareModal
         isOpen={showShareModal}
         onClose={() => setShowShareModal(false)}
-        url={referralUrl}
+        url={getReferralUrlForTemplate(shareModalTemplate)}
         title="ลิงก์แนะนำสมาชิก NEX"
-        shareText={sharePitch}
+        shareText={shareModalTemplate?.pitch || sharePitch}
       />
     </main>
   );

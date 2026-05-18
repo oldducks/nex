@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import Image from 'next/image';
 import Link from 'next/link';
 import PreviewVideo from './PreviewVideo';
+import { MarketingPageTracker } from '@/components/MarketingPageTracker';
 
 const IMAGE_DIR = join(process.cwd(), 'public', 'nex-digital-asset-partner-preview');
 
@@ -37,6 +38,7 @@ export default async function NexDigitalAssetPartnerPreviewPage() {
 
   return (
     <main className="bg-[#EEF0FF] pt-[15px]">
+      <MarketingPageTracker pageKey="nex-digital-asset-partner-preview" />
       <div className="mx-auto w-full max-w-[680px] px-[10px] sm:px-[24px] lg:px-[40px]">
         <div className="flex flex-col gap-[15px]">
           {images.map((image) => (
@@ -56,6 +58,8 @@ export default async function NexDigitalAssetPartnerPreviewPage() {
                   <div className="w-full overflow-hidden bg-black lg:w-auto">
                     <PreviewVideo
                       src="/nex-digital-asset-partner-preview/preview-video.mp4"
+                      pageKey="nex-digital-asset-partner-preview"
+                      videoKey="hero-preview"
                       className="block h-auto w-full lg:h-dvh lg:w-auto lg:max-w-full"
                     />
                   </div>

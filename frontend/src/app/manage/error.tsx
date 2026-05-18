@@ -36,7 +36,13 @@ export default function ManageError({
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
-            onClick={() => reset()}
+            onClick={() => {
+              if (typeof window !== 'undefined') {
+                window.location.reload();
+                return;
+              }
+              reset();
+            }}
             className="flex-1 inline-flex items-center justify-center gap-2 rounded-2xl bg-[#050579] px-5 py-3 text-sm font-black text-white transition-colors hover:bg-[#07079A]"
           >
             <RefreshCw size={16} />

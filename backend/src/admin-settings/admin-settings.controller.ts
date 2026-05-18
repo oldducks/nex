@@ -1,12 +1,16 @@
-import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, ForbiddenException, Get, Param, Patch, Post, Request, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { UpdateAiImageSettingsDto } from './dto/update-ai-image-settings.dto';
 import { AdminSettingsService } from './admin-settings.service';
+import { LandingPagesService } from '../landing-pages/landing-pages.service';
 
 @UseGuards(JwtAuthGuard)
 @Controller('admin/settings')
 export class AdminSettingsController {
-  constructor(private readonly adminSettingsService: AdminSettingsService) {}
+  constructor(
+    private readonly adminSettingsService: AdminSettingsService,
+    private readonly landingPagesService: LandingPagesService,
+  ) {}
 
   private ensureSuperAdmin(req: any) {
     if (req.user?.role !== 'super_admin') {
@@ -43,6 +47,54 @@ export class AdminSettingsController {
   ) {
     this.ensureAdmin(req);
     return this.adminSettingsService.updateCentralPartnerShareSettings(dto, req.user.sub);
+  }
+
+  @Post('central-partner-share/templates')
+  async createCentralPartnerTemplate(
+    @Request() req: any,
+    @Body() dto: { title?: string; pitch?: string },
+  ) {
+    this.ensureAdmin(req);
+
+    const timestamp = Date.now();
+    const createdPage = await this.landingPagesService.create(req.user.sub, {
+      title: dto.title?.trim() || `พันธมิตรธุรกิจส่วนกลาง ${timestamp}`,
+      slug: `central-partner-${timestamp}`,
+      description: 'Salespage ส่วนกลางสำหรับระบบพันธมิตรธุรกิจ',
+      content_blocks: [],
+      is_published: true,
+    });
+
+    return this.adminSettingsService.addCentralPartnerTemplate(
+      createdPage.id,
+      dto.pitch?.trim() || '',
+      req.user.sub,
+    );
+  }
+
+  @Patch('central-partner-share/templates/:landingPageId')
+  async updateCentralPartnerTemplatePitch(
+    @Request() req: any,
+    @Param('landingPageId') landingPageId: string,
+    @Body() dto: { pitch?: string },
+  ) {
+    this.ensureAdmin(req);
+    return this.adminSettingsService.updateCentralPartnerTemplatePitch(
+      Number(landingPageId),
+      dto.pitch?.trim() || '',
+      req.user.sub,
+    );
+  }
+
+  @Delete('central-partner-share/templates/:landingPageId')
+  async deleteCentralPartnerTemplate(
+    @Request() req: any,
+    @Param('landingPageId') landingPageId: string,
+  ) {
+    this.ensureAdmin(req);
+    const pageId = Number(landingPageId);
+    await this.landingPagesService.remove(pageId, req.user.sub);
+    return this.adminSettingsService.removeCentralPartnerTemplate(pageId, req.user.sub);
   }
 
   @Patch('learning-media/examples/:slug')

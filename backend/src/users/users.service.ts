@@ -402,6 +402,23 @@ export class UsersService {
     return this.findOne(id);
   }
 
+  async activatePremiumForDays(id: number, durationDays: number) {
+    const user = await this.findOne(id);
+    if (!user) return null;
+
+    const newExpiry = new Date();
+    newExpiry.setDate(newExpiry.getDate() + durationDays);
+
+    await this.usersRepository.update(id, {
+      subscription_tier: 'premium',
+      feature_config: DEFAULT_FEATURE_CONFIG_ALL_ENABLED as any,
+      expiration_date: newExpiry,
+      is_active: true,
+    });
+
+    return this.findOne(id);
+  }
+
   async updateRole(id: number, role: string) {
     const user = await this.findOne(id);
     if (!user) return null;

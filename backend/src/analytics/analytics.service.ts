@@ -1,7 +1,8 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between } from 'typeorm';
+import { Repository } from 'typeorm';
 import { AnalyticsLog, AnalyticsAction } from './entities/analytics-log.entity';
+import { MarketingAnalyticsEvent, MarketingAnalyticsLog } from './entities/marketing-analytics-log.entity';
 import { UsersService } from '../users/users.service';
 
 @Injectable()
@@ -9,11 +10,51 @@ export class AnalyticsService implements OnModuleInit {
     constructor(
         @InjectRepository(AnalyticsLog)
         private analyticsRepository: Repository<AnalyticsLog>,
+        @InjectRepository(MarketingAnalyticsLog)
+        private marketingAnalyticsRepository: Repository<MarketingAnalyticsLog>,
         private usersService: UsersService,
     ) { }
 
     async onModuleInit() {
         try {
+            await this.analyticsRepository.query(`
+                DO $$
+                BEGIN
+                    CREATE TYPE marketing_analytics_logs_event_type_enum AS ENUM (
+                        'PAGE_VIEW',
+                        'VIDEO_IMPRESSION',
+                        'VIDEO_PLAY',
+                        'VIDEO_AUTOPLAY',
+                        'VIDEO_COMPLETE'
+                    );
+                EXCEPTION
+                    WHEN duplicate_object THEN NULL;
+                END
+                $$;
+            `);
+
+            await this.analyticsRepository.query(`
+                CREATE TABLE IF NOT EXISTS marketing_analytics_logs (
+                    id SERIAL PRIMARY KEY,
+                    page_key VARCHAR(120) NOT NULL,
+                    video_key VARCHAR(160),
+                    visitor_id VARCHAR(255),
+                    event_type marketing_analytics_logs_event_type_enum NOT NULL,
+                    metadata JSONB,
+                    created_at TIMESTAMP NOT NULL DEFAULT now()
+                );
+            `);
+
+            await this.analyticsRepository.query(`
+                CREATE INDEX IF NOT EXISTS idx_marketing_analytics_page_created_at
+                ON marketing_analytics_logs (page_key, created_at DESC);
+            `);
+
+            await this.analyticsRepository.query(`
+                CREATE INDEX IF NOT EXISTS idx_marketing_analytics_video_created_at
+                ON marketing_analytics_logs (video_key, created_at DESC);
+            `);
+
             await this.analyticsRepository.query(`
                 DO $$
                 BEGIN
@@ -35,6 +76,29 @@ export class AnalyticsService implements OnModuleInit {
                 END
                 $$;
             `);
+            for (const eventLabel of Object.values(MarketingAnalyticsEvent)) {
+                await this.analyticsRepository.query(`
+                    DO $$
+                    BEGIN
+                        IF EXISTS (
+                            SELECT 1
+                            FROM pg_type
+                            WHERE typname = 'marketing_analytics_logs_event_type_enum'
+                        ) THEN
+                            IF NOT EXISTS (
+                                SELECT 1
+                                FROM pg_enum e
+                                JOIN pg_type t ON e.enumtypid = t.oid
+                                WHERE t.typname = 'marketing_analytics_logs_event_type_enum'
+                                  AND e.enumlabel = '${eventLabel}'
+                            ) THEN
+                                ALTER TYPE marketing_analytics_logs_event_type_enum ADD VALUE '${eventLabel}';
+                            END IF;
+                        END IF;
+                    END
+                    $$;
+                `);
+            }
         } catch (error) {
             // Non-blocking: service can still run with existing action set.
             console.warn('Analytics enum patch skipped:', (error as Error)?.message || error);
@@ -65,6 +129,25 @@ export class AnalyticsService implements OnModuleInit {
             metadata,
         });
         return this.analyticsRepository.save(log);
+    }
+
+    async logMarketingEvent(payload: {
+        pageKey: string;
+        eventType: MarketingAnalyticsEvent;
+        visitorId?: string | null;
+        videoKey?: string | null;
+        metadata?: Record<string, any> | null;
+    }) {
+        if (!payload.pageKey || !payload.eventType) return null;
+
+        const log = this.marketingAnalyticsRepository.create({
+            page_key: payload.pageKey,
+            video_key: payload.videoKey || null,
+            visitor_id: payload.visitorId || null,
+            event_type: payload.eventType,
+            metadata: payload.metadata || null,
+        });
+        return this.marketingAnalyticsRepository.save(log);
     }
 
     async getStats(userId: number, period: 'today' | 'yesterday' | '7days' | '30days' | '1year' | 'all') {
@@ -261,6 +344,170 @@ export class AnalyticsService implements OnModuleInit {
                 count: Number(item.count || 0),
             })),
         };
+    }
+
+    async getMarketingDashboard() {
+        const pageDefinitions = [
+            { key: 'start', label: 'หน้าเริ่มต้น NEX', path: '/start' },
+            { key: 'nex-control-your-future-preview', label: 'NEX Control Your Future Preview', path: '/nex-control-your-future-preview' },
+            { key: 'what-is-nex-preview', label: 'What is NEX Preview', path: '/what-is-nex-preview' },
+            { key: 'nex-digital-asset-partner-preview', label: 'NEX Digital Asset Partner Preview', path: '/nex-digital-asset-partner-preview' },
+            { key: 'enterprise-mos-preview', label: 'Enterprise MOS Preview', path: '/enterprise-mos-preview' },
+        ] as const;
+
+        const videoDefinitions = [
+            { pageKey: 'start', videoKey: 'catalog-demo', label: 'วิดีโอ NEX Catalog' },
+            { pageKey: 'start', videoKey: 'salepage-demo', label: 'วิดีโอ NEX Sale Page' },
+            { pageKey: 'nex-control-your-future-preview', videoKey: 'hero-preview', label: 'วิดีโอพรีวิวหลัก' },
+            { pageKey: 'what-is-nex-preview', videoKey: 'hero-preview', label: 'วิดีโอพรีวิวหลัก' },
+            { pageKey: 'nex-digital-asset-partner-preview', videoKey: 'hero-preview', label: 'วิดีโอพรีวิวหลัก' },
+            { pageKey: 'enterprise-mos-preview', videoKey: 'hero-preview', label: 'วิดีโอพรีวิวหลัก' },
+        ] as const;
+
+        const periods = {
+            day: this.getMarketingPeriodStart('day'),
+            week: this.getMarketingPeriodStart('week'),
+            month: this.getMarketingPeriodStart('month'),
+            year: this.getMarketingPeriodStart('year'),
+            all: null,
+        } as const;
+
+        const counts = await Promise.all(
+            Object.entries(periods).map(async ([periodKey, startDate]) => {
+                const pageKeys = pageDefinitions.map((page) => page.key);
+                const qb = this.marketingAnalyticsRepository
+                    .createQueryBuilder('log')
+                    .select('log.page_key', 'pageKey')
+                    .addSelect('log.video_key', 'videoKey')
+                    .addSelect('log.event_type', 'eventType')
+                    .addSelect('COUNT(log.id)', 'count')
+                    .where('log.page_key IN (:...pageKeys)', { pageKeys });
+
+                if (startDate) {
+                    qb.andWhere('log.created_at >= :startDate', { startDate });
+                }
+
+                qb.groupBy('log.page_key')
+                    .addGroupBy('log.video_key')
+                    .addGroupBy('log.event_type');
+
+                const rows = await qb.getRawMany<{ pageKey: string; videoKey: string | null; eventType: MarketingAnalyticsEvent; count: string }>();
+                return [periodKey, rows] as const;
+            }),
+        );
+
+        const rowsByPeriod = new Map(counts);
+
+        const pageStats = pageDefinitions.map((page) => {
+            const videos = videoDefinitions
+                .filter((video) => video.pageKey === page.key)
+                .map((video) => ({
+                    key: video.videoKey,
+                    label: video.label,
+                    counts: this.buildMarketingCounts(rowsByPeriod, page.key, video.videoKey),
+                }));
+
+            return {
+                key: page.key,
+                label: page.label,
+                path: page.path,
+                pageViews: this.buildMarketingCounts(rowsByPeriod, page.key, null)[MarketingAnalyticsEvent.PAGE_VIEW],
+                videos,
+            };
+        });
+
+        const totals = {
+            pageViews: this.sumMarketingCounts(pageStats.map((page) => page.pageViews)),
+            videoImpressions: this.sumMarketingCounts(pageStats.flatMap((page) => page.videos.map((video) => video.counts[MarketingAnalyticsEvent.VIDEO_IMPRESSION]))),
+            videoPlays: this.sumMarketingCounts(pageStats.flatMap((page) => page.videos.map((video) => video.counts[MarketingAnalyticsEvent.VIDEO_PLAY]))),
+            videoAutoplays: this.sumMarketingCounts(pageStats.flatMap((page) => page.videos.map((video) => video.counts[MarketingAnalyticsEvent.VIDEO_AUTOPLAY]))),
+            videoCompletions: this.sumMarketingCounts(pageStats.flatMap((page) => page.videos.map((video) => video.counts[MarketingAnalyticsEvent.VIDEO_COMPLETE]))),
+        };
+
+        return {
+            generatedAt: new Date().toISOString(),
+            periods: {
+                day: 'วันนี้',
+                week: 'สัปดาห์นี้',
+                month: 'เดือนนี้',
+                year: 'ปีนี้',
+                all: 'ทั้งหมด',
+            },
+            pages: pageStats,
+            totals,
+        };
+    }
+
+    private getMarketingPeriodStart(period: 'day' | 'week' | 'month' | 'year') {
+        const now = new Date();
+        const startDate = new Date(now);
+
+        if (period === 'day') {
+            startDate.setHours(0, 0, 0, 0);
+            return startDate;
+        }
+
+        if (period === 'week') {
+            startDate.setHours(0, 0, 0, 0);
+            const weekdayIndex = (startDate.getDay() + 6) % 7;
+            startDate.setDate(startDate.getDate() - weekdayIndex);
+            return startDate;
+        }
+
+        if (period === 'month') {
+            startDate.setHours(0, 0, 0, 0);
+            startDate.setDate(1);
+            return startDate;
+        }
+
+        startDate.setHours(0, 0, 0, 0);
+        startDate.setMonth(0, 1);
+        return startDate;
+    }
+
+    private buildMarketingCounts(
+        rowsByPeriod: Map<string, { pageKey: string; videoKey: string | null; eventType: MarketingAnalyticsEvent; count: string }[]>,
+        pageKey: string,
+        videoKey: string | null,
+    ) {
+        const periodKeys = ['day', 'week', 'month', 'year', 'all'] as const;
+        const eventKeys = [
+            MarketingAnalyticsEvent.PAGE_VIEW,
+            MarketingAnalyticsEvent.VIDEO_IMPRESSION,
+            MarketingAnalyticsEvent.VIDEO_PLAY,
+            MarketingAnalyticsEvent.VIDEO_AUTOPLAY,
+            MarketingAnalyticsEvent.VIDEO_COMPLETE,
+        ] as const;
+
+        const result = eventKeys.reduce((acc, eventKey) => {
+            acc[eventKey] = periodKeys.reduce((periodAcc, periodKey) => {
+                const rows = rowsByPeriod.get(periodKey) || [];
+                const matched = rows.find((row) =>
+                    row.pageKey === pageKey &&
+                    (row.videoKey || null) === (videoKey || null) &&
+                    row.eventType === eventKey,
+                );
+                periodAcc[periodKey] = matched ? Number(matched.count || 0) : 0;
+                return periodAcc;
+            }, {} as Record<typeof periodKeys[number], number>);
+            return acc;
+        }, {} as Record<typeof eventKeys[number], Record<typeof periodKeys[number], number>>);
+
+        return result;
+    }
+
+    private sumMarketingCounts(items: Record<'day' | 'week' | 'month' | 'year' | 'all', number>[]) {
+        return items.reduce(
+            (acc, item) => {
+                acc.day += item.day || 0;
+                acc.week += item.week || 0;
+                acc.month += item.month || 0;
+                acc.year += item.year || 0;
+                acc.all += item.all || 0;
+                return acc;
+            },
+            { day: 0, week: 0, month: 0, year: 0, all: 0 },
+        );
     }
 
     private actionToKey(action: AnalyticsAction): string {

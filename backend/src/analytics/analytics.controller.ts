@@ -1,6 +1,7 @@
-import { Controller, Post, Get, Body, Query, UseGuards, Request, Param } from '@nestjs/common';
+import { Controller, Post, Get, Body, Query, UseGuards, Request, Param, ForbiddenException } from '@nestjs/common';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsAction } from './entities/analytics-log.entity';
+import { MarketingAnalyticsEvent } from './entities/marketing-analytics-log.entity';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
 @Controller('analytics')
@@ -15,6 +16,32 @@ export class AnalyticsController {
         }
 
         await this.analyticsService.logEvent(body.uid, body.action, body.visitorId, body.metadata);
+        return { success: true };
+    }
+
+    @Post('marketing/log')
+    async logMarketingEvent(
+        @Body()
+        body: {
+            pageKey: string;
+            eventType: MarketingAnalyticsEvent;
+            visitorId?: string;
+            videoKey?: string;
+            metadata?: any;
+        },
+    ) {
+        if (!body?.pageKey || !body?.eventType) {
+            return { success: false, message: 'pageKey and eventType are required' };
+        }
+
+        await this.analyticsService.logMarketingEvent({
+            pageKey: body.pageKey,
+            eventType: body.eventType,
+            visitorId: body.visitorId,
+            videoKey: body.videoKey,
+            metadata: body.metadata,
+        });
+
         return { success: true };
     }
 
@@ -39,5 +66,14 @@ export class AnalyticsController {
     async getLandingPageViews(@Request() req, @Param('id') id: string) {
         const userId = req.user.sub;
         return this.analyticsService.getLandingPageViews(userId, Number(id));
+    }
+
+    @UseGuards(JwtAuthGuard)
+    @Get('admin/marketing-dashboard')
+    async getMarketingDashboard(@Request() req) {
+        if (req.user?.role !== 'super_admin') {
+            throw new ForbiddenException('เฉพาะ super admin เท่านั้น');
+        }
+        return this.analyticsService.getMarketingDashboard();
     }
 }

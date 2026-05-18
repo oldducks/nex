@@ -22,6 +22,7 @@ import { Lead } from './leads/entities/lead.entity';
 import { Order } from './orders/entities/order.entity';
 import { AnalyticsModule } from './analytics/analytics.module';
 import { AnalyticsLog } from './analytics/entities/analytics-log.entity';
+import { MarketingAnalyticsLog } from './analytics/entities/marketing-analytics-log.entity';
 import { MailModule } from './mail/mail.module';
 import { LandingPagesModule } from './landing-pages/landing-pages.module';
 import { LandingPage } from './landing-pages/entities/landing-page.entity';
@@ -68,6 +69,7 @@ import { DigitalMediaGenerationJob } from './digital-media/entities/generation-j
           Lead,
           Order,
           AnalyticsLog,
+          MarketingAnalyticsLog,
           LandingPage,
           Referral,
           Form,

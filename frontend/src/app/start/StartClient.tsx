@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
+import { logMarketingAnalyticsEvent } from '@/lib/marketingAnalytics';
 
 type Product = 'card' | 'catalog' | 'salepage';
 
@@ -16,20 +17,45 @@ export default function StartClient({ initialRef }: StartClientProps) {
   const [catalogPlaying, setCatalogPlaying] = useState(false);
   const salepageVideoRef = useRef<HTMLVideoElement>(null);
   const [salepagePlaying, setSalepagePlaying] = useState(false);
+  const hasLoggedPageView = useRef(false);
+  const hasLoggedCatalogImpression = useRef(false);
+  const hasLoggedSalepageImpression = useRef(false);
 
   useEffect(() => {
-    fetch('/api/analytics/log', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        action: 'VIEW_LANDING_PAGE',
+    if (hasLoggedPageView.current) return;
+    hasLoggedPageView.current = true;
+
+    void logMarketingAnalyticsEvent({
+      pageKey: 'start',
+      eventType: 'PAGE_VIEW',
+      metadata: {
+        ref: initialRef,
+      },
+    });
+  }, [initialRef]);
+
+  useEffect(() => {
+    if (activeProduct === 'catalog' && !hasLoggedCatalogImpression.current) {
+      hasLoggedCatalogImpression.current = true;
+      void logMarketingAnalyticsEvent({
+        pageKey: 'start',
+        eventType: 'VIDEO_IMPRESSION',
+        videoKey: 'catalog-demo',
+      });
+    }
+
+    if (activeProduct === 'salepage' && !hasLoggedSalepageImpression.current) {
+      hasLoggedSalepageImpression.current = true;
+      void logMarketingAnalyticsEvent({
+        pageKey: 'start',
+        eventType: 'VIDEO_IMPRESSION',
+        videoKey: 'salepage-demo',
         metadata: {
-          page: 'start',
           ref: initialRef,
         },
-      }),
-    }).catch(() => {});
-  }, []);
+      });
+    }
+  }, [activeProduct, initialRef]);
 
   return (
     <div className="font-sans bg-[#EEF0FF] text-[#0F172A] overflow-x-hidden min-h-screen">
@@ -446,8 +472,23 @@ export default function StartClient({ initialRef }: StartClientProps) {
                     playsInline
                     preload="metadata"
                     className="w-full h-auto block"
-                    onPlay={() => setCatalogPlaying(true)}
+                    onPlay={() => {
+                      setCatalogPlaying(true);
+                      void logMarketingAnalyticsEvent({
+                        pageKey: 'start',
+                        eventType: 'VIDEO_PLAY',
+                        videoKey: 'catalog-demo',
+                      });
+                    }}
                     onPause={() => setCatalogPlaying(false)}
+                    onEnded={() => {
+                      setCatalogPlaying(false);
+                      void logMarketingAnalyticsEvent({
+                        pageKey: 'start',
+                        eventType: 'VIDEO_COMPLETE',
+                        videoKey: 'catalog-demo',
+                      });
+                    }}
                   />
                   {!catalogPlaying && (
                     <button
@@ -531,8 +572,23 @@ export default function StartClient({ initialRef }: StartClientProps) {
                     playsInline
                     preload="metadata"
                     className="w-full h-auto block"
-                    onPlay={() => setSalepagePlaying(true)}
+                    onPlay={() => {
+                      setSalepagePlaying(true);
+                      void logMarketingAnalyticsEvent({
+                        pageKey: 'start',
+                        eventType: 'VIDEO_PLAY',
+                        videoKey: 'salepage-demo',
+                      });
+                    }}
                     onPause={() => setSalepagePlaying(false)}
+                    onEnded={() => {
+                      setSalepagePlaying(false);
+                      void logMarketingAnalyticsEvent({
+                        pageKey: 'start',
+                        eventType: 'VIDEO_COMPLETE',
+                        videoKey: 'salepage-demo',
+                      });
+                    }}
                   />
                   {!salepagePlaying && (
                     <button

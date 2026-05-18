@@ -1,6 +1,7 @@
 import React from "react";
 import Image from "next/image";
 import PreviewVideo from "./PreviewVideo";
+import { MarketingPageTracker } from "@/components/MarketingPageTracker";
 
 const storyboardImages = Array.from({ length: 17 }, (_, index) => {
   const frameNumber = index + 1;
@@ -17,6 +18,7 @@ const REGISTER_BUTTON_AFTER = new Set([1, 7, 13, 15, 17]);
 export default function NexControlYourFuturePreviewPage() {
   return (
     <main className="bg-[#EEF0FF]">
+      <MarketingPageTracker pageKey="nex-control-your-future-preview" />
       <div className="mx-auto w-full max-w-[680px] px-[10px] sm:px-[24px] lg:px-[40px]">
         <div className="flex flex-col gap-[15px] pt-[15px]">
           {storyboardImages.map((image) => (
@@ -36,6 +38,8 @@ export default function NexControlYourFuturePreviewPage() {
                   <div className="w-full overflow-hidden bg-black lg:w-auto">
                     <PreviewVideo
                       src="/nex-control-your-future-preview/preview-video.mp4"
+                      pageKey="nex-control-your-future-preview"
+                      videoKey="hero-preview"
                       className="block h-auto w-full lg:h-dvh lg:w-auto lg:max-w-full"
                     />
                   </div>

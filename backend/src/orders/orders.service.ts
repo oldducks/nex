@@ -94,11 +94,14 @@ export class OrdersService {
       amount: packageConfig.price,
       duration_days: packageConfig.duration_days,
       slip_url: slipRelativeUrl,
-      status: OrderStatus.PENDING,
+      status: OrderStatus.APPROVED,
+      approved_at: new Date(),
     });
 
     const savedOrder = await this.ordersRepository.save(order);
     const slipPublicUrl = this.toPublicUrl(slipRelativeUrl);
+
+    await this.usersService.activatePremiumForDays(user.id, packageConfig.duration_days);
 
     const [emailSent, lineNotification] = await Promise.all([
       this.mailService.sendUpgradeSlipNotification({
@@ -123,6 +126,7 @@ export class OrdersService {
 
     return {
       order: savedOrder,
+      message: `อัปเกรดเป็น Premium สำเร็จ ใช้งานได้ทันที ${packageConfig.duration_days} วัน`,
       notifications: {
         emailSent,
         lineSent: lineNotification.lineSent,

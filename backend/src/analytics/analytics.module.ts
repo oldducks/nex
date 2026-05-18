@@ -3,11 +3,12 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { AnalyticsController } from './analytics.controller';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsLog } from './entities/analytics-log.entity';
+import { MarketingAnalyticsLog } from './entities/marketing-analytics-log.entity';
 import { UsersModule } from '../users/users.module';
 
 @Module({
     imports: [
-        TypeOrmModule.forFeature([AnalyticsLog]),
+        TypeOrmModule.forFeature([AnalyticsLog, MarketingAnalyticsLog]),
         forwardRef(() => UsersModule)
     ],
     controllers: [AnalyticsController],
@@ -15,4 +16,3 @@ import { UsersModule } from '../users/users.module';
     exports: [AnalyticsService]
 })
 export class AnalyticsModule { }
-

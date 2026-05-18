@@ -4,17 +4,21 @@ import { Repository } from 'typeorm';
 import { LandingPage } from './entities/landing-page.entity';
 import { CreateLandingPageDto, UpdateLandingPageDto } from './dto/landing-page.dto';
 import { User, UserRole } from '../users/entities/user.entity';
+import { AdminSetting } from '../admin-settings/entities/admin-setting.entity';
 
 @Injectable()
 export class LandingPagesService {
     private readonly maxMediaBlocksPerType = 20;
     private readonly referralTemplatePageId = 42;
+    private readonly centralPartnerShareKey = 'central_partner_share_settings';
 
     constructor(
         @InjectRepository(LandingPage)
         private repository: Repository<LandingPage>,
         @InjectRepository(User)
         private usersRepository: Repository<User>,
+        @InjectRepository(AdminSetting)
+        private adminSettingsRepository: Repository<AdminSetting>,
     ) {}
 
     private sanitizeSlug(value: string): string {
@@ -154,7 +158,12 @@ export class LandingPagesService {
     }
 
     private async buildReferralTemplatePage(page: LandingPage, referralCode: string): Promise<LandingPage> {
-        if (page.id !== this.referralTemplatePageId || !referralCode?.trim()) {
+        if (!referralCode?.trim()) {
+            return page;
+        }
+
+        const allowedPageIds = await this.getCentralPartnerTemplatePageIds();
+        if (!allowedPageIds.has(page.id)) {
             return page;
         }
 
@@ -191,6 +200,35 @@ export class LandingPagesService {
             content_blocks: transformedBlocks,
             referral_code: normalizedReferralCode,
         } as LandingPage;
+    }
+
+    private async getCentralPartnerTemplatePageIds(): Promise<Set<number>> {
+        const setting = await this.adminSettingsRepository.findOne({
+            where: { setting_key: this.centralPartnerShareKey },
+        });
+
+        const raw = setting?.payload;
+        if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
+            return new Set([this.referralTemplatePageId]);
+        }
+
+        const templates = Array.isArray((raw as Record<string, any>).templates)
+            ? (raw as Record<string, any>).templates
+            : [
+                  {
+                      landingPageId: this.referralTemplatePageId,
+                  },
+              ];
+
+        const ids = templates
+            .map((template: any) => Number(template?.landingPageId))
+            .filter((value: number) => Number.isFinite(value) && value > 0);
+
+        if (ids.length === 0) {
+            ids.push(this.referralTemplatePageId);
+        }
+
+        return new Set(ids);
     }
 
     async create(userId: number, dto: CreateLandingPageDto) {

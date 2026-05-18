@@ -1,9 +1,10 @@
 import { BadRequestException, Injectable, OnModuleInit } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from 'crypto';
 import { GoogleAuth } from 'google-auth-library';
 import { AdminSetting } from './entities/admin-setting.entity';
+import { LandingPage } from '../landing-pages/entities/landing-page.entity';
 import { UpdateAiImageSettingsDto } from './dto/update-ai-image-settings.dto';
 import {
   DEFAULT_IMAGE_MODEL,
@@ -63,7 +64,17 @@ type LearningMediaExampleOverride = {
 };
 
 type CentralPartnerShareSettings = {
-  pitch: string;
+  templates: Array<{
+    landingPageId: number;
+    pitch: string;
+    page?: {
+      id: number;
+      title: string;
+      slug: string;
+      is_published: boolean;
+      updated_at: Date;
+    } | null;
+  }>;
 };
 
 const AI_IMAGE_KEY = 'ai_image_config';
@@ -71,6 +82,7 @@ const LEARNING_MEDIA_EXAMPLES_KEY = 'learning_media_examples_overrides';
 const CENTRAL_PARTNER_SHARE_KEY = 'central_partner_share_settings';
 const DEFAULT_CENTRAL_PARTNER_PITCH =
   'แนะนำระบบ NEX Solution ที่ช่วยคุณสร้าง Sale Page, E-Catalog, QR Code และเครื่องมือปิดการขายได้ในลิงก์เดียว ใช้งานง่ายบนมือถือ พร้อมระบบหลังบ้านที่พร้อมต่อยอดธุรกิจทันที สนใจดูตัวอย่างและเริ่มใช้งาน คลิกที่ลิงก์นี้ได้เลย';
+const DEFAULT_CENTRAL_PARTNER_PAGE_ID = 42;
 
 export type AiImageRuntimeConfig = {
   connection_mode: 'cloud_run_proxy' | 'api_key';
@@ -91,6 +103,8 @@ export class AdminSettingsService implements OnModuleInit {
   constructor(
     @InjectRepository(AdminSetting)
     private readonly settingsRepository: Repository<AdminSetting>,
+    @InjectRepository(LandingPage)
+    private readonly landingPagesRepository: Repository<LandingPage>,
   ) {}
 
   async onModuleInit() {
@@ -280,45 +294,187 @@ export class AdminSettingsService implements OnModuleInit {
     const entity = await this.settingsRepository.findOne({
       where: { setting_key: CENTRAL_PARTNER_SHARE_KEY },
     });
-
-    const pitch =
-      entity?.payload &&
-      typeof entity.payload === 'object' &&
-      !Array.isArray(entity.payload) &&
-      typeof (entity.payload as Record<string, unknown>).pitch === 'string' &&
-      (entity.payload as Record<string, string>).pitch.trim().length > 0
-        ? (entity.payload as Record<string, string>).pitch.trim()
-        : DEFAULT_CENTRAL_PARTNER_PITCH;
-
-    return { pitch };
+    const templates = await this.buildCentralPartnerTemplateSettings(entity?.payload);
+    return { templates };
   }
 
   async updateCentralPartnerShareSettings(
-    payload: Partial<CentralPartnerShareSettings>,
+    payload: { pitch?: string },
     userId: number,
   ): Promise<CentralPartnerShareSettings> {
     const current = await this.settingsRepository.findOne({
       where: { setting_key: CENTRAL_PARTNER_SHARE_KEY },
     });
 
-    const currentPayload =
-      current?.payload && typeof current.payload === 'object' && !Array.isArray(current.payload)
-        ? (current.payload as Record<string, string>)
-        : {};
+    const currentTemplates = this.normalizeCentralPartnerTemplates(current?.payload);
+    const targetTemplateId =
+      currentTemplates[0]?.landingPageId ?? DEFAULT_CENTRAL_PARTNER_PAGE_ID;
+    const updatedTemplates = this.upsertCentralPartnerTemplate(
+      currentTemplates,
+      targetTemplateId,
+      payload.pitch?.trim() || DEFAULT_CENTRAL_PARTNER_PITCH,
+    );
 
-    const nextPitch = payload.pitch?.trim() || DEFAULT_CENTRAL_PARTNER_PITCH;
-
-    await this.settingsRepository.save({
+    const saved = await this.settingsRepository.save({
       id: current?.id,
       setting_key: CENTRAL_PARTNER_SHARE_KEY,
       payload: {
-        ...currentPayload,
-        pitch: nextPitch,
+        templates: updatedTemplates,
       },
       updated_by: userId,
     });
 
-    return { pitch: nextPitch };
+    return {
+      templates: await this.buildCentralPartnerTemplateSettings(saved.payload),
+    };
+  }
+
+  async addCentralPartnerTemplate(
+    landingPageId: number,
+    pitch: string,
+    userId: number,
+  ): Promise<CentralPartnerShareSettings> {
+    const current = await this.settingsRepository.findOne({
+      where: { setting_key: CENTRAL_PARTNER_SHARE_KEY },
+    });
+
+    const currentTemplates = this.normalizeCentralPartnerTemplates(current?.payload);
+    const nextTemplates = this.upsertCentralPartnerTemplate(
+      currentTemplates,
+      landingPageId,
+      pitch.trim() || DEFAULT_CENTRAL_PARTNER_PITCH,
+    );
+
+    const saved = await this.settingsRepository.save({
+      id: current?.id,
+      setting_key: CENTRAL_PARTNER_SHARE_KEY,
+      payload: { templates: nextTemplates },
+      updated_by: userId,
+    });
+
+    return {
+      templates: await this.buildCentralPartnerTemplateSettings(saved.payload),
+    };
+  }
+
+  async updateCentralPartnerTemplatePitch(
+    landingPageId: number,
+    pitch: string,
+    userId: number,
+  ): Promise<CentralPartnerShareSettings> {
+    const current = await this.settingsRepository.findOne({
+      where: { setting_key: CENTRAL_PARTNER_SHARE_KEY },
+    });
+
+    const currentTemplates = this.normalizeCentralPartnerTemplates(current?.payload);
+    const nextTemplates = this.upsertCentralPartnerTemplate(
+      currentTemplates,
+      landingPageId,
+      pitch.trim() || DEFAULT_CENTRAL_PARTNER_PITCH,
+    );
+
+    const saved = await this.settingsRepository.save({
+      id: current?.id,
+      setting_key: CENTRAL_PARTNER_SHARE_KEY,
+      payload: { templates: nextTemplates },
+      updated_by: userId,
+    });
+
+    return {
+      templates: await this.buildCentralPartnerTemplateSettings(saved.payload),
+    };
+  }
+
+  async removeCentralPartnerTemplate(
+    landingPageId: number,
+    userId: number,
+  ): Promise<CentralPartnerShareSettings> {
+    const current = await this.settingsRepository.findOne({
+      where: { setting_key: CENTRAL_PARTNER_SHARE_KEY },
+    });
+
+    const currentTemplates = this.normalizeCentralPartnerTemplates(current?.payload);
+    const nextTemplates = currentTemplates.filter((template) => template.landingPageId !== landingPageId);
+
+    const saved = await this.settingsRepository.save({
+      id: current?.id,
+      setting_key: CENTRAL_PARTNER_SHARE_KEY,
+      payload: { templates: nextTemplates },
+      updated_by: userId,
+    });
+
+    return {
+      templates: await this.buildCentralPartnerTemplateSettings(saved.payload),
+    };
+  }
+
+  private normalizeCentralPartnerTemplates(raw: Record<string, any> | undefined | null) {
+    const normalizedRaw =
+      raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {};
+
+    const templatesSource = Array.isArray(normalizedRaw.templates)
+      ? normalizedRaw.templates
+      : [
+          {
+            landingPageId: DEFAULT_CENTRAL_PARTNER_PAGE_ID,
+            pitch:
+              typeof normalizedRaw.pitch === 'string' && normalizedRaw.pitch.trim().length > 0
+                ? normalizedRaw.pitch.trim()
+                : DEFAULT_CENTRAL_PARTNER_PITCH,
+          },
+        ];
+
+    const uniqueTemplates = new Map<number, { landingPageId: number; pitch: string }>();
+    for (const template of templatesSource) {
+      const landingPageId = Number(template?.landingPageId);
+      if (!Number.isFinite(landingPageId) || landingPageId <= 0) continue;
+      const pitch =
+        typeof template?.pitch === 'string' && template.pitch.trim().length > 0
+          ? template.pitch.trim()
+          : DEFAULT_CENTRAL_PARTNER_PITCH;
+      uniqueTemplates.set(landingPageId, { landingPageId, pitch });
+    }
+
+    return Array.from(uniqueTemplates.values());
+  }
+
+  private upsertCentralPartnerTemplate(
+    templates: Array<{ landingPageId: number; pitch: string }>,
+    landingPageId: number,
+    pitch: string,
+  ) {
+    const filtered = templates.filter((template) => template.landingPageId !== landingPageId);
+    return [{ landingPageId, pitch }, ...filtered];
+  }
+
+  private async buildCentralPartnerTemplateSettings(
+    raw: Record<string, any> | undefined | null,
+  ): Promise<CentralPartnerShareSettings['templates']> {
+    const templates = this.normalizeCentralPartnerTemplates(raw);
+    const ids = templates.map((template) => template.landingPageId);
+    if (ids.length === 0) return [];
+
+    const pages = await this.landingPagesRepository.find({
+      where: { id: In(ids) },
+    });
+    const pageMap = new Map(pages.map((page) => [page.id, page]));
+
+    return templates.map((template) => {
+      const page = pageMap.get(template.landingPageId);
+      return {
+        landingPageId: template.landingPageId,
+        pitch: template.pitch,
+        page: page
+          ? {
+              id: page.id,
+              title: page.title,
+              slug: page.slug,
+              is_published: page.is_published,
+              updated_at: page.updated_at,
+            }
+          : null,
+      };
+    });
   }
 
   private toPayload(raw: Record<string, any> | undefined | null): AiImageSettingsPayload {
