@@ -42,6 +42,12 @@ export class ReferralsController {
         return this.referralsService.validateReferralCode(code);
     }
 
+    // Resolve referral code to landing page URL (public, for short URL feature)
+    @Get('resolve/:code')
+    async resolveReferralUrl(@Param('code') code: string) {
+        return this.referralsService.resolveReferralUrl(code);
+    }
+
     // Admin: Generate codes for existing users
     @Post('generate-existing')
     @UseGuards(JwtAuthGuard)

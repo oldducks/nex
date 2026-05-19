@@ -789,7 +789,8 @@ export default function DigitalMediaLibraryPage() {
                                 onClick={() => { setSelectedCharacterId(null); saveVideoSettings({ characterId: null }); }}
                                 className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${!selectedCharacterId ? "border-primary bg-primary/5 font-bold text-primary" : "border-foreground/10 bg-white text-foreground/70"}`}
                               >
-                                ไม่ใช้ Character
+                                <span className="font-bold">ให้ AI เลือกเสียงเอง</span>
+                                <span className="ml-1.5 text-xs font-normal opacity-60">(ไม่ระบุ Character)</span>
                               </button>
                               {characters.map((char) => (
                                 <div key={char.id} className={`flex items-start gap-2 rounded-xl border px-3 py-2 transition ${selectedCharacterId === char.id ? "border-primary bg-primary/5" : "border-foreground/10 bg-white"}`}>
@@ -885,8 +886,8 @@ export default function DigitalMediaLibraryPage() {
                         <Download size={14} /> ดาวน์โหลด
                       </button>
                     </div>
-                    <div className={`mx-auto overflow-hidden rounded-2xl border border-foreground/10 bg-black ${videoFrameClassName}`} style={ratioStyle}>
-                      <video src={videoOutputUrl} controls playsInline className="h-full w-full object-cover" />
+                    <div className={`mx-auto overflow-hidden rounded-2xl border border-foreground/10 bg-black ${videoFrameClassName}`}>
+                      <video src={videoOutputUrl} controls playsInline className="block w-full h-auto" />
                     </div>
                   </div>
                 ) : null}

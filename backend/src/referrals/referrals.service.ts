@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { Referral, ReferralStatus } from './entities/referral.entity';
 import { User } from '../users/entities/user.entity';
 import { nanoid } from 'nanoid';
+import { AdminSettingsService } from '../admin-settings/admin-settings.service';
 
 const MAX_REFERRAL_LEVELS = 10;
 const BASE_COMMISSION_RATE = 10; // 10%
@@ -15,6 +16,7 @@ export class ReferralsService {
         private referralsRepository: Repository<Referral>,
         @InjectRepository(User)
         private usersRepository: Repository<User>,
+        private readonly adminSettingsService: AdminSettingsService,
     ) { }
 
     // Generate unique 8-character referral code
@@ -201,6 +203,32 @@ export class ReferralsService {
         }
 
         return { generatedCount: count };
+    }
+
+    // Public: Resolve a referral code to a landing page redirect URL
+    async resolveReferralUrl(code: string): Promise<{
+        valid: boolean;
+        referralCode?: string;
+        redirectUrl?: string;
+    }> {
+        const user = await this.usersRepository.findOne({
+            where: { referral_code: code.toUpperCase() },
+            select: ['id', 'referral_code'],
+        });
+
+        if (!user?.referral_code) return { valid: false };
+
+        const settings = await this.adminSettingsService.getCentralPartnerShareSettings();
+        const firstTemplate = settings.templates[0];
+
+        if (!firstTemplate) {
+            return { valid: true, referralCode: user.referral_code };
+        }
+
+        const slug = firstTemplate.page?.slug || String(firstTemplate.landingPageId);
+        const redirectUrl = `/lp/${encodeURIComponent(slug)}?ref=${encodeURIComponent(user.referral_code)}`;
+
+        return { valid: true, referralCode: user.referral_code, redirectUrl };
     }
 
     // Admin: Get all referrals

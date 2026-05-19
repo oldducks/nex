@@ -4,9 +4,10 @@ import { ReferralsService } from './referrals.service';
 import { ReferralsController } from './referrals.controller';
 import { Referral } from './entities/referral.entity';
 import { User } from '../users/entities/user.entity';
+import { AdminSettingsModule } from '../admin-settings/admin-settings.module';
 
 @Module({
-    imports: [TypeOrmModule.forFeature([Referral, User])],
+    imports: [TypeOrmModule.forFeature([Referral, User]), AdminSettingsModule],
     providers: [ReferralsService],
     controllers: [ReferralsController],
     exports: [ReferralsService],
