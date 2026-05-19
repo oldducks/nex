@@ -4,7 +4,7 @@ import { ChangeEvent, CSSProperties, useEffect, useMemo, useState } from "react"
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { ArrowLeft, CheckCircle2, Download, Image as ImageIcon, Loader2, Search, Sparkles, Upload, Video } from "lucide-react";
+import { ArrowLeft, CheckCircle2, ChevronDown, ChevronUp, Download, Image as ImageIcon, Loader2, Plus, Search, Sparkles, Trash2, Upload, User, Video } from "lucide-react";
 
 interface TemplateCategory {
   id: number;
@@ -14,8 +14,27 @@ interface TemplateCategory {
 
 type MediaType = "image" | "video";
 type VideoRatio = "9:16" | "16:9";
+type VideoResolution = "720p" | "1080p";
 type ImageRatio = "1:1" | "4:5" | "9:16" | "16:9";
 type ImageMode = "template" | "prompt";
+
+interface CharacterProfile {
+  id: string;
+  gender: "female" | "male";
+  voiceStyle: string;
+}
+
+const CHARACTERS_KEY = "nex_video_characters";
+const VIDEO_SETTINGS_KEY = "nex_video_settings";
+
+const VOICE_PRESETS = [
+  { label: "มืออาชีพ / นักนำเสนอ", value: "professional presenter, clear and confident, measured speaking pace" },
+  { label: "สดใส / กระตือรือร้น", value: "energetic and enthusiastic, upbeat and expressive delivery" },
+  { label: "นักข่าว / ทางการ", value: "news anchor style, formal and authoritative, precise diction" },
+  { label: "อบอุ่น / เป็นกันเอง", value: "warm and friendly conversational tone, relatable and approachable" },
+  { label: "บรรยาย / เล่าเรื่อง", value: "storytelling narrator, engaging and expressive, smooth delivery" },
+  { label: "ขายสินค้า / โฆษณา", value: "persuasive sales style, enthusiastic, clear call-to-action emphasis" },
+] as const;
 
 interface GalleryTemplate {
   id: number;
@@ -78,6 +97,7 @@ export default function DigitalMediaLibraryPage() {
   const [videoReferenceImageUrl, setVideoReferenceImageUrl] = useState("");
   const [videoPrompt, setVideoPrompt] = useState("");
   const [videoAspectRatio, setVideoAspectRatio] = useState<VideoRatio>("9:16");
+  const [videoResolution, setVideoResolution] = useState<VideoResolution>("720p");
   const [videoUploading, setVideoUploading] = useState(false);
   const [videoGenerating, setVideoGenerating] = useState(false);
   const [videoGenerationJobId, setVideoGenerationJobId] = useState<number | null>(null);
@@ -85,6 +105,70 @@ export default function DigitalMediaLibraryPage() {
   const [videoStatusText, setVideoStatusText] = useState<string | null>(null);
   const [videoError, setVideoError] = useState<string | null>(null);
   const [dailyQuota, setDailyQuota] = useState<DailyQuotaStatus | null>(null);
+
+  const [characters, setCharacters] = useState<CharacterProfile[]>([]);
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
+  const [showCharacterPanel, setShowCharacterPanel] = useState(false);
+  const [showNewCharacterForm, setShowNewCharacterForm] = useState(false);
+  const [newCharacterGender, setNewCharacterGender] = useState<"female" | "male">("female");
+  const [newCharacterVoiceStyle, setNewCharacterVoiceStyle] = useState<string>(VOICE_PRESETS[0].value);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(CHARACTERS_KEY);
+      if (stored) setCharacters(JSON.parse(stored) as CharacterProfile[]);
+    } catch {}
+    try {
+      const settings = localStorage.getItem(VIDEO_SETTINGS_KEY);
+      if (settings) {
+        const parsed = JSON.parse(settings) as { characterId?: string; resolution?: string; aspectRatio?: string };
+        if (parsed.characterId) setSelectedCharacterId(parsed.characterId);
+        if (parsed.resolution === "1080p" || parsed.resolution === "720p") setVideoResolution(parsed.resolution);
+        if (parsed.aspectRatio === "16:9" || parsed.aspectRatio === "9:16") setVideoAspectRatio(parsed.aspectRatio);
+      }
+    } catch {}
+  }, []);
+
+  const saveCharacters = (updated: CharacterProfile[]) => {
+    setCharacters(updated);
+    localStorage.setItem(CHARACTERS_KEY, JSON.stringify(updated));
+  };
+
+  const saveVideoSettings = (patch: { characterId?: string | null; resolution?: string; aspectRatio?: string }) => {
+    try {
+      const current = JSON.parse(localStorage.getItem(VIDEO_SETTINGS_KEY) || "{}") as Record<string, string>;
+      const updated = { ...current, ...patch };
+      if (patch.characterId === null) delete updated.characterId;
+      localStorage.setItem(VIDEO_SETTINGS_KEY, JSON.stringify(updated));
+    } catch {}
+  };
+
+  const handleAddCharacter = () => {
+    const newChar: CharacterProfile = {
+      id: Date.now().toString(),
+      gender: newCharacterGender,
+      voiceStyle: newCharacterVoiceStyle,
+    };
+    saveCharacters([...characters, newChar]);
+    setNewCharacterGender("female");
+    setNewCharacterVoiceStyle(VOICE_PRESETS[0].value);
+    setShowNewCharacterForm(false);
+  };
+
+  const handleDeleteCharacter = (id: string) => {
+    saveCharacters(characters.filter((c) => c.id !== id));
+    if (selectedCharacterId === id) {
+      setSelectedCharacterId(null);
+      saveVideoSettings({ characterId: null });
+    }
+  };
+
+  const buildVideoPrompt = () => {
+    const char = characters.find((c) => c.id === selectedCharacterId);
+    if (!char) return videoPrompt.trim();
+    const genderText = char.gender === "female" ? "Thai female voice" : "Thai male voice";
+    return `${genderText}, ${char.voiceStyle}. ${videoPrompt.trim()}`;
+  };
 
   useEffect(() => {
     if (!token) {
@@ -216,7 +300,8 @@ export default function DigitalMediaLibraryPage() {
       ? "mx-auto w-full max-w-[760px]"
       : "mx-auto w-full max-w-[360px] sm:max-w-[400px]";
   const isSuperAdmin = currentUserRole === "super_admin";
-  const isUnlimited = dailyQuota?.unlimited || isSuperAdmin;
+  const isAdmin = currentUserRole === "super_admin" || currentUserRole === "group_admin";
+  const isUnlimited = dailyQuota?.unlimited || isAdmin;
   const noQuotaRemaining = !isUnlimited && dailyQuota !== null && (dailyQuota.remaining ?? 0) <= 0;
 
   const handleVideoReferenceUpload = async (event: ChangeEvent<HTMLInputElement>) => {
@@ -425,7 +510,7 @@ export default function DigitalMediaLibraryPage() {
   }, [API_URL, imageGenerationJobId, token]);
 
   const handleGenerateVideo = async () => {
-    if (!isSuperAdmin) {
+    if (!isAdmin) {
       setVideoError("Coming soon");
       return;
     }
@@ -456,8 +541,9 @@ export default function DigitalMediaLibraryPage() {
         },
         body: JSON.stringify({
           reference_image_url: videoReferenceImageUrl,
-          prompt: videoPrompt,
+          prompt: buildVideoPrompt(),
           aspect_ratio: videoAspectRatio,
+          resolution: videoResolution,
         }),
         signal: controller.signal,
       }).finally(() => clearTimeout(kickoffTimeout));
@@ -622,12 +708,191 @@ export default function DigitalMediaLibraryPage() {
             </div>
           </div>
 
-          <div className="mb-3 inline-flex items-center gap-2 rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm font-black text-primary">
-            <ImageIcon size={16} />
-            สร้างได้เฉพาะรูปภาพ
-          </div>
+          {isAdmin ? (
+            <div className="mb-3 inline-flex rounded-2xl border border-foreground/10 bg-white p-1">
+              <button type="button" onClick={() => setMediaMode("image")} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${mediaMode === "image" ? "bg-primary text-white" : "text-foreground/70"}`}>
+                <ImageIcon size={15} /> รูปภาพ
+              </button>
+              <button type="button" onClick={() => setMediaMode("video")} className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-bold transition ${mediaMode === "video" ? "bg-primary text-white" : "text-foreground/70"}`}>
+                <Video size={15} /> วิดีโอ
+              </button>
+            </div>
+          ) : (
+            <div className="mb-3 inline-flex items-center gap-2 rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm font-black text-primary">
+              <ImageIcon size={16} />
+              สร้างได้เฉพาะรูปภาพ
+            </div>
+          )}
 
           <div className="space-y-4">
+            {isAdmin && mediaMode === "video" ? (
+              <div className="space-y-4">
+                <div className="rounded-[28px] border border-[var(--glass-border)] bg-white p-5">
+                  <h3 className="text-lg font-black text-foreground">สร้างวิดีโอ AI</h3>
+                  <p className="mt-1 text-sm text-foreground/60">อัปโหลดรูปอ้างอิง + ใส่บทพูด + เลือก Character → ระบบจะรักษาหน้าตาและเสียงให้สม่ำเสมอ</p>
+
+                  <div className="mt-4 space-y-4">
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">รูปอ้างอิง *</p>
+                      {videoReferenceImageUrl ? (
+                        <div className="relative inline-block">
+                          <img src={videoReferenceImageUrl} alt="reference" className="h-32 w-auto rounded-2xl border border-foreground/10 object-cover" />
+                          <button type="button" onClick={() => setVideoReferenceImageUrl("")} className="absolute right-1.5 top-1.5 rounded-md bg-black/60 px-2 py-0.5 text-[10px] font-bold text-white">
+                            ลบ
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-foreground/10 bg-background px-4 py-2.5 text-sm font-bold text-foreground/70">
+                          <Upload size={15} />{videoUploading ? "กำลังอัปโหลด..." : "อัปโหลดรูป"}
+                          <input type="file" accept="image/*" className="hidden" onChange={handleVideoReferenceUpload} />
+                        </label>
+                      )}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">อัตราส่วน</p>
+                        <select value={videoAspectRatio} onChange={(e) => { setVideoAspectRatio(e.target.value as VideoRatio); saveVideoSettings({ aspectRatio: e.target.value }); }} className="w-full rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm font-semibold text-foreground outline-none">
+                          <option value="9:16">9:16 (Portrait)</option>
+                          <option value="16:9">16:9 (Landscape)</option>
+                        </select>
+                      </div>
+                      <div>
+                        <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">ความละเอียด</p>
+                        <select value={videoResolution} onChange={(e) => { setVideoResolution(e.target.value as VideoResolution); saveVideoSettings({ resolution: e.target.value }); }} className="w-full rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm font-semibold text-foreground outline-none">
+                          <option value="720p">720p (เร็วกว่า)</option>
+                          <option value="1080p">1080p (ชัดกว่า)</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div>
+                      <button
+                        type="button"
+                        onClick={() => setShowCharacterPanel((v) => !v)}
+                        className="mb-2 inline-flex items-center gap-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45 hover:text-primary transition"
+                      >
+                        <User size={13} />
+                        Character (Ingredients)
+                        {showCharacterPanel ? <ChevronUp size={13} /> : <ChevronDown size={13} />}
+                        {selectedCharacterId && <span className="ml-1 rounded-full bg-primary px-2 py-0.5 text-[10px] text-white normal-case tracking-normal">ใช้งานอยู่</span>}
+                      </button>
+
+                      {showCharacterPanel && (
+                        <div className="rounded-2xl border border-foreground/10 bg-[#F8FAFC] p-3 space-y-2">
+                          <p className="text-xs text-foreground/55">เลือก Character เพื่อรักษาหน้าตา + เสียงให้สม่ำเสมอในทุกคลิป</p>
+
+                          {characters.length > 0 && (
+                            <div className="space-y-1.5">
+                              <button
+                                type="button"
+                                onClick={() => { setSelectedCharacterId(null); saveVideoSettings({ characterId: null }); }}
+                                className={`w-full rounded-xl border px-3 py-2 text-left text-sm transition ${!selectedCharacterId ? "border-primary bg-primary/5 font-bold text-primary" : "border-foreground/10 bg-white text-foreground/70"}`}
+                              >
+                                ไม่ใช้ Character
+                              </button>
+                              {characters.map((char) => (
+                                <div key={char.id} className={`flex items-start gap-2 rounded-xl border px-3 py-2 transition ${selectedCharacterId === char.id ? "border-primary bg-primary/5" : "border-foreground/10 bg-white"}`}>
+                                  <button type="button" onClick={() => { const next = char.id === selectedCharacterId ? null : char.id; setSelectedCharacterId(next); saveVideoSettings({ characterId: next }); }} className="flex-1 text-left">
+                                    <p className={`text-sm font-bold ${selectedCharacterId === char.id ? "text-primary" : "text-foreground"}`}>
+                                      {char.gender === "female" ? "หญิง" : "ชาย"} — {VOICE_PRESETS.find((p) => p.value === char.voiceStyle)?.label ?? char.voiceStyle}
+                                    </p>
+                                  </button>
+                                  <button type="button" onClick={() => handleDeleteCharacter(char.id)} className="shrink-0 text-foreground/30 hover:text-red-500 transition">
+                                    <Trash2 size={14} />
+                                  </button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+
+                          {showNewCharacterForm ? (
+                            <div className="rounded-xl border border-foreground/10 bg-white p-3 space-y-2">
+                              <div>
+                                <p className="mb-1 text-xs font-bold text-foreground/50">เพศ</p>
+                                <div className="flex gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => setNewCharacterGender("female")}
+                                    className={`flex-1 rounded-xl border py-2 text-sm font-bold transition ${newCharacterGender === "female" ? "border-primary bg-primary text-white" : "border-foreground/10 text-foreground/60"}`}
+                                  >
+                                    หญิง
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => setNewCharacterGender("male")}
+                                    className={`flex-1 rounded-xl border py-2 text-sm font-bold transition ${newCharacterGender === "male" ? "border-primary bg-primary text-white" : "border-foreground/10 text-foreground/60"}`}
+                                  >
+                                    ชาย
+                                  </button>
+                                </div>
+                              </div>
+                              <div>
+                                <p className="mb-1 text-xs font-bold text-foreground/50">Style เสียง</p>
+                                <select
+                                  value={newCharacterVoiceStyle}
+                                  onChange={(e) => setNewCharacterVoiceStyle(e.target.value)}
+                                  className="w-full rounded-xl border border-foreground/10 px-3 py-2 text-sm text-foreground outline-none focus:border-primary/40"
+                                >
+                                  {VOICE_PRESETS.map((p) => (
+                                    <option key={p.value} value={p.value}>{p.label}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="flex gap-2">
+                                <button type="button" onClick={handleAddCharacter} className="flex-1 rounded-xl bg-primary px-3 py-2 text-sm font-bold text-white">บันทึก</button>
+                                <button type="button" onClick={() => setShowNewCharacterForm(false)} className="rounded-xl border border-foreground/10 px-3 py-2 text-sm text-foreground/60">ยกเลิก</button>
+                              </div>
+                            </div>
+                          ) : (
+                            <button type="button" onClick={() => setShowNewCharacterForm(true)} className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-foreground/20 px-3 py-2 text-xs font-bold text-foreground/50 hover:border-primary/40 hover:text-primary transition">
+                              <Plus size={12} /> เพิ่ม Character ใหม่
+                            </button>
+                          )}
+                        </div>
+                      )}
+                    </div>
+
+                    <div>
+                      <p className="mb-2 text-xs font-black uppercase tracking-[0.14em] text-foreground/45">บทพูด / Prompt *</p>
+                      <textarea
+                        value={videoPrompt}
+                        onChange={(e) => setVideoPrompt(e.target.value)}
+                        placeholder="พิมพ์บทพูดหรือ prompt เช่น นักนำเสนอกล่าวถึงโปรโมชั่นพิเศษ พร้อมท่าทางมืออาชีพ"
+                        className="w-full min-h-[120px] rounded-2xl border border-foreground/10 bg-white px-4 py-3 text-sm text-foreground outline-none focus:border-primary/30 focus:ring-2 focus:ring-primary/15"
+                      />
+                      {selectedCharacterId && (
+                        <p className="mt-1 text-xs text-primary/70">Character description จะถูกเพิ่มต่อท้าย prompt อัตโนมัติ</p>
+                      )}
+                    </div>
+
+                    <button type="button" onClick={handleGenerateVideo} disabled={videoGenerating || videoUploading || noQuotaRemaining} className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-accent px-4 py-3 text-sm font-black text-white shadow-lg shadow-[var(--glow)] disabled:opacity-60">
+                      {videoGenerating ? <Loader2 size={15} className="animate-spin" /> : <Video size={15} />}
+                      {videoGenerating ? "กำลังสร้างวิดีโอ..." : `สร้างวิดีโอ ${videoResolution}`}
+                    </button>
+
+                    {noQuotaRemaining ? <p className="text-sm font-semibold text-[#C2410C]">วันนี้คุณใช้สิทธิ์สร้างงานครบแล้ว กรุณาลองใหม่พรุ่งนี้</p> : null}
+                    {videoStatusText ? <p className="text-sm text-[#050579]">{videoStatusText}</p> : null}
+                    {videoError ? <p className="text-sm text-red-500">{videoError}</p> : null}
+                  </div>
+                </div>
+
+                {videoOutputUrl ? (
+                  <div className="rounded-[28px] border border-[var(--glass-border)] bg-white p-5">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <p className="text-base font-black text-foreground">ผลลัพธ์วิดีโอ</p>
+                      <button type="button" onClick={handleSaveVideo} className="inline-flex items-center gap-2 rounded-2xl bg-primary px-4 py-2 text-sm font-bold text-white">
+                        <Download size={14} /> ดาวน์โหลด
+                      </button>
+                    </div>
+                    <div className={`mx-auto overflow-hidden rounded-2xl border border-foreground/10 bg-black ${videoFrameClassName}`} style={ratioStyle}>
+                      <video src={videoOutputUrl} controls playsInline className="h-full w-full object-cover" />
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            ) : (
+              <>
               <div className="inline-flex rounded-2xl border border-foreground/10 bg-white p-1">
                 <button type="button" onClick={() => setImageMode("template")} className={`inline-flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-bold transition ${imageMode === "template" ? "bg-primary text-white" : "text-foreground/70"}`}>
                   <ImageIcon size={15} /> เทมเพลต
@@ -783,6 +1048,8 @@ export default function DigitalMediaLibraryPage() {
                   </div>
                 </>
               )}
+            </>
+          )}
           </div>
         </section>
       </main>

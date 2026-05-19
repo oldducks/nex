@@ -75,6 +75,7 @@ export interface CreateLiteVideoReferenceInput {
   ratio?: '9:16' | '16:9';
   referenceImageUrl: string;
   durationSeconds?: 8;
+  resolution?: '720p' | '1080p';
 }
 
 type ProxyImageRuntimeConfig = {
@@ -560,6 +561,7 @@ export class CreateLiteService {
     const runtime = await this.getGoogleVideoRuntimeConfig();
     const referenceImage = await this.resolveVideoReferenceImageToInlineData(input.referenceImageUrl);
     const aspectRatio = input.ratio === '16:9' ? '16:9' : '9:16';
+    const resolution = input.resolution === '1080p' ? '1080p' : '720p';
 
     if (runtime.auth_mode === 'proxy') {
       const requestId = this.createRequestId().replace(/^img_/, 'vid_');
@@ -576,6 +578,7 @@ export class CreateLiteService {
             aspectRatio,
             durationSeconds: 8,
             sampleCount: 1,
+            resolution,
             model: runtime.model,
             referenceImage: {
               data: referenceImage.data,
@@ -630,6 +633,7 @@ export class CreateLiteService {
           durationSeconds: 8,
           sampleCount: 1,
           personGeneration: 'allow_adult',
+          resolution,
         },
       }),
       `video-start:${runtime.model}`,

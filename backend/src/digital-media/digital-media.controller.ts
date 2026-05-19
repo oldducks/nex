@@ -203,9 +203,10 @@ export class DigitalMediaController {
       reference_image_url?: string;
       prompt?: string;
       aspect_ratio?: '9:16' | '16:9';
+      resolution?: '720p' | '1080p';
     },
   ) {
-    if (req.user?.role !== 'super_admin') {
+    if (!['super_admin', 'group_admin'].includes(req.user?.role || '')) {
       throw new ForbiddenException('Coming soon');
     }
 
@@ -214,6 +215,7 @@ export class DigitalMediaController {
         reference_image_url: String(body.reference_image_url || '').trim(),
         prompt: String(body.prompt || '').trim(),
         aspect_ratio: body.aspect_ratio === '16:9' ? '16:9' : '9:16',
+        resolution: body.resolution === '1080p' ? '1080p' : '720p',
       },
       {
         userId: req.user?.sub,

@@ -482,6 +482,7 @@ export class DigitalMediaService implements OnModuleInit {
     reference_image_url: string;
     prompt: string;
     aspect_ratio?: '9:16' | '16:9';
+    resolution?: '720p' | '1080p';
   }, requester: RequesterContext = {}) {
     await this.assertWithinDailyQuota(requester);
     const normalized = this.normalizeDirectVideoInput(input);
@@ -500,6 +501,7 @@ export class DigitalMediaService implements OnModuleInit {
     reference_image_url: string;
     prompt: string;
     aspect_ratio?: '9:16' | '16:9';
+    resolution?: '720p' | '1080p';
   }, requester: RequesterContext = {}) {
     await this.assertWithinDailyQuota(requester);
     const normalized = this.normalizeDirectVideoInput(input);
@@ -598,14 +600,17 @@ export class DigitalMediaService implements OnModuleInit {
     reference_image_url: string;
     prompt: string;
     aspect_ratio?: '9:16' | '16:9';
+    resolution?: '720p' | '1080p';
   }): {
     reference_image_url: string;
     prompt: string;
     aspect_ratio: '9:16' | '16:9';
+    resolution: '720p' | '1080p';
   } {
     const reference_image_url = String(input.reference_image_url || '').trim();
     const prompt = String(input.prompt || '').trim();
     const aspect_ratio = input.aspect_ratio === '16:9' ? '16:9' : '9:16';
+    const resolution = input.resolution === '1080p' ? '1080p' : '720p';
 
     if (!reference_image_url) {
       throw new BadRequestException('กรุณาอัปโหลดรูปอ้างอิงก่อนสร้างวิดีโอ');
@@ -618,6 +623,7 @@ export class DigitalMediaService implements OnModuleInit {
       reference_image_url,
       prompt,
       aspect_ratio,
+      resolution,
     };
   }
 
@@ -656,12 +662,14 @@ export class DigitalMediaService implements OnModuleInit {
     reference_image_url: string;
     prompt: string;
     aspect_ratio: '9:16' | '16:9';
+    resolution?: '720p' | '1080p';
   }) {
     const generated = await this.createLiteService.generateVideoFromReferenceImage({
       prompt: input.prompt,
       ratio: input.aspect_ratio,
       referenceImageUrl: input.reference_image_url,
       durationSeconds: 8,
+      resolution: input.resolution,
     });
 
     const output_video_url = await this.persistGeneratedVideoBase64(generated.videoBase64, generated.mimeType);
@@ -678,6 +686,7 @@ export class DigitalMediaService implements OnModuleInit {
       reference_image_url: string;
       prompt: string;
       aspect_ratio: '9:16' | '16:9';
+      resolution?: '720p' | '1080p';
     },
   ) {
     try {
