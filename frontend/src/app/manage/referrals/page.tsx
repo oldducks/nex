@@ -134,21 +134,27 @@ export default function ReferralsPage() {
     templates[0] ||
     null;
 
-  const getUrl = (template: CentralPartnerTemplate | null, referralCode?: string) => {
+  const getLongUrl = (template: CentralPartnerTemplate | null, referralCode?: string) => {
     const code = referralCode || user?.referral_code;
     if (!template || !code || typeof window === "undefined") return "";
     const slug = template.page?.slug || String(template.landingPageId);
     return `${window.location.origin}/lp/${encodeURIComponent(slug)}?ref=${encodeURIComponent(code)}`;
   };
 
-  const getShortUrl = (referralCode?: string) => {
+  const getUrl = (template: CentralPartnerTemplate | null, referralCode?: string) => {
     const code = referralCode || user?.referral_code;
-    if (!code || typeof window === "undefined") return "";
-    return `${window.location.origin}/r/${code}`;
+    if (!template || !code || typeof window === "undefined") return "";
+    const isFirst = templates[0]?.landingPageId === template.landingPageId;
+    if (isFirst) {
+      return `${window.location.origin}/r/${encodeURIComponent(code)}`;
+    }
+    const slug = template.page?.slug || String(template.landingPageId);
+    return `${window.location.origin}/r/${encodeURIComponent(code)}/${encodeURIComponent(slug)}`;
   };
 
   const referralUrl = getUrl(selectedTemplate);
-  const shortUrl = getShortUrl();
+  const longReferralUrl = getLongUrl(selectedTemplate);
+  const shortUrl = referralUrl;
   const shareModalTemplate =
     templates.find((t) => t.landingPageId === shareTemplateId) || selectedTemplate || null;
 
@@ -381,14 +387,14 @@ export default function ReferralsPage() {
                   แชร์
                 </button>
               </div>
-              {referralUrl && (
+              {longReferralUrl && (
                 <div className="pt-1">
                   <p className={`text-[10px] font-semibold uppercase tracking-widest ${MUTED_TEXT} mb-1.5`}>Full Link (สำหรับ Salespage)</p>
                   <div className={`rounded-2xl ${MUTED} px-3 py-2 flex items-center gap-2`}>
-                    <p className={`flex-1 text-[11px] break-all ${SECONDARY}`}>{referralUrl}</p>
+                    <p className={`flex-1 text-[11px] break-all ${SECONDARY}`}>{longReferralUrl}</p>
                     <button
                       type="button"
-                      onClick={() => copy(selectedTemplate?.landingPageId ?? -1, referralUrl)}
+                      onClick={() => copy(selectedTemplate?.landingPageId ?? -1, longReferralUrl)}
                       className="shrink-0"
                     >
                       {copiedId === selectedTemplate?.landingPageId ? (
@@ -426,6 +432,7 @@ export default function ReferralsPage() {
             <div className="divide-y divide-[#EEF0FF]">
               {templates.map((tpl) => {
                 const tplUrl = getUrl(tpl);
+                const longTplUrl = getLongUrl(tpl);
                 const isSelected = tpl.landingPageId === selectedTemplateId;
                 const isEditing = editingPitchId === tpl.landingPageId;
 
@@ -534,8 +541,8 @@ export default function ReferralsPage() {
                       </button>
                       <button
                         type="button"
-                        onClick={() => window.open(tplUrl, "_blank")}
-                        disabled={!tplUrl}
+                        onClick={() => window.open(longTplUrl, "_blank")}
+                        disabled={!longTplUrl}
                         className={`flex min-h-10 items-center justify-center gap-1.5 rounded-2xl text-xs font-black ${MUTED} ${NAVY} disabled:opacity-40`}
                       >
                         <Eye size={14} />
