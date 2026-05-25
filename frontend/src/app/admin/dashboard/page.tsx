@@ -463,9 +463,13 @@ export default function SuperAdminDashboard() {
                     totalUsers: prev.totalUsers - 1,
                     users: prev.users.filter(u => u.id !== userId)
                 } : null);
+            } else {
+                const body = await res.json().catch(() => null);
+                alert(`ลบผู้ใช้ไม่สำเร็จ: ${body?.message || res.statusText}`);
             }
         } catch (error) {
             console.error('Delete failed:', error);
+            alert('ลบผู้ใช้ไม่สำเร็จ: เกิดข้อผิดพลาดในการเชื่อมต่อ');
         }
         setDeleteConfirm(null);
         setActionLoading(null);
@@ -1079,7 +1083,7 @@ export default function SuperAdminDashboard() {
 
     return (
         <div className="min-h-screen bg-[#EEF0FF] text-[#0F172A] p-6">
-            <div className="max-w-7xl mx-auto">
+            <div className="max-w-[1600px] mx-auto">
                 {/* Header */}
                 <div className="flex items-center justify-between mb-8">
                     <div>

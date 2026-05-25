@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import { User, FeatureConfig, DEFAULT_FEATURE_CONFIG_ALL_ENABLED, DEFAULT_FEATURE_CONFIG_LOCKED, UserRole } from './entities/user.entity';
 import { Profile } from '../profiles/entities/profile.entity';
 import { Catalog } from '../catalogs/entities/catalog.entity';
@@ -33,6 +33,7 @@ export class UsersService {
     private catalogsRepository: Repository<Catalog>,
     @InjectRepository(LandingPage)
     private landingPagesRepository: Repository<LandingPage>,
+    private dataSource: DataSource,
   ) { }
 
   private async generateUniqueValue(field: 'uid' | 'url_prefix' | 'referral_code', length: number, uppercase = false): Promise<string> {
@@ -274,8 +275,33 @@ export class UsersService {
     return this.findOne(id);
   }
 
-  remove(id: number) {
-    return this.usersRepository.delete(id);
+  async remove(id: number) {
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
+    try {
+      // Delete related records in correct order (children before parents)
+      await queryRunner.query(`DELETE FROM form_submissions WHERE owner_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM forms WHERE owner_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM leads WHERE owner_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM analytics_logs WHERE user_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM orders WHERE user_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM qr_codes WHERE user_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM referrals WHERE referrer_id = $1 OR referred_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM generation_jobs WHERE user_id = $1`, [id]);
+      // products cascade from catalogs automatically
+      await queryRunner.query(`DELETE FROM catalogs WHERE user_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM landing_pages WHERE user_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM profiles WHERE user_id = $1`, [id]);
+      await queryRunner.query(`DELETE FROM users WHERE id = $1`, [id]);
+      await queryRunner.commitTransaction();
+      return { deleted: true };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
+    }
   }
 
   findByResetToken(token: string) {

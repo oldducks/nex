@@ -492,13 +492,13 @@ export default function ReferralsPage() {
                             value={pitchDraft}
                             onChange={(e) => setPitchDraft(e.target.value)}
                             rows={4}
-                            maxLength={500}
+                            maxLength={1000}
                             className="w-full rounded-xl border border-[#D9E1F2] bg-white px-3 py-2.5 text-sm outline-none focus:border-[#F97316]"
                             placeholder="ใส่คำโปรยสำหรับ Salespage นี้..."
                             autoFocus
                           />
                           <div className="flex items-center justify-between gap-2">
-                            <span className={`text-[10px] ${MUTED_TEXT}`}>{pitchDraft.length}/500</span>
+                            <span className={`text-[10px] ${MUTED_TEXT}`}>{pitchDraft.length}/1000</span>
                             <button
                               type="button"
                               onClick={() => savePitch(tpl.landingPageId)}
