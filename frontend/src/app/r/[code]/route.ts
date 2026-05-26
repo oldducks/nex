@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
+// Server-side route needs an absolute URL to reach the API container
+const INTERNAL_API_URL = process.env.INTERNAL_API_URL || 'http://api:4000/api';
 
 export async function GET(
   request: Request,
@@ -15,7 +16,7 @@ export async function GET(
 
   try {
     const res = await fetch(
-      `${API_URL}/referrals/resolve/${encodeURIComponent(code.toUpperCase())}`,
+      `${INTERNAL_API_URL}/referrals/resolve/${encodeURIComponent(code.toUpperCase())}`,
       { cache: 'no-store' },
     );
 

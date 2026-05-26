@@ -8,7 +8,6 @@ import {
   Copy,
   Download,
   Eye,
-  Link2,
   Loader2,
   LogOut,
   Pencil,
@@ -116,7 +115,7 @@ export default function ReferralsPage() {
   const [pitchDraft, setPitchDraft] = useState("");
   const [savingPitch, setSavingPitch] = useState(false);
   const [editingPitchId, setEditingPitchId] = useState<number | null>(null);
-  const [copiedId, setCopiedId] = useState<"short" | number | null>(null);
+  const [copiedId, setCopiedId] = useState<string | number | null>(null);
   const [showShareModal, setShowShareModal] = useState(false);
   const [shareTemplateId, setShareTemplateId] = useState<number | null>(null);
   const [creatingTemplate, setCreatingTemplate] = useState(false);
@@ -153,8 +152,6 @@ export default function ReferralsPage() {
   };
 
   const referralUrl = getUrl(selectedTemplate);
-  const longReferralUrl = getLongUrl(selectedTemplate);
-  const shortUrl = referralUrl;
   const shareModalTemplate =
     templates.find((t) => t.landingPageId === shareTemplateId) || selectedTemplate || null;
 
@@ -232,7 +229,7 @@ export default function ReferralsPage() {
     }
   }, [selectedTemplate, editingPitchId]);
 
-  const copy = async (type: "short" | number, text: string) => {
+  const copy = async (type: string | number, text: string) => {
     await navigator.clipboard.writeText(text).catch(() => {});
     setCopiedId(type);
     setTimeout(() => setCopiedId(null), 2200);
@@ -345,71 +342,6 @@ export default function ReferralsPage() {
           <StatCard label="รหัสแนะนำ" value={user?.referral_code || "---"} mono />
         </div>
 
-        {/* ─── Short URL block (most prominent) ─────────────────────── */}
-        {shortUrl ? (
-          <div className={`rounded-[24px] ${SURFACE} overflow-hidden`}>
-            <div className="px-4 pt-4 pb-1 flex items-center gap-2">
-              <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EEF0FF]">
-                <Link2 size={16} className={NAVY} />
-              </span>
-              <div>
-                <p className={`text-xs font-black uppercase tracking-wider ${NAVY}`}>Short Link</p>
-                <p className={`text-[10px] ${MUTED_TEXT}`}>ลิ้งค์สั้นสำหรับแบ่งปัน</p>
-              </div>
-            </div>
-            <div className="px-4 pb-4 space-y-2 mt-3">
-              <div className={`rounded-2xl border border-[#C7D7FF] bg-[#EEF0FF] px-4 py-3`}>
-                <p className={`text-sm font-black ${NAVY} break-all tracking-wide`}>{shortUrl}</p>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={() => copy("short", shortUrl)}
-                  className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black transition ${
-                    copiedId === "short" ? "bg-green-500 text-white" : CTA
-                  }`}
-                >
-                  {copiedId === "short" ? <Check size={15} /> : <Copy size={15} />}
-                  {copiedId === "short" ? "คัดลอกแล้ว!" : "คัดลอก Short Link"}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (navigator.share) {
-                      navigator.share({ url: shortUrl, title: "ลิงก์แนะนำสมาชิก NEX" });
-                    } else {
-                      copy("short", shortUrl);
-                    }
-                  }}
-                  className={`flex min-h-11 items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-xs font-black ${MUTED} ${NAVY}`}
-                >
-                  <Share2 size={15} />
-                  แชร์
-                </button>
-              </div>
-              {longReferralUrl && (
-                <div className="pt-1">
-                  <p className={`text-[10px] font-semibold uppercase tracking-widest ${MUTED_TEXT} mb-1.5`}>Full Link (สำหรับ Salespage)</p>
-                  <div className={`rounded-2xl ${MUTED} px-3 py-2 flex items-center gap-2`}>
-                    <p className={`flex-1 text-[11px] break-all ${SECONDARY}`}>{longReferralUrl}</p>
-                    <button
-                      type="button"
-                      onClick={() => copy(selectedTemplate?.landingPageId ?? -1, longReferralUrl)}
-                      className="shrink-0"
-                    >
-                      {copiedId === selectedTemplate?.landingPageId ? (
-                        <Check size={14} className="text-green-500" />
-                      ) : (
-                        <Copy size={14} className={MUTED_TEXT} />
-                      )}
-                    </button>
-                  </div>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : null}
-
         {/* ─── Admin: Salespage templates ─────────────────────────────── */}
         {isAdmin && (
           <div className={`rounded-[24px] ${SURFACE} overflow-hidden`}>
@@ -431,7 +363,7 @@ export default function ReferralsPage() {
 
             <div className="divide-y divide-[#EEF0FF]">
               {templates.map((tpl) => {
-                const tplUrl = getUrl(tpl);
+                const shortTplUrl = getUrl(tpl);
                 const longTplUrl = getLongUrl(tpl);
                 const isSelected = tpl.landingPageId === selectedTemplateId;
                 const isEditing = editingPitchId === tpl.landingPageId;
@@ -517,27 +449,46 @@ export default function ReferralsPage() {
                       )}
                     </div>
 
+                    {/* Salespage URL display */}
+                    {shortTplUrl && (
+                      <div className={`rounded-2xl ${MUTED} p-3 space-y-1.5`}>
+                        <p className={`text-[10px] font-black uppercase tracking-widest ${MUTED_TEXT}`}>ลิงก์ Salespage</p>
+                        <div className="rounded-xl border border-[#C7D7FF] bg-[#EEF0FF] px-3 py-2">
+                          <p className={`text-xs font-bold ${NAVY} break-all`}>{shortTplUrl}</p>
+                        </div>
+                      </div>
+                    )}
+
                     {/* Actions */}
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
-                        onClick={() => copy(tpl.landingPageId, tplUrl)}
-                        disabled={!tplUrl}
+                        onClick={() => copy(tpl.landingPageId, shortTplUrl)}
+                        disabled={!shortTplUrl}
                         className={`flex min-h-10 items-center justify-center gap-1.5 rounded-2xl text-xs font-black transition disabled:opacity-40 ${
                           copiedId === tpl.landingPageId ? "bg-green-100 text-green-700" : `${CTA}`
                         }`}
                       >
                         {copiedId === tpl.landingPageId ? <Check size={14} /> : <Copy size={14} />}
-                        {copiedId === tpl.landingPageId ? "คัดลอกแล้ว" : "คัดลอก"}
+                        {copiedId === tpl.landingPageId ? "คัดลอกแล้ว" : "คัดลอก URL"}
                       </button>
                       <button
                         type="button"
-                        onClick={() => { setShareTemplateId(tpl.landingPageId); setShowShareModal(true); }}
-                        disabled={!tplUrl}
+                        onClick={() => {
+                          const fullText = tpl.pitch?.trim()
+                            ? `${tpl.pitch.trim()}\n\n${shortTplUrl}`
+                            : shortTplUrl;
+                          if (navigator.share) {
+                            navigator.share({ text: fullText });
+                          } else {
+                            copy(`pitch-${tpl.landingPageId}`, fullText);
+                          }
+                        }}
+                        disabled={!shortTplUrl}
                         className={`flex min-h-10 items-center justify-center gap-1.5 rounded-2xl text-xs font-black ${MUTED} ${NAVY} disabled:opacity-40`}
                       >
                         <Share2 size={14} />
-                        แชร์
+                        แชร์พร้อมคำโปรย
                       </button>
                       <button
                         type="button"
@@ -686,7 +637,7 @@ export default function ReferralsPage() {
               <div className="py-12 text-center">
                 <Users size={32} className="mx-auto text-[#CBD5E1] mb-2" />
                 <p className={`text-sm font-bold ${SECONDARY}`}>ยังไม่มีผู้สมัคร</p>
-                <p className={`text-xs ${MUTED_TEXT} mt-1`}>แชร์ Short Link ด้านบนเพื่อเริ่มชวนสมาชิก</p>
+                <p className={`text-xs ${MUTED_TEXT} mt-1`}>แชร์ลิงก์ด้านบนเพื่อเริ่มชวนสมาชิก</p>
               </div>
             )}
           </div>
