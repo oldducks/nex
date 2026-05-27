@@ -17,7 +17,8 @@ import { promises as fsp } from 'fs';
 export const PACKAGES = [
   { name: 'basic', display: 'Basic', price: 299, duration_days: 30 },
   { name: 'standard', display: 'Standard', price: 799, duration_days: 90 },
-  { name: 'premium', display: 'Premium', price: 1499, duration_days: 365 },
+  { name: 'premium-monthly', display: 'Premium รายเดือน', price: 199, duration_days: 30 },
+  { name: 'premium', display: 'Premium รายปี', price: 1500, duration_days: 365 },
 ];
 
 type LineQuotaSnapshot = {

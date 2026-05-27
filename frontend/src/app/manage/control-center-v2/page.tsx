@@ -61,7 +61,7 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "learning", label: "คู่มือการใช้งาน", href: "/manage/learning", icon: UserCircle, featureKey: "learning" },
   { id: "analytics", label: "ข้อมูลสรุป", href: "/manage/dashboard", icon: BarChart3, featureKey: "analytics" },
   { id: "ai", label: "สร้างงานด้วย AI", href: "/manage/ai", icon: Zap, featureKey: "ai" },
-  { id: "upgrade-plan", label: "อัปเกรดแพ็กเกจ", href: "/manage/upgrade-plan", icon: Crown },
+  { id: "upgrade-plan", label: "เปิดใช้งานทุกอย่าง", href: "/manage/upgrade-plan", icon: Crown },
   { id: "account", label: "ตั้งค่าบัญชี", href: "/manage/account", icon: Settings },
 ];
 
