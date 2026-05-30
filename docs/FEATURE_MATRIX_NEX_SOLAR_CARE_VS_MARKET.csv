@@ -1,0 +1,26 @@
+Feature,NEX Solar Care,Deye Cloud,SolisCloud,SOLARMAN,Notes
+Multi-tenant company management,Yes,Platform-level,Organization/team,Business platform,NEX Solar Care is designed as multi-tenant SaaS for solar service companies.
+Customer portal,Yes,Yes,Yes,Yes,All products provide some customer-facing visibility.
+Real-time inverter telemetry,Partial / future integration,Strong,Strong,Strong,Market platforms are stronger because they connect directly to inverter/loggers.
+Energy flow visualization,Basic / future,Yes,Yes,Yes,NEX can add this after telemetry integration.
+Data logger integration,Connector scaffold / mock,Strong,Strong,Strong,Deye/Solis/SOLARMAN have hardware or logger ecosystems.
+Remote inverter settings/control,Not yet,Yes via logger/cloud features,Yes with installer permissions,Yes device dependent,NEX should only add this with strong permission and audit controls.
+Fault alarms from inverter data,Not yet real-time,Yes,Yes,Yes,NEX has ticket workflow but not automatic alarm ingestion yet.
+AI assistant,Yes,Not core public positioning,Not core public positioning,AI-powered analytics mentioned,NEX differentiates through customer support AI and tenant-scoped context.
+Support ticket workflow,Strong,O&M dispatch features,O&M features,Smart O&M features,NEX is strong for after-sales ticket handling.
+Technician workflow,Strong,Partial,Partial,Partial,NEX includes technician-oriented service flow.
+Service record history,Strong,Not main public focus,Not main public focus,O&M oriented,NEX is stronger as a service CRM layer.
+Customer documents and warranty,Strong,Limited / not main focus,Limited / not main focus,Limited / not main focus,NEX has clear opportunity in warranty invoices manuals service reports.
+Bill estimation / tariff support,Strong MVP focus,Not main focus,Yield/earnings oriented,Energy analytics oriented,NEX can localize for Thailand tariff logic.
+White-label / company branding,Yes,Not main focus,Not main focus,Not clear,NEX supports company brand color and SaaS positioning.
+Vendor-neutral strategy,Yes intended,Mostly Deye ecosystem,Mostly Solis ecosystem,Broader device ecosystem,NEX should become the cross-brand customer care layer.
+Native mobile app,Not yet,Yes,Yes,Yes,NEX is currently web-first; PWA or native app is a future opportunity.
+Localized service workflow for Thailand,Strong opportunity,Generic/global,Generic/global,Generic/global,NEX can win with Thai language documents tariff and installer workflows.
+Manual production records,Yes,Not main focus,Not main focus,Not main focus,NEX supports manual-first MVP for installers without API access.
+Audit log,Yes,Not clear from public docs,Not clear from public docs,Not clear from public docs,NEX includes audit trail in architecture.
+Soft delete,Yes,Not clear from public docs,Not clear from public docs,Not clear from public docs,NEX includes operational data safety patterns.
+AI usage limits,Yes,Not core public positioning,Not core public positioning,Not clear,NEX can manage SaaS cost and tenant limits.
+Maintenance reminders,Yes,O&M oriented,O&M oriented,Smart O&M oriented,NEX is useful for recurring service reminders.
+Monthly customer report,Recommended roadmap,Possible via monitoring data,Possible via monitoring data,Possible via analytics,NEX should add branded customer reports as differentiator.
+Automatic alarm-to-ticket flow,Recommended roadmap,O&M dispatch features,O&M features,Smart O&M features,This is a high-value next step for NEX after telemetry integration.
+Third-party inverter integration,Future adapter strategy,Limited / Deye-centric,Limited / Solis-centric,Strong broader support,NEX should integrate with existing platforms instead of replacing them.

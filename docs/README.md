@@ -28,6 +28,11 @@
 - [NEX Tailwind Tokens v2](./NEX_TAILWIND_TOKENS_V2.md) - token naming, usage mapping และตัวอย่างการ extend theme
 - [NEX Archive](./archive/README.md) - เอกสารเก่าที่เก็บไว้เพื่ออ้างอิงย้อนหลังเท่านั้น ห้ามใช้เป็น source of truth
 
+### Market Comparison
+- [NEX Solar Care Market Comparison](./MARKET_COMPARISON.md) - เปรียบเทียบ NEX Solar Care กับ Deye, SolisCloud และ SOLARMAN
+- [Feature Matrix CSV](./FEATURE_MATRIX_NEX_SOLAR_CARE_VS_MARKET.csv) - ตาราง feature matrix สำหรับเปิดใน spreadsheet
+- [Feature Matrix Excel](./FEATURE_MATRIX_NEX_SOLAR_CARE_VS_MARKET.xlsx) - ไฟล์ Excel feature matrix พร้อมตารางคะแนน
+
 ---
 
 ## 📖 How to Read
