@@ -320,8 +320,8 @@ export class UsersService {
   async updatePassword(userId: number, hashedPassword: string) {
     await this.usersRepository.update(userId, {
       password_hash: hashedPassword,
-      reset_token: undefined as any,
-      reset_token_expires: undefined as any,
+        reset_token: null as any,
+        reset_token_expires: null as any,
     });
   }
 
