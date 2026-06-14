@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Prompt, Montserrat } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { CookieConsent } from "@/components/CookieConsent";
@@ -85,6 +86,13 @@ const serviceWorkerScript = `
 })();
 `;
 
+const googleAnalyticsScript = `
+window.dataLayer = window.dataLayer || [];
+function gtag(){dataLayer.push(arguments);}
+gtag('js', new Date());
+gtag('config', 'G-QHNZSYKD94');
+`;
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -98,6 +106,13 @@ export default function RootLayout({
         <script dangerouslySetInnerHTML={{ __html: serviceWorkerScript }} />
       </head>
       <body className={`${prompt.variable} ${montserrat.variable} antialiased min-h-screen relative bg-background text-foreground transition-colors duration-500`}>
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-QHNZSYKD94"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {googleAnalyticsScript}
+        </Script>
         <ThemeProvider>
           <V2ThemeBridge />
           <div className="ambient-light" />
