@@ -933,13 +933,23 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
             };
             
             return (
-                <div style={{ width: '100%', maxWidth: '80rem', marginLeft: 'auto', marginRight: 'auto' }}>
-                    <div style={{ 
-                        position: 'relative', 
+                <div className={isEmbed ? undefined : 'lp-video-card'} style={{ maxWidth: '80rem', marginLeft: 'auto', marginRight: 'auto' }}>
+                    <style>{`
+                        .lp-video-fit { width: 100%; height: auto; display: block; }
+                        @media (min-width: 768px) {
+                            /* Fit an uploaded (portrait) video within the viewport height on
+                               desktop so it is fully visible without scrolling; shrink the
+                               black frame to the video so there are no side bars. */
+                            .lp-video-card { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+                            .lp-video-fit { width: auto; max-width: 100%; max-height: calc(100vh - 8.5rem); }
+                        }
+                    `}</style>
+                    <div style={{
+                        position: 'relative',
                         width: '100%',
-                        backgroundColor: '#000', 
-                        borderRadius: '24px', 
-                        overflow: 'hidden', 
+                        backgroundColor: '#000',
+                        borderRadius: '24px',
+                        overflow: 'hidden',
                         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
                         aspectRatio: isEmbed ? '16/9' : 'auto'
                     }}>
@@ -970,11 +980,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                         onPlay={() => setIsVideoPlaying(true)}
                                         onPause={() => setIsVideoPlaying(false)}
                                         onEnded={() => setIsVideoPlaying(false)}
-                                        style={{ 
-                                            width: '100%', 
-                                            height: 'auto',
-                                            display: 'block'
-                                        }}
+                                        className="lp-video-fit"
                                     />
                                 </a>
                             ) : (
@@ -989,11 +995,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                     onPlay={() => setIsVideoPlaying(true)}
                                     onPause={() => setIsVideoPlaying(false)}
                                     onEnded={() => setIsVideoPlaying(false)}
-                                    style={{ 
-                                        width: '100%', 
-                                        height: 'auto',
-                                        display: 'block'
-                                    }}
+                                    className="lp-video-fit"
                                 />
                             )
                         ) : (
