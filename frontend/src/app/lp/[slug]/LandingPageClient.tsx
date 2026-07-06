@@ -844,7 +844,17 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
             const imageLink = normalizeUrl(block.content.link);
             
             return (
-                <div style={{ maxWidth: '56rem', margin: '0 auto', position: 'relative', zIndex: 10 }}>
+                <div className="lp-image-card" style={{ maxWidth: '56rem', margin: '0 auto', position: 'relative', zIndex: 10 }}>
+                    <style>{`
+                        .lp-image-fit { width: 100%; height: auto; display: block; }
+                        @media (min-width: 768px) {
+                            /* On desktop, fit the whole image within the viewport height so it
+                               is fully visible without scrolling, and shrink the card to the
+                               image so there are no white bars beside a portrait image. */
+                            .lp-image-card { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
+                            .lp-image-fit { width: auto; max-width: 100%; max-height: calc(100vh - 14rem); }
+                        }
+                    `}</style>
                     <div style={{
                         borderRadius: '24px',
                         overflow: 'hidden',
@@ -855,10 +865,10 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                         {hasImage ? (
                             imageLink ? (
                                 <a href={imageLink} target="_blank" rel="noopener noreferrer" style={{ display: 'block' }}>
-                                    <img src={imageUrl} alt="Campaign visual" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                                    <img className="lp-image-fit" src={imageUrl} alt="Campaign visual" />
                                 </a>
                             ) : (
-                                <img src={imageUrl} alt="Campaign visual" style={{ width: '100%', height: 'auto', display: 'block' }} />
+                                <img className="lp-image-fit" src={imageUrl} alt="Campaign visual" />
                             )
                         ) : (
                             <div style={{ 
