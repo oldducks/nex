@@ -431,7 +431,7 @@ export default function LandingPageClient({ page }: { page: LandingPage }) {
                 zIndex: 10,
                 maxWidth: '56rem',
                 margin: '0 auto',
-                padding: '7rem 1.5rem 2rem'
+                padding: '2rem 1.5rem 2rem'
             }}>
                 {page.content_blocks.filter((block) => block.type !== 'contact').map(block => (
                     <div key={block.id} style={{ marginBottom: '2.5rem' }}>
@@ -852,7 +852,7 @@ function PublicBlock({ block, theme, isLight, ownerUid, pageId, pageSlug, conten
                                is fully visible without scrolling, and shrink the card to the
                                image so there are no white bars beside a portrait image. */
                             .lp-image-card { width: fit-content; max-width: 100%; margin-left: auto; margin-right: auto; }
-                            .lp-image-fit { width: auto; max-width: 100%; max-height: calc(100vh - 14rem); }
+                            .lp-image-fit { width: auto; max-width: 100%; max-height: calc(100vh - 8.5rem); }
                         }
                     `}</style>
                     <div style={{
