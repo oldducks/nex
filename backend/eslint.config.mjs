@@ -49,6 +49,9 @@ export default tseslint.config(
       // CreateLiteService.sleep passes a function, not a string. An inline
       // disable does not survive the `--fix` pass that `npm run lint` uses.
       '@typescript-eslint/no-implied-eval': 'warn',
+      // UploadsProcessor rejects with the `unknown` from a catch clause. Worth
+      // wrapping in an Error one day, but that is an app-code change.
+      '@typescript-eslint/prefer-promise-reject-errors': 'warn',
     },
   },
 );
