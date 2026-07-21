@@ -38,25 +38,25 @@ export default function ExamplesClient() {
           </Link>
           <div className="flex items-center gap-2">
             <Link
-              href="/start#products"
+              href="/#products"
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               ผลิตภัณฑ์
             </Link>
             <Link
-              href="/start#compare"
+              href="/#compare"
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               เปรียบเทียบ
             </Link>
             <Link
-              href="/start#pricing"
+              href="/#pricing"
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               ราคา
             </Link>
             <Link
-              href="/start#contact"
+              href="/#contact"
               className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all"
             >
               ติดต่อ
@@ -383,7 +383,7 @@ export default function ExamplesClient() {
               เริ่มต้นฟรี →
             </Link>
             <Link
-              href="/start"
+              href="/"
               className="border border-white/30 text-white/80 hover:border-white hover:text-white px-8 py-4 rounded-[10px] text-[16px] font-semibold transition-all"
             >
               ← ดูรายละเอียดผลิตภัณฑ์

@@ -348,7 +348,7 @@ export class AnalyticsService implements OnModuleInit {
 
     async getMarketingDashboard() {
         const pageDefinitions = [
-            { key: 'start', label: 'หน้าเริ่มต้น NEX', path: '/start' },
+            { key: 'start', label: 'หน้าเริ่มต้น NEX', path: '/' },
             { key: 'nex-control-your-future-preview', label: 'NEX Control Your Future Preview', path: '/nex-control-your-future-preview' },
             { key: 'what-is-nex-preview', label: 'What is NEX Preview', path: '/what-is-nex-preview' },
             { key: 'nex-digital-asset-partner-preview', label: 'NEX Digital Asset Partner Preview', path: '/nex-digital-asset-partner-preview' },

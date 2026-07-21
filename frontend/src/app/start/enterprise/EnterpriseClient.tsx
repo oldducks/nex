@@ -14,10 +14,10 @@ export default function EnterpriseClient() {
             <Image src="/nex-logo-current-transparent.png" alt="NEX Solution" width={100} height={36} className="object-contain" priority />
           </Link>
           <div className="flex items-center gap-2">
-            <Link href="/start#products" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">ผลิตภัณฑ์</Link>
-            <Link href="/start#compare" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">เปรียบเทียบ</Link>
-            <Link href="/start#pricing" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">ราคา</Link>
-            <Link href="/start#contact" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">ติดต่อ</Link>
+            <Link href="/#products" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">ผลิตภัณฑ์</Link>
+            <Link href="/#compare" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">เปรียบเทียบ</Link>
+            <Link href="/#pricing" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">ราคา</Link>
+            <Link href="/#contact" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">ติดต่อ</Link>
             <Link href="/start/examples" className="hidden sm:block text-[14px] text-[#475569] px-[14px] py-[6px] rounded-lg hover:text-[#050579] hover:bg-[#EEF0FF] transition-all">ตัวอย่าง</Link>
             <Link href="/start/enterprise" className="hidden sm:block text-[14px] text-[#050579] font-semibold px-[14px] py-[6px] rounded-lg bg-[#EEF0FF] transition-all">ลูกค้าองค์กร</Link>
             <Link href="/login" className="hidden sm:block text-[14px] text-[#050579] px-4 py-[7px] rounded-lg border border-[#D9E1F2] hover:border-[#050579] transition-all">เข้าสู่ระบบ</Link>
@@ -58,7 +58,7 @@ export default function EnterpriseClient() {
 
           {/* CTA buttons */}
           <div className="flex gap-3 justify-center flex-wrap mb-8">
-            <Link href="/start#contact"
+            <Link href="/#contact"
               className="bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-semibold px-7 py-3 rounded-[10px] transition-all shadow-[0_4px_20px_rgba(249,115,22,.35)]">
               ขอเดโมสำหรับองค์กร
             </Link>
@@ -350,11 +350,11 @@ export default function EnterpriseClient() {
             ให้ NEX ช่วยให้ทุกการแชร์ กลายเป็นโอกาสที่ติดตามผลได้
           </p>
           <div className="flex gap-4 justify-center flex-wrap">
-            <Link href="/start#contact"
+            <Link href="/#contact"
               className="bg-[#F97316] hover:bg-[#EA580C] text-white text-[14px] font-bold px-8 py-4 rounded-[10px] transition-all shadow-[0_4px_20px_rgba(249,115,22,.40)]">
               ขอเดโมสำหรับองค์กร
             </Link>
-            <Link href="/start"
+            <Link href="/"
               className="border border-white/25 text-white/80 hover:border-white hover:text-white text-[14px] px-8 py-4 rounded-[10px] transition-all">
               ดูผลิตภัณฑ์ทั้งหมด
             </Link>
