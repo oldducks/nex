@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { OrdersService, PACKAGES } from './orders.service';
 import { Order, OrderStatus } from './entities/order.entity';
 import { UsersService } from '../users/users.service';
+import { MailService } from '../mail/mail.service';
 
 type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
@@ -22,12 +23,13 @@ function createMockRepo(): MockRepo {
 describe('OrdersService (Workspace/Group Awareness)', () => {
   let service: OrdersService;
   let repo: MockRepo<Order>;
-  let usersService: { update: jest.Mock };
+  let usersService: { update: jest.Mock; setExpiration: jest.Mock };
 
   beforeEach(async () => {
     repo = createMockRepo();
     usersService = {
       update: jest.fn(),
+      setExpiration: jest.fn(),
     };
 
     const module: TestingModule = await Test.createTestingModule({
@@ -35,6 +37,10 @@ describe('OrdersService (Workspace/Group Awareness)', () => {
         OrdersService,
         { provide: getRepositoryToken(Order), useValue: repo },
         { provide: UsersService, useValue: usersService },
+        {
+          provide: MailService,
+          useValue: { sendUpgradeSlipNotification: jest.fn().mockResolvedValue(undefined) },
+        },
       ],
     }).compile();
 
@@ -95,8 +101,7 @@ describe('OrdersService (Workspace/Group Awareness)', () => {
       await service.approveOrder(1, 1000);
 
       expect(repo.save).toHaveBeenCalled();
-      const [, updatePayload] = usersService.update.mock.calls[0];
-      const newExpiry: Date = (updatePayload as any).expiration_date;
+      const [, newExpiry] = usersService.setExpiration.mock.calls[0] as [number, Date];
       const diffMs = newExpiry.getTime() - existingExpiry.getTime();
       const diffDays = diffMs / (1000 * 60 * 60 * 24);
 

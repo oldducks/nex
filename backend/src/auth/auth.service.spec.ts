@@ -19,6 +19,11 @@ describe('AuthService', () => {
     updatePassword: jest.Mock;
     clearMustChangePassword: jest.Mock;
     findOne: jest.Mock;
+    findOneByEmailOrPhone: jest.Mock;
+    findOneByPhone: jest.Mock;
+    findByProviderId: jest.Mock;
+    createOAuthUser: jest.Mock;
+    linkOAuthProvider: jest.Mock;
   };
   let mailService: { sendPasswordResetEmail: jest.Mock };
   let referralsService: { getOrCreateReferralCode: jest.Mock; processReferral: jest.Mock };
@@ -33,6 +38,11 @@ describe('AuthService', () => {
       updatePassword: jest.fn(),
       clearMustChangePassword: jest.fn(),
       findOne: jest.fn(),
+      findOneByEmailOrPhone: jest.fn(),
+      findOneByPhone: jest.fn(),
+      findByProviderId: jest.fn(),
+      createOAuthUser: jest.fn(),
+      linkOAuthProvider: jest.fn(),
     };
 
     mailService = {
@@ -66,7 +76,7 @@ describe('AuthService', () => {
 
   describe('validateUser', () => {
     it('should return user without password_hash when credentials are valid', async () => {
-      usersService.findOneByEmail.mockResolvedValue({
+      usersService.findOneByEmailOrPhone.mockResolvedValue({
         id: 1,
         email: 'test@example.com',
         password_hash: 'hashed',
@@ -78,7 +88,7 @@ describe('AuthService', () => {
 
       const result = await service.validateUser('test@example.com', 'password');
 
-      expect(usersService.findOneByEmail).toHaveBeenCalledWith('test@example.com');
+      expect(usersService.findOneByEmailOrPhone).toHaveBeenCalledWith('test@example.com');
       expect(result).toMatchObject({
         id: 1,
         email: 'test@example.com',
@@ -89,7 +99,7 @@ describe('AuthService', () => {
     });
 
     it('should return null when user is not found or password is invalid', async () => {
-      usersService.findOneByEmail.mockResolvedValue(null);
+      usersService.findOneByEmailOrPhone.mockResolvedValue(null);
 
       const result = await service.validateUser('notfound@example.com', 'password');
 
@@ -102,7 +112,7 @@ describe('AuthService', () => {
       usersService.findOneByEmail.mockResolvedValue({ id: 1, email: 'test@example.com' });
 
       await expect(
-        service.register('test@example.com', 'Password123!', undefined),
+        service.register('test@example.com', undefined, 'Password123!'),
       ).rejects.toBeInstanceOf(ConflictException);
     });
 
@@ -113,11 +123,19 @@ describe('AuthService', () => {
       usersService.createSelfRegisteredUser.mockResolvedValue(createdUser);
       referralsService.getOrCreateReferralCode.mockResolvedValue({ code: 'REF123' });
 
-      const result = await service.register('new@example.com', 'Password123!', 'REFCODE');
+      const result = await service.register(
+        'new@example.com',
+        undefined,
+        'Password123!',
+        undefined,
+        'REFCODE',
+      );
 
       expect(usersService.createSelfRegisteredUser).toHaveBeenCalledWith(
         'new@example.com',
         'Password123!',
+        undefined,
+        undefined,
         'REFCODE',
       );
       expect(referralsService.getOrCreateReferralCode).toHaveBeenCalledWith(createdUser.id);
