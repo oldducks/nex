@@ -2,6 +2,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getQueueToken } from '@nestjs/bullmq';
 import { ConfigService } from '@nestjs/config';
 import { UploadsService } from './uploads.service';
+import { R2StorageService } from './r2-storage.service';
 
 describe('UploadsService', () => {
   let service: UploadsService;
@@ -24,6 +25,13 @@ describe('UploadsService', () => {
           provide: ConfigService,
           useValue: {
             get: jest.fn(),
+          },
+        },
+        {
+          provide: R2StorageService,
+          useValue: {
+            createSignedUploadUrl: jest.fn(),
+            exists: jest.fn(),
           },
         },
       ],

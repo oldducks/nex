@@ -1,9 +1,12 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { DataSource, Repository } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from './users.service';
-import { User, DEFAULT_FEATURE_CONFIG_ALL_ENABLED, DEFAULT_FEATURE_CONFIG_LOCKED } from './entities/user.entity';
+import { User, DEFAULT_FEATURE_CONFIG_LOCKED } from './entities/user.entity';
+import { Profile } from '../profiles/entities/profile.entity';
+import { Catalog } from '../catalogs/entities/catalog.entity';
+import { LandingPage } from '../landing-pages/entities/landing-page.entity';
 
 jest.mock('bcrypt');
 
@@ -36,6 +39,10 @@ describe('UsersService', () => {
           provide: getRepositoryToken(User),
           useValue: repo,
         },
+        { provide: getRepositoryToken(Profile), useValue: createMockRepo() },
+        { provide: getRepositoryToken(Catalog), useValue: createMockRepo() },
+        { provide: getRepositoryToken(LandingPage), useValue: createMockRepo() },
+        { provide: DataSource, useValue: { transaction: jest.fn() } },
       ],
     }).compile();
 
@@ -64,12 +71,12 @@ describe('UsersService', () => {
   });
 
   describe('getResolvedFeatureConfig', () => {
-    it('should return all-enabled config when input is null/empty', () => {
-      expect(service.getResolvedFeatureConfig(null as any)).toEqual(DEFAULT_FEATURE_CONFIG_ALL_ENABLED);
-      expect(service.getResolvedFeatureConfig({})).toEqual(DEFAULT_FEATURE_CONFIG_ALL_ENABLED);
+    it('should return the locked config when input is null/empty', () => {
+      expect(service.getResolvedFeatureConfig(null as any)).toEqual(DEFAULT_FEATURE_CONFIG_LOCKED);
+      expect(service.getResolvedFeatureConfig({})).toEqual(DEFAULT_FEATURE_CONFIG_LOCKED);
     });
 
-    it('should fill missing keys with false by default', () => {
+    it('should fill missing keys with false, except profile which is always on', () => {
       const partialConfig = { catalog: true, leads: false };
       const resolved = service.getResolvedFeatureConfig(partialConfig as any);
 
@@ -78,7 +85,7 @@ describe('UsersService', () => {
       expect(resolved.namecard).toBe(false);
       expect(resolved['landing-pages']).toBe(false);
       expect(resolved.analytics).toBe(false);
-      expect(resolved.profile).toBe(false);
+      expect(resolved.profile).toBe(true);
       expect(resolved.referrals).toBe(false);
     });
   });

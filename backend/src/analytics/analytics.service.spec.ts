@@ -3,6 +3,7 @@ import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AnalyticsService } from './analytics.service';
 import { AnalyticsLog, AnalyticsAction } from './entities/analytics-log.entity';
+import { MarketingAnalyticsLog } from './entities/marketing-analytics-log.entity';
 import { UsersService } from '../users/users.service';
 
 type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
@@ -18,10 +19,12 @@ function createMockRepo(): MockRepo {
 describe('AnalyticsService', () => {
   let service: AnalyticsService;
   let repo: MockRepo<AnalyticsLog>;
+  let marketingRepo: MockRepo<MarketingAnalyticsLog>;
   let usersService: { findOneByUid: jest.Mock };
 
   beforeEach(async () => {
     repo = createMockRepo();
+    marketingRepo = createMockRepo();
     usersService = {
       findOneByUid: jest.fn(),
     };
@@ -30,6 +33,7 @@ describe('AnalyticsService', () => {
       providers: [
         AnalyticsService,
         { provide: getRepositoryToken(AnalyticsLog), useValue: repo },
+        { provide: getRepositoryToken(MarketingAnalyticsLog), useValue: marketingRepo },
         { provide: UsersService, useValue: usersService },
       ],
     }).compile();
