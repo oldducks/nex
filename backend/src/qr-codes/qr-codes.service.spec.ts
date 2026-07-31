@@ -7,7 +7,7 @@ import { QRCode } from './entities/qr-code.entity';
 import { AnalyticsAction } from '../analytics/entities/analytics-log.entity';
 import { AnalyticsService } from '../analytics/analytics.service';
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
+type MockRepo<T extends object = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
 function createMockRepo(): MockRepo<QRCode> {
   return {

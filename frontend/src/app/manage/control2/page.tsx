@@ -9,19 +9,14 @@ import {
   BookOpen,
   Crown,
   FileText,
-  Gift,
-  Image as ImageIcon,
   Layout,
-  Library,
   Lock,
   Loader2,
   LogOut,
   QrCode,
   Settings,
   Smartphone,
-  UserCircle,
   Users,
-  Zap,
 } from "lucide-react";
 
 type MeResponse = {
@@ -58,13 +53,8 @@ const MENU_ITEMS: MenuItem[] = [
   { id: "landing-pages", label: "หน้าร้านออนไลน์", href: "/manage/landing-pages", icon: Layout, featureKey: "landing-pages" },
   { id: "qr", label: "สร้าง QR Code", href: "/manage/qr", icon: QrCode, featureKey: "profile" },
   { id: "forms", label: "ฟอร์มบันทึกข้อมูล", href: "/manage/forms", icon: FileText },
-  { id: "design", label: "ออกแบบกราฟิก", href: "/manage/create-lite", icon: ImageIcon, featureKey: "catalog" },
   { id: "leads", label: "ข้อมูลจากแบบฟอร์ม", href: "/manage/leads", icon: Users, featureKey: "leads" },
-  { id: "referrals", label: "พันธมิตรธุรกิจ", href: "/manage/referrals", icon: Gift, featureKey: "referrals" },
-  { id: "learning", label: "คู่มือการใช้งาน", href: "/manage/learning", icon: UserCircle, featureKey: "learning" },
-  { id: "learning-media", label: "สื่อการเรียนรู้", href: "/manage/learning-media", icon: Library },
   { id: "analytics", label: "ข้อมูลสรุป", href: "/manage/dashboard", icon: BarChart3, featureKey: "analytics" },
-  { id: "ai", label: "สร้างงานด้วย AI", href: "/manage/digital-media-v1", icon: Zap, featureKey: "ai" },
   { id: "upgrade-plan", label: "เปิดใช้งานทุกอย่าง", href: "/manage/upgrade-plan", icon: Crown },
   { id: "account", label: "ตั้งค่าบัญชี", href: "/manage/account", icon: Settings },
 ];

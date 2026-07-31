@@ -6,7 +6,7 @@ import { Order, OrderStatus } from './entities/order.entity';
 import { UsersService } from '../users/users.service';
 import { MailService } from '../mail/mail.service';
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
+type MockRepo<T extends object = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
 function createMockRepo(): MockRepo {
   return {

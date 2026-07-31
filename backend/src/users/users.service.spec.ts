@@ -10,7 +10,7 @@ import { LandingPage } from '../landing-pages/entities/landing-page.entity';
 
 jest.mock('bcrypt');
 
-type MockRepo<T = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
+type MockRepo<T extends object = any> = Partial<Record<keyof Repository<T>, jest.Mock>>;
 
 function createMockRepo(): MockRepo {
   return {

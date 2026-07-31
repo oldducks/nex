@@ -1,9 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import {
+  ArrowLeft,
   Check,
   Copy,
   Download,
@@ -247,7 +249,7 @@ export default function ReferralsPage() {
           body: JSON.stringify({ pitch: pitchDraft.trim() }),
         },
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(`savePitch failed: ${res.status}`);
       const d = (await res.json()) as CentralPartnerShareSettings;
       if (Array.isArray(d.templates)) setTemplates(d.templates);
       setEditingPitchId(null);
@@ -267,7 +269,7 @@ export default function ReferralsPage() {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ title: `Salespage ส่วนกลาง ${templates.length + 1}` }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(`createTemplate failed: ${res.status}`);
       const d = (await res.json()) as CentralPartnerShareSettings;
       if (Array.isArray(d.templates)) {
         setTemplates(d.templates);
@@ -288,7 +290,7 @@ export default function ReferralsPage() {
         `${API}/admin/settings/central-partner-share/templates/${landingPageId}`,
         { method: "DELETE", headers: { Authorization: `Bearer ${token}` } },
       );
-      if (!res.ok) throw new Error();
+      if (!res.ok) throw new Error(`deleteTemplate failed: ${res.status}`);
       const d = (await res.json()) as CentralPartnerShareSettings;
       if (Array.isArray(d.templates)) {
         setTemplates(d.templates);
@@ -321,7 +323,14 @@ export default function ReferralsPage() {
     <div className={`min-h-screen ${BG} pb-16`}>
       {/* Top bar */}
       <header className={`sticky top-0 z-20 border-b ${SURFACE} px-4 py-3 flex items-center justify-between gap-3`}>
-        <div>
+        <Link
+          href="/manage/control"
+          className={`flex h-10 w-10 items-center justify-center rounded-xl border ${MUTED} ${NAVY}`}
+          title="ย้อนกลับ"
+        >
+          <ArrowLeft size={18} />
+        </Link>
+        <div className="flex-1 text-center">
           <p className={`text-[10px] font-semibold uppercase tracking-widest ${MUTED_TEXT}`}>Referral Program</p>
           <h1 className={`text-base font-black ${NAVY}`}>พันธมิตรธุรกิจ</h1>
         </div>
