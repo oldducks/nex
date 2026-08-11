@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import { ArrowLeft, ArrowRight, Copy, CreditCard, Loader2, Lock, Save, User, Phone, Mail, Building2, Briefcase, FileText, Image as ImageIcon, Upload, Trash2 } from "lucide-react";
+import { ArrowLeft, Copy, CreditCard, Loader2, Lock, Save, User, Phone, Mail, Building2, Briefcase, FileText, Image as ImageIcon, Upload, Trash2 } from "lucide-react";
 import { Toast, type ToastType } from "@/components/Toast";
 
 type I18nField = { lang: string; value: string };
@@ -21,6 +21,7 @@ type MeProfileResponse = {
   phones?: ContactField[];
   emails?: ContactField[];
   profile_pic_url?: string;
+  profile_pic_position?: { x: number; y: number; scale: number };
   logo?: ImageWithPosition | null;
   backgrounds?: ImageWithPosition[];
   subscription_tier?: string;
@@ -80,6 +81,7 @@ export default function ProfileV2Page() {
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [profile, setProfile] = useState<MeProfileResponse | null>(null);
   const [profileImageUrl, setProfileImageUrl] = useState("");
+  const [profilePicPosition, setProfilePicPosition] = useState<{ x: number; y: number; scale: number }>({ x: 50, y: 50, scale: 1 });
   const [logo, setLogo] = useState<ImageWithPosition | null>(null);
   const [backgrounds, setBackgrounds] = useState<ImageWithPosition[]>([]);
   const [toast, setToast] = useState<{ message: string; type: ToastType; isVisible: boolean }>({
@@ -90,6 +92,10 @@ export default function ProfileV2Page() {
   const logoInputRef = useRef<HTMLInputElement | null>(null);
   const backgroundInputRef = useRef<HTMLInputElement | null>(null);
   const profileImageInputRef = useRef<HTMLInputElement | null>(null);
+  const previewFrameRef = useRef<HTMLDivElement | null>(null);
+  const pointersRef = useRef<Map<number, { x: number; y: number }>>(new Map());
+  const panStartRef = useRef<{ px: number; py: number; x: number; y: number } | null>(null);
+  const pinchStartRef = useRef<{ dist: number; scale: number } | null>(null);
   const formStartRef = useRef<HTMLDivElement | null>(null);
 
   const showToast = (message: string, type: ToastType = "info") => {
@@ -117,6 +123,7 @@ export default function ProfileV2Page() {
         const data = (await res.json()) as MeProfileResponse;
         setProfile(data);
         setProfileImageUrl(data.profile_pic_url || "");
+        setProfilePicPosition(data.profile_pic_position || { x: 50, y: 50, scale: 1 });
         setLogo(data.logo || null);
         setBackgrounds(data.backgrounds || []);
         setForm({
@@ -465,6 +472,22 @@ export default function ProfileV2Page() {
     }
   }, [isNewUser]);
 
+  // Wheel-to-zoom on the profile-image preview (needs a non-passive listener).
+  useEffect(() => {
+    const el = previewFrameRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (!isProfileUnlocked || uploadingProfileImage) return;
+      e.preventDefault();
+      setProfilePicPosition((p) => ({
+        ...p,
+        scale: Math.min(3, Math.max(1, p.scale - e.deltaY * 0.0015)),
+      }));
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [isProfileUnlocked, uploadingProfileImage, profileImageUrl]);
+
   const handleCreateDigitalNamecard = () => {
     if (isNewUser) {
       setShowProfileForm(true);
@@ -499,6 +522,7 @@ export default function ProfileV2Page() {
         emails: [{ label: "Work", value: form.email }],
         about_me: form.aboutMe,
         profile_pic_url: profileImageUrl,
+        profile_pic_position: profilePicPosition,
         logo,
         backgrounds,
       };
@@ -520,6 +544,7 @@ export default function ProfileV2Page() {
       const updated = (await res.json()) as MeProfileResponse;
       setProfile((prev) => ({ ...prev, ...updated }));
       setProfileImageUrl(updated.profile_pic_url || "");
+      setProfilePicPosition(updated.profile_pic_position || { x: 50, y: 50, scale: 1 });
       setLogo(updated.logo || null);
       setBackgrounds(updated.backgrounds || []);
       showToast("บันทึกข้อมูลเรียบร้อย", "success");
@@ -537,6 +562,55 @@ export default function ProfileV2Page() {
       </main>
     );
   }
+
+  const clampPct = (v: number) => Math.min(100, Math.max(0, v));
+  const clampScale = (v: number) => Math.min(3, Math.max(1, v));
+  const canEditImage = isProfileUnlocked && !uploadingProfileImage;
+
+  const handleImagePointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!canEditImage) return;
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pointersRef.current.size === 2) {
+      const [a, b] = [...pointersRef.current.values()];
+      pinchStartRef.current = { dist: Math.hypot(a.x - b.x, a.y - b.y), scale: profilePicPosition.scale };
+      panStartRef.current = null;
+    } else {
+      panStartRef.current = { px: e.clientX, py: e.clientY, x: profilePicPosition.x, y: profilePicPosition.y };
+    }
+  };
+
+  const handleImagePointerMove = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!canEditImage || !pointersRef.current.has(e.pointerId)) return;
+    pointersRef.current.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    const rect = previewFrameRef.current?.getBoundingClientRect();
+    if (!rect) return;
+    if (pointersRef.current.size >= 2 && pinchStartRef.current) {
+      const [a, b] = [...pointersRef.current.values()];
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+      const scale = clampScale(pinchStartRef.current.scale * (dist / (pinchStartRef.current.dist || 1)));
+      setProfilePicPosition((p) => ({ ...p, scale }));
+    } else if (panStartRef.current) {
+      const dx = e.clientX - panStartRef.current.px;
+      const dy = e.clientY - panStartRef.current.py;
+      setProfilePicPosition((p) => ({
+        ...p,
+        x: clampPct(panStartRef.current!.x - (dx / rect.width) * 100),
+        y: clampPct(panStartRef.current!.y - (dy / rect.height) * 100),
+      }));
+    }
+  };
+
+  const handleImagePointerUp = (e: React.PointerEvent<HTMLDivElement>) => {
+    pointersRef.current.delete(e.pointerId);
+    if (pointersRef.current.size < 2) pinchStartRef.current = null;
+    if (pointersRef.current.size === 1) {
+      const [only] = [...pointersRef.current.values()];
+      panStartRef.current = { px: only.x, py: only.y, x: profilePicPosition.x, y: profilePicPosition.y };
+    } else if (pointersRef.current.size === 0) {
+      panStartRef.current = null;
+    }
+  };
 
   return (
     <main className="min-h-screen bg-[#EEF0FF] text-[#0F172A]">
@@ -560,35 +634,24 @@ export default function ProfileV2Page() {
               <span className="text-[#050579]">{currentPlanLabel}</span>
             </div>
           </div>
-
-          <Link
-            href="/manage/control"
-            className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-xl transition-all hover:bg-[#F6F8FF] group"
-            title="กลับไปหน้าจัดการ"
-          >
-            <ArrowRight size={20} className="text-[#64748B] transition-all group-hover:text-[#050579]" />
-          </Link>
         </div>
       </nav>
 
       <section className="mx-auto w-full max-w-md px-4 pb-8 pt-5">
-        <button
-          type="button"
-          onClick={handleCreateDigitalNamecard}
-          className="mb-4 flex min-h-14 w-full items-center justify-between rounded-2xl bg-[#F97316] px-7 py-4 text-lg font-black text-white shadow-[0_20px_45px_-20px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-95"
-        >
-          <span className="flex items-center gap-3">
-            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/22">
-              <CreditCard size={20} />
+        {isNewUser && (
+          <button
+            type="button"
+            onClick={handleCreateDigitalNamecard}
+            className="mb-4 flex min-h-14 w-full items-center justify-between rounded-2xl bg-[#F97316] px-7 py-4 text-lg font-black text-white shadow-[0_20px_45px_-20px_rgba(249,115,22,0.85)] transition-all hover:bg-[#EA580C] active:scale-95"
+          >
+            <span className="flex items-center gap-3">
+              <span className="flex h-9 w-9 items-center justify-center rounded-full bg-white/18 ring-1 ring-white/22">
+                <CreditCard size={20} />
+              </span>
+              <span className="block text-xl font-black text-white">สร้างนามบัตรดิจิทัล</span>
             </span>
-            <span>
-              <span className="block text-xl font-black text-white">สร้างนามบัตรดิจิตอล</span>
-            </span>
-          </span>
-          <span className="rounded-full border border-white/30 bg-white/12 px-3 py-1 text-sm font-black tracking-[0.08em] text-white">
-            {isNewUser ? "0/1" : "1/1"}
-          </span>
-        </button>
+          </button>
+        )}
 
         {shouldShowProfileForm && (
           <>
@@ -596,7 +659,7 @@ export default function ProfileV2Page() {
             <section className="mt-4 rounded-3xl border border-[#F6D5BF] bg-white p-4 shadow-[0_18px_36px_-30px_rgba(249,115,22,0.55)]">
               <div className="grid grid-cols-2 gap-2">
                 <Link
-                  href={publicPath ? `/${publicPath}` : `${v2Prefix}/manage/profile`}
+                  href={publicPath ? `/${publicPath}?preview=1` : `${v2Prefix}/manage/profile`}
                   className="rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] px-3 py-2 text-center text-xs font-semibold text-[#475569]"
                 >
                   ดูนามบัตร
@@ -647,13 +710,68 @@ export default function ProfileV2Page() {
 
                 {profileImageUrl ? (
                   <div className="overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#F8FAFF]">
-                    <div className="flex items-center justify-center bg-white p-4">
-                      <img
-                        src={getAssetUrl(profileImageUrl)}
-                        alt="Profile"
-                        className="h-[28rem] w-[28rem] rounded-2xl object-cover border border-[#D9E1F2]"
-                      />
+                    {/* Live preview — drag to move, pinch / scroll to zoom */}
+                    <div className="flex flex-col items-center bg-white p-4">
+                      <div
+                        ref={previewFrameRef}
+                        onPointerDown={handleImagePointerDown}
+                        onPointerMove={handleImagePointerMove}
+                        onPointerUp={handleImagePointerUp}
+                        onPointerCancel={handleImagePointerUp}
+                        className={`relative aspect-square w-full max-w-[16rem] touch-none select-none overflow-hidden rounded-2xl border border-[#D9E1F2] bg-[#EEF0FF] ${canEditImage ? "cursor-grab active:cursor-grabbing" : ""}`}
+                      >
+                        <img
+                          src={getAssetUrl(profileImageUrl)}
+                          alt="Profile"
+                          draggable={false}
+                          className="pointer-events-none h-full w-full select-none object-cover"
+                          style={{
+                            objectPosition: `${profilePicPosition.x}% ${profilePicPosition.y}%`,
+                            transform: `scale(${profilePicPosition.scale})`,
+                          }}
+                        />
+                        {uploadingProfileImage && (
+                          <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-white/75 backdrop-blur-sm">
+                            <Loader2 size={26} className="animate-spin text-[#050579]" />
+                            <span className="text-xs font-bold text-[#050579]">กำลังอัปโหลด...</span>
+                          </div>
+                        )}
+                      </div>
+                      <p className="mt-2 text-center text-[11px] text-[#94A3B8]">
+                        ลากรูปเพื่อจัดตำแหน่ง · ใช้สองนิ้วบีบเพื่อซูม
+                      </p>
                     </div>
+
+                    {/* Zoom buttons (desktop) + reset */}
+                    <div className="flex items-center justify-center gap-2 border-t border-[#D9E1F2] bg-[#F8FAFF] px-4 py-3">
+                      <button
+                        type="button"
+                        disabled={!canEditImage}
+                        onClick={() => setProfilePicPosition((p) => ({ ...p, scale: clampScale(p.scale - 0.15) }))}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D9E1F2] bg-white text-lg font-bold text-[#475569] disabled:opacity-50"
+                        aria-label="ซูมออก"
+                      >
+                        −
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!canEditImage}
+                        onClick={() => setProfilePicPosition((p) => ({ ...p, scale: clampScale(p.scale + 0.15) }))}
+                        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#D9E1F2] bg-white text-lg font-bold text-[#475569] disabled:opacity-50"
+                        aria-label="ซูมเข้า"
+                      >
+                        +
+                      </button>
+                      <button
+                        type="button"
+                        disabled={!canEditImage}
+                        onClick={() => setProfilePicPosition({ x: 50, y: 50, scale: 1 })}
+                        className="ml-1 rounded-lg border border-[#D9E1F2] bg-white px-3 py-1.5 text-xs font-semibold text-[#64748B] transition-colors hover:text-[#050579] disabled:opacity-50"
+                      >
+                        รีเซ็ต
+                      </button>
+                    </div>
+
                     <div className="flex gap-2 border-t border-[#D9E1F2] p-3">
                       <button
                         type="button"
@@ -661,8 +779,8 @@ export default function ProfileV2Page() {
                         onClick={() => profileImageInputRef.current?.click()}
                         className="flex flex-1 items-center justify-center gap-2 rounded-xl border border-[#D9E1F2] bg-white px-3 py-2 text-xs font-bold text-[#475569] disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        <Upload size={14} />
-                        เปลี่ยนรูป
+                        {uploadingProfileImage ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                        {uploadingProfileImage ? "กำลังอัปโหลด..." : "เปลี่ยนรูป"}
                       </button>
                       <button
                         type="button"

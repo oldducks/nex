@@ -96,8 +96,15 @@ export async function generateMetadata({ params }: { params: Promise<{ prefix: s
     };
 }
 
-export default async function ProfilePage({ params }: { params: Promise<{ prefix: string; uid: string }> }) {
+export default async function ProfilePage({
+    params,
+    searchParams,
+}: {
+    params: Promise<{ prefix: string; uid: string }>;
+    searchParams: Promise<{ preview?: string }>;
+}) {
     const { prefix, uid } = await params;
+    const isPreview = (await searchParams)?.preview === '1';
     const data = await getProfile(uid);
 
     if (!data) {
@@ -339,6 +346,14 @@ export default async function ProfilePage({ params }: { params: Promise<{ prefix
     return (
         <ProfilePageClient profileData={data}>
             <AnalyticsTracker uid={uid} />
+            {isPreview && (
+                <a
+                    href="/manage/profile"
+                    className="fixed left-4 top-4 z-[100] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-4 py-2 text-sm font-semibold text-white shadow-lg backdrop-blur-md transition-colors hover:bg-black/70"
+                >
+                    ← กลับไปแก้ไข
+                </a>
+            )}
             <link href={`https://fonts.googleapis.com/css2?family=${fontName}:wght@300;400;500;700;900&display=swap`} rel="stylesheet" />
             
             <main

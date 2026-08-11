@@ -91,15 +91,8 @@ function LoginContent() {
             window.parent?.postMessage({ type: 'NEX_LOGIN_CLOSE' }, '*');
             return;
         }
-        const cameFromForgotPassword = document.referrer.includes('/forgot-password');
-        if (cameFromForgotPassword) {
-            router.push('/');
-            return;
-        }
-        if (window.history.length > 1) {
-            router.back();
-            return;
-        }
+        // Always exit to the landing page — never step back through history,
+        // which could bounce to forgot-password and feel like a loop.
         router.push('/');
     };
 
@@ -136,7 +129,7 @@ function LoginContent() {
                     </div>
                     <p className="text-xs font-semibold uppercase tracking-[0.08em] text-[#475569]">NEX Control</p>
                     <h1 className="mb-2 mt-2 text-3xl font-black tracking-tight text-[#050579]">ยินดีต้อนรับกลับมา</h1>
-                    <p className="text-sm leading-relaxed text-[#475569]">เข้าสู่ระบบเพื่อจัดการนามบัตรดิจิทัลและเครื่องมือในระบบ NEX</p>
+                    <p className="text-sm leading-relaxed text-[#475569]">เข้าสู่ระบบเพื่อจัดการบัตรและเครื่องมือของคุณ</p>
                 </div>
 
                 {error && (
@@ -241,13 +234,13 @@ function LoginContent() {
 
                 <div className="mt-6 text-center space-y-3">
                     <Link href="/forgot-password" className="inline-block text-sm font-bold text-[#050579] transition-colors hover:text-[#1D4ED8]">
-                        ลืมรหัสผ่านใช่หรือไม่?
+                        ลืมรหัสผ่าน
                     </Link>
                     <div className="mx-auto h-px w-1/2 bg-[#D9E1F2]" />
                     <p className="text-sm text-[#64748B]">
                         ยังไม่มีบัญชี?{' '}
                         <Link href="/register" className="font-black text-[#F97316] transition-colors hover:text-[#EA580C]">
-                            ทดลองใช้ระบบฟรี
+                            สร้างบัญชีใหม่
                         </Link>
                     </p>
                 </div>

@@ -99,7 +99,7 @@ export default function CardPreviewClient() {
             ))}
             <Link
               href="/login"
-              className="hidden rounded-lg border border-[#D9E1F2] px-4 py-[7px] text-[14px] text-[#050579] transition-all hover:border-[#050579] sm:block"
+              className="rounded-lg border border-[#D9E1F2] px-3 py-[7px] text-[13px] text-[#050579] transition-all hover:border-[#050579] sm:px-4 sm:text-[14px]"
             >
               เข้าสู่ระบบ
             </Link>
@@ -108,7 +108,7 @@ export default function CardPreviewClient() {
               target="_blank"
               rel="noopener noreferrer"
               onClick={() => trackLineClick('navbar')}
-              className="rounded-lg bg-[#F97316] px-5 py-2 text-[14px] font-semibold text-white transition-all hover:bg-[#EA580C]"
+              className="rounded-lg bg-[#F97316] px-3 py-2 text-[13px] font-semibold text-white transition-all hover:bg-[#EA580C] sm:px-5 sm:text-[14px]"
             >
               สั่งทำบัตร
             </a>

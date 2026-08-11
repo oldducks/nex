@@ -5,13 +5,14 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { 
-  Loader2, 
-  Mail, 
-  Lock, 
-  ArrowRight, 
-  Eye, 
-  EyeOff, 
-  CheckCircle2, 
+  Loader2,
+  Mail,
+  Lock,
+  ArrowRight,
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  CheckCircle2,
   Circle,
   User,
   Smartphone
@@ -93,6 +94,14 @@ function RegisterContent() {
     <div className="relative min-h-screen overflow-x-hidden bg-[#EEF0FF] text-[#0F172A] flex items-center justify-center p-6">
       <div className="pointer-events-none absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.12),transparent_30%),linear-gradient(180deg,#f6f8ff_0%,#eef0ff_100%)]" />
       <div className="w-full max-w-md">
+        <div className="mb-4">
+          <Link
+            href="/login"
+            className="inline-flex items-center gap-1.5 text-sm font-medium text-[#64748B] transition-colors hover:text-[#050579]"
+          >
+            <ArrowLeft size={16} /> กลับไปเข้าสู่ระบบ
+          </Link>
+        </div>
         <div className="text-center mb-8">
           <Link href="/" className="inline-flex items-center gap-3 text-2xl font-black text-[#050579]">
             <div className="relative w-10 h-10 overflow-hidden rounded-xl bg-white p-1">
@@ -143,7 +152,7 @@ function RegisterContent() {
                   value={email} 
                   onChange={(e) => setEmail(e.target.value)} 
                   className="w-full bg-white border border-[#D9E1F2] rounded-2xl py-3.5 pl-12 pr-4 outline-none focus:border-[#050579] focus:ring-4 focus:ring-[#E8ECFF] transition-all placeholder:text-[#94A3B8]" 
-                  placeholder="อีเมลแอดเดรส" 
+                  placeholder="อีเมล" 
                 />
               </div>
 
@@ -208,7 +217,7 @@ function RegisterContent() {
               disabled={loading || !isPasswordValid || password !== confirmPassword} 
               className="w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 rounded-2xl font-black text-sm uppercase tracking-widest flex items-center justify-center gap-2 hover:opacity-90 transition-all shadow-lg shadow-orange-500/20 disabled:opacity-50 disabled:grayscale"
             >
-              {loading ? <Loader2 size={20} className="animate-spin" /> : <>ลงทะเบียนสมาชิก <ArrowRight size={20} /></>}
+              {loading ? <Loader2 size={20} className="animate-spin" /> : <>สร้างบัญชี <ArrowRight size={20} /></>}
             </button>
           </form>
 
