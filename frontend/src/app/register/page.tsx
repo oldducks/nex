@@ -27,6 +27,7 @@ function RegisterContent() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [referralCode, setReferralCode] = useState('');
+  const [fromCard, setFromCard] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -44,6 +45,10 @@ function RegisterContent() {
   useEffect(() => {
     const ref = searchParams.get('ref');
     if (ref) setReferralCode(ref);
+    // Where the visitor came from (the card they were viewing) — validate as an
+    // internal "prefix/uid" path to avoid open-redirect via a crafted `from` param.
+    const from = searchParams.get('from');
+    if (from && /^[A-Za-z0-9_-]+\/[A-Za-z0-9_-]+$/.test(from)) setFromCard(from);
   }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -96,10 +101,10 @@ function RegisterContent() {
       <div className="w-full max-w-md">
         <div className="mb-4">
           <Link
-            href="/login"
+            href={fromCard ? `/${fromCard}` : '/login'}
             className="inline-flex items-center gap-1.5 text-sm font-medium text-[#64748B] transition-colors hover:text-[#050579]"
           >
-            <ArrowLeft size={16} /> กลับไปเข้าสู่ระบบ
+            <ArrowLeft size={16} /> {fromCard ? 'กลับไปหน้านามบัตร' : 'กลับไปเข้าสู่ระบบ'}
           </Link>
         </div>
         <div className="text-center mb-8">
@@ -119,7 +124,7 @@ function RegisterContent() {
           {referralCode && (
             <div className="bg-[#FFF7ED] border border-[#FDBA74] rounded-2xl p-4 mb-6 flex items-center gap-3">
               <div className="h-2 w-2 rounded-full bg-orange-500 animate-pulse" />
-              <span className="text-xs font-bold text-[#C2410C] uppercase tracking-widest">ID: {referralCode}</span>
+              <span className="text-xs font-bold text-[#C2410C] uppercase tracking-widest">ผู้แนะนำ: {referralCode}</span>
             </div>
           )}
 

@@ -241,7 +241,7 @@ export default async function ProfilePage({
     const referralCode = typeof data.referral_code === 'string' && data.referral_code.trim()
         ? data.referral_code.trim()
         : 'ZXQ0KPCR';
-    const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}`;
+    const referralRegisterUrl = `https://nexsolution.cloud/register?ref=${encodeURIComponent(referralCode)}&from=${encodeURIComponent(`${data.url_prefix}/${uid}`)}`;
 
     // Theme Configuration (locked to profile owner's layout_config)
     const theme = layout_config || {};
@@ -363,7 +363,7 @@ export default async function ProfilePage({
             >
                 <div className="pointer-events-none absolute inset-0">
                     {bgImage ? (
-                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,31,0.28)_0%,rgba(6,17,31,0.78)_100%)]" />
+                        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(6,17,31,0.06)_0%,rgba(6,17,31,0.20)_100%)]" />
                     ) : (
                         <>
                             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(96,165,250,0.18),transparent_30%),radial-gradient(circle_at_top_right,rgba(249,115,22,0.1),transparent_22%),linear-gradient(180deg,#f7f9ff_0%,#eef0ff_46%,#e8eefc_100%)]" />
@@ -382,8 +382,8 @@ export default async function ProfilePage({
                             alt="Background"
                             className="w-full h-full object-cover"
                         />
-                        {/* Stronger overlay for better text contrast */}
-                        <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/60 to-black/90"></div>
+                        {/* Light overlay — keep the background image bright, just a touch of depth */}
+                        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-black/5 to-black/25"></div>
                     </div>
                 )}
 
@@ -428,9 +428,6 @@ export default async function ProfilePage({
                                                 transformOrigin: 'center center'
                                             }}
                                         />
-                                        {/* Gradient Overlays */}
-                                        <div className="absolute inset-0 bg-gradient-to-t from-[rgba(6,17,31,0.78)] via-[rgba(6,17,31,0.18)] to-transparent"></div>
-                                        <div className="absolute inset-0 bg-gradient-to-b from-[rgba(255,255,255,0.18)] via-transparent to-transparent"></div>
                                     </>
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center text-foreground/30">
@@ -671,7 +668,7 @@ export default async function ProfilePage({
                             className="text-center text-sm font-semibold underline underline-offset-4 transition-opacity hover:opacity-80"
                             style={{ color: lightMode ? '#050579' : '#93C5FD' }}
                         >
-                            สนใจระบบแบบที่คุณเห็นอยู่นี้ คลิกที่นี่
+                            ทำนามบัตร NFC อัจฉริยะแบบนี้กับ NEX →
                         </a>
                     </section>
                     </div>
