@@ -124,13 +124,13 @@ export default function AnalyticsDashboard() {
     };
 
     const chartData = stats ? [
-        { name: 'ยอดเข้าดูนามบัตร', shortName: 'นามบัตร', value: stats.VIEW_PROFILE, color: '#6366F1' },
-        { name: 'บันทึก VCF', shortName: 'VCF', value: stats.DOWNLOAD_VCF, color: '#10B981' },
-        { name: 'ยอดดูแคตตาล็อก', shortName: 'แคตตาล็อก', value: stats.VIEW_CATALOG, color: '#F59E0B' },
-        { name: 'ดาวน์โหลด PDF', shortName: 'PDF', value: stats.DOWNLOAD_PDF, color: '#EC4899' },
-        { name: 'ยอดดูหน้าร้านออนไลน์', shortName: 'หน้าร้าน', value: stats.VIEW_LANDING_PAGE, color: '#22C55E' },
-        { name: 'จำนวนคนที่กรอกฟอร์ม', shortName: 'กรอกฟอร์ม', value: stats.SUBMIT_LANDING_FORM, color: '#0EA5E9' },
-        { name: 'สแกน QR', shortName: 'QR', value: stats.SCAN_QR, color: '#A855F7' },
+        { name: 'ยอดเข้าดูนามบัตร', shortName: 'นามบัตร', value: stats.VIEW_PROFILE, color: '#050579' },
+        { name: 'บันทึก VCF', shortName: 'VCF', value: stats.DOWNLOAD_VCF, color: '#050579' },
+        { name: 'ยอดดูแคตตาล็อก', shortName: 'แคตตาล็อก', value: stats.VIEW_CATALOG, color: '#050579' },
+        { name: 'ดาวน์โหลด PDF', shortName: 'PDF', value: stats.DOWNLOAD_PDF, color: '#050579' },
+        { name: 'ยอดดูหน้าร้านออนไลน์', shortName: 'หน้าร้าน', value: stats.VIEW_LANDING_PAGE, color: '#050579' },
+        { name: 'จำนวนคนที่กรอกฟอร์ม', shortName: 'กรอกฟอร์ม', value: stats.SUBMIT_LANDING_FORM, color: '#050579' },
+        { name: 'สแกน QR', shortName: 'QR', value: stats.SCAN_QR, color: '#050579' },
     ] : [];
 
     const totalFormSubmissions = forms.reduce((sum, form) => sum + Number(form.submission_count || 0), 0);
@@ -188,32 +188,32 @@ export default function AnalyticsDashboard() {
                                 title="ยอดเข้าดูนามบัตร"
                                 mobileTitle="ดูนามบัตร"
                                 value={stats?.VIEW_PROFILE || 0}
-                                icon={<Eye size={18} className="text-indigo-500" />}
-                                color="bg-indigo-500/10 border-indigo-500/20"
+                                icon={<Eye size={18} className="text-[#050579]" />}
+                                color="bg-[#050579]/[0.06] border-[#050579]/15"
                                 compact
                             />
                             <StatCard
                                 title="บันทึกผู้ติดต่อ"
                                 mobileTitle="บันทึกติดต่อ"
                                 value={stats?.DOWNLOAD_VCF || 0}
-                                icon={<User size={18} className="text-emerald-500" />}
-                                color="bg-emerald-500/10 border-emerald-500/20"
+                                icon={<User size={18} className="text-[#050579]" />}
+                                color="bg-[#050579]/[0.06] border-[#050579]/15"
                                 compact
                             />
                             <StatCard
                                 title="ยอดดูแคตตาล็อก"
                                 mobileTitle="ดูแคตตาล็อก"
                                 value={stats?.VIEW_CATALOG || 0}
-                                icon={<Database size={18} className="text-amber-500" />}
-                                color="bg-amber-500/10 border-amber-500/20"
+                                icon={<Database size={18} className="text-[#050579]" />}
+                                color="bg-[#050579]/[0.06] border-[#050579]/15"
                                 compact
                             />
                             <StatCard
                                 title="ดาวน์โหลด PDF"
                                 mobileTitle="ดาวน์โหลด PDF"
                                 value={stats?.DOWNLOAD_PDF || 0}
-                                icon={<FileText size={18} className="text-pink-500" />}
-                                color="bg-pink-500/10 border-pink-500/20"
+                                icon={<FileText size={18} className="text-[#050579]" />}
+                                color="bg-[#050579]/[0.06] border-[#050579]/15"
                                 compact
                             />
                         </div>
@@ -224,24 +224,24 @@ export default function AnalyticsDashboard() {
                                 title="ยอดดูหน้าร้านออนไลน์"
                                 mobileTitle="ดูหน้าร้าน"
                                 value={stats?.VIEW_LANDING_PAGE || 0}
-                                icon={<LineChart size={16} className="text-emerald-500" />}
-                                color="bg-emerald-500/10 border-emerald-500/20"
+                                icon={<LineChart size={16} className="text-[#050579]" />}
+                                color="bg-[#050579]/[0.06] border-[#050579]/15"
                                 compact
                             />
                             <StatCard
                                 title="จำนวนคนที่กรอกฟอร์ม"
                                 mobileTitle="กรอกฟอร์ม"
                                 value={totalFormSubmissions || stats?.SUBMIT_LANDING_FORM || 0}
-                                icon={<Download size={16} className="text-sky-500" />}
-                                color="bg-sky-500/10 border-sky-500/20"
+                                icon={<Download size={16} className="text-[#050579]" />}
+                                color="bg-[#050579]/[0.06] border-[#050579]/15"
                                 compact
                             />
                             <StatCard
                                 title="สแกน QR ทั้งหมด"
                                 mobileTitle="สแกน QR"
                                 value={stats?.SCAN_QR || 0}
-                                icon={<QrCode size={16} className="text-violet-500" />}
-                                color="bg-violet-500/10 border-violet-500/20"
+                                icon={<QrCode size={16} className="text-[#050579]" />}
+                                color="bg-[#050579]/[0.06] border-[#050579]/15"
                                 compact
                             />
                         </div>
@@ -354,8 +354,8 @@ export default function AnalyticsDashboard() {
                                         <ReLineChart data={dailyStats} margin={{ top: 12, right: isMobile ? 8 : 30, left: 0, bottom: 0 }}>
                                             <defs>
                                                 <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor="#8B5CF6" stopOpacity={0.3}/>
-                                                    <stop offset="95%" stopColor="#8B5CF6" stopOpacity={0}/>
+                                                    <stop offset="5%" stopColor="#050579" stopOpacity={0.3}/>
+                                                    <stop offset="95%" stopColor="#050579" stopOpacity={0}/>
                                                 </linearGradient>
                                             </defs>
                                             <CartesianGrid strokeDasharray="3 3" stroke="currentColor" vertical={false} opacity={0.03} />
@@ -391,9 +391,9 @@ export default function AnalyticsDashboard() {
                                             <Line 
                                                 type="monotone" 
                                                 dataKey="count" 
-                                                stroke="#2563EB" 
+                                                stroke="#050579" 
                                                 strokeWidth={isMobile ? 3 : 5} 
-                                                dot={{ r: isMobile ? 4 : 6, fill: '#2563EB', strokeWidth: 3, stroke: '#FFFFFF' }}
+                                                dot={{ r: isMobile ? 4 : 6, fill: '#050579', strokeWidth: 3, stroke: '#FFFFFF' }}
                                                 activeDot={{ r: isMobile ? 5 : 8, strokeWidth: 4, stroke: '#FFFFFF' }}
                                                 animationDuration={2000}
                                             />
