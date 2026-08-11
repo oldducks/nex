@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Cookies from 'js-cookie';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Cell, LineChart as ReLineChart, Line } from 'recharts';
-import { Eye, Download, FileText, Calendar, LogOut, ExternalLink, User, Database, Loader2, LineChart, QrCode } from 'lucide-react';
+import { Eye, Download, FileText, Calendar, ExternalLink, User, Database, Loader2, LineChart, QrCode } from 'lucide-react';
 import ManageTopBar from '@/components/ManageTopBar';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000';
@@ -113,11 +113,6 @@ export default function AnalyticsDashboard() {
         }
     };
 
-    const handleLogout = () => {
-        Cookies.remove('token');
-        Cookies.remove('uid');
-        router.push('/login');
-    };
 
     // Calculate remaining days
     const getRemainingDays = () => {
@@ -150,14 +145,6 @@ export default function AnalyticsDashboard() {
                 backHref="/manage/control"
                 subtitle="ระบบวิเคราะห์ผล"
                 title="แดชบอร์ดสถิติการใช้งาน"
-                actions={(
-                    <>
-                        <div className="h-6 w-px bg-[#D9E1F2] mx-1" />
-                        <button onClick={handleLogout} className="flex h-10 w-10 items-center justify-center rounded-xl border border-[#D9E1F2] bg-[#F6F8FF] text-[#64748B] transition-colors hover:bg-[#FEF2F2] hover:text-[#DC2626]" title="ออกจากระบบ">
-                            <LogOut size={20} />
-                        </button>
-                    </>
-                )}
             />
 
             <main className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-10">

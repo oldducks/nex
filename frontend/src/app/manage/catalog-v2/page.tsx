@@ -15,7 +15,6 @@ import {
   FileText,
   Image as ImageIcon,
   Loader2,
-  LogOut,
   Package,
   Plus,
   Search,
@@ -364,12 +363,6 @@ export default function CatalogManageV3Page() {
     }
   };
 
-  const handleLogout = () => {
-    Cookies.remove("token");
-    Cookies.remove("uid");
-    router.push("/login");
-  };
-
   const copyLink = async (catalogId: number) => {
     try {
       await navigator.clipboard.writeText(getCatalogUrl(catalogId));
@@ -435,13 +428,6 @@ export default function CatalogManageV3Page() {
             </div>
           </div>
 
-          <button
-            onClick={handleLogout}
-            className="absolute right-4 flex h-10 w-10 items-center justify-center rounded-xl text-[#64748B] transition-all hover:bg-[#FEF2F2] hover:text-[#DC2626] md:right-6"
-            title="ออกจากระบบ"
-          >
-            <LogOut size={18} />
-          </button>
         </div>
       </nav>
 
