@@ -11,7 +11,6 @@ import {
   Download,
   Eye,
   Loader2,
-  LogOut,
   Pencil,
   Plus,
   QrCode,
@@ -317,7 +316,6 @@ export default function ReferralsPage() {
 
   if (!token) return null;
 
-  const handleLogout = () => { Cookies.remove("token"); Cookies.remove("uid"); router.push("/"); };
 
   return (
     <div className={`min-h-screen ${BG} pb-16`}>
@@ -334,14 +332,7 @@ export default function ReferralsPage() {
           <p className={`text-[10px] font-semibold uppercase tracking-widest ${MUTED_TEXT}`}>Referral Program</p>
           <h1 className={`text-base font-black ${NAVY}`}>พันธมิตรธุรกิจ</h1>
         </div>
-        <button
-          type="button"
-          onClick={handleLogout}
-          className={`flex items-center gap-1.5 rounded-xl border ${MUTED} px-3 py-2 text-xs font-bold ${NAVY}`}
-        >
-          <LogOut size={14} />
-          ออก
-        </button>
+        <div className="h-10 w-10 shrink-0" aria-hidden />
       </header>
 
       <main className="mx-auto w-full max-w-md px-4 py-4 space-y-3">
