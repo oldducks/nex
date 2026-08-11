@@ -30,7 +30,7 @@ const LINE_URL = 'https://lin.ee/UiiKvZf';
 // the admin dashboard is a later, separate step.
 function trackLineClick(location: string) {
   void logMarketingAnalyticsEvent({
-    pageKey: 'card-preview-cta-line',
+    pageKey: 'home-cta-line',
     eventType: 'PAGE_VIEW',
     metadata: { location },
   });
@@ -50,7 +50,7 @@ export default function CardPreviewClient() {
           if (entry.isIntersecting && !logged) {
             logged = true;
             void logMarketingAnalyticsEvent({
-              pageKey: 'card-preview-view-examples',
+              pageKey: 'home-view-examples',
               eventType: 'PAGE_VIEW',
             });
             observer.disconnect();
@@ -66,33 +66,53 @@ export default function CardPreviewClient() {
 
   return (
     <main className="min-h-screen bg-white text-[#0F172A]">
-      <MarketingPageTracker pageKey="card-preview" />
+      <MarketingPageTracker pageKey="home" />
 
-      {/* Navbar / brand */}
-      <header className="sticky top-0 z-40 border-b border-[#E7EAF6] bg-white/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-5 py-3">
-          <div className="flex items-center gap-2">
+      {/* Navbar */}
+      <header className="sticky top-0 z-50 border-b border-[#E7EAF6] bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-[60px] max-w-6xl items-center justify-between px-5">
+          <Link href="/" className="flex items-center">
             <Image
               src="/nex-logo-current-transparent.png"
-              alt="NEX"
-              width={92}
-              height={30}
-              className="h-7 w-auto object-contain"
+              alt="NEX Solution"
+              width={108}
+              height={38}
+              className="h-9 w-auto object-contain"
               priority
             />
-            <span className="hidden text-sm font-medium text-[#64748B] sm:inline">
-              Smart Business Card
-            </span>
-          </div>
-          <a
-            href={LINE_URL}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={() => trackLineClick('navbar')}
-            className="rounded-lg bg-[#050579] px-4 py-2 text-sm font-semibold text-white transition-all hover:bg-[#07079A]"
-          >
-            สั่งทำบัตร
-          </a>
+          </Link>
+          <nav className="flex items-center gap-1">
+            {[
+              { href: '#products', label: 'ผลิตภัณฑ์' },
+              { href: '#compare', label: 'เปรียบเทียบ' },
+              { href: '#examples', label: 'ตัวอย่าง' },
+              { href: '#audience', label: 'ลูกค้าองค์กร' },
+              { href: '#contact', label: 'ติดต่อ' },
+            ].map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="hidden rounded-lg px-[13px] py-[6px] text-[14px] text-[#475569] transition-all hover:bg-[#EEF0FF] hover:text-[#050579] md:block"
+              >
+                {item.label}
+              </a>
+            ))}
+            <Link
+              href="/login"
+              className="hidden rounded-lg border border-[#D9E1F2] px-4 py-[7px] text-[14px] text-[#050579] transition-all hover:border-[#050579] sm:block"
+            >
+              เข้าสู่ระบบ
+            </Link>
+            <a
+              href={LINE_URL}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={() => trackLineClick('navbar')}
+              className="rounded-lg bg-[#F97316] px-5 py-2 text-[14px] font-semibold text-white transition-all hover:bg-[#EA580C]"
+            >
+              สั่งทำบัตร
+            </a>
+          </nav>
         </div>
       </header>
 
@@ -101,7 +121,9 @@ export default function CardPreviewClient() {
         {/* Ambient glows so the flat navy has depth */}
         <div className="pointer-events-none absolute -left-24 -top-24 h-80 w-80 rounded-full bg-[#F97316]/10 blur-[110px]" />
         <div className="pointer-events-none absolute -bottom-32 left-1/3 h-72 w-72 rounded-full bg-[#4F6DF5]/20 blur-[110px]" />
-        <div className="mx-auto grid max-w-6xl items-center gap-10 px-5 py-12 sm:py-14 lg:grid-cols-2 lg:gap-14">
+        {/* Subtle dot texture so the navy is not a flat void */}
+        <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:24px_24px] [mask-image:radial-gradient(ellipse_at_center,black,transparent_78%)]" />
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-5 py-12 sm:py-16 lg:grid-cols-[1.05fr_0.95fr] lg:gap-10">
           <div>
             <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs font-medium text-white/80">
               <Nfc size={14} /> บัตร NFC จริง + QR Code
@@ -111,9 +133,24 @@ export default function CardPreviewClient() {
               <span className="mt-2 block text-[#F97316]">ลูกค้าเห็นสินค้าคุณทันที</span>
             </h1>
             <p className="mt-5 max-w-[480px] text-[15px] leading-relaxed text-white/75">
-              พร้อม NFC และ QR Code เชื่อม Digital ID, Catalog และ Sale Page
-              ตั้งแต่แนะนำตัว นำเสนอสินค้า ไปจนถึงรับข้อมูลลูกค้า
+              บัตร NFC จริง แตะหรือสแกน แล้วเปิดทันที — ตั้งแต่แนะนำตัว
+              นำเสนอสินค้า ไปจนถึงรับข้อมูลลูกค้า ในระบบเดียว
             </p>
+            <div className="mt-5 flex flex-wrap gap-2.5">
+              {[
+                { icon: <IdCard size={15} />, label: 'Digital ID' },
+                { icon: <LayoutGrid size={15} />, label: 'Catalog' },
+                { icon: <Megaphone size={15} />, label: 'Sale Page' },
+              ].map((chip) => (
+                <span
+                  key={chip.label}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs font-medium text-white/85"
+                >
+                  <span className="text-[#F97316]">{chip.icon}</span>
+                  {chip.label}
+                </span>
+              ))}
+            </div>
             <div className="mt-7 flex flex-wrap gap-3">
               <a
                 href={LINE_URL}
@@ -134,18 +171,26 @@ export default function CardPreviewClient() {
             <p className="mt-6 text-xs text-white/55">
               <span className="text-[#BEF264]">✓</span> แตะ NFC หรือสแกน QR ได้โดยไม่ต้องติดตั้งแอป
             </p>
+            <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-white/50">
+              <span>
+                ใช้ได้ทั้ง <span className="text-white/80">บุคคล</span> และ{' '}
+                <span className="text-white/80">องค์กร</span>
+              </span>
+              <span className="hidden h-3 w-px bg-white/20 sm:inline-block" />
+              <span>ส่งไฟล์ที่ออกแบบเอง NEX ผลิตและจัดส่งถึงมือ</span>
+            </div>
           </div>
 
           {/* Hero image — holding a NEX card, phone showing the Digital ID */}
           <div className="relative flex justify-center lg:justify-end">
             {/* Soft glow behind the photo so it sits into the background */}
             <div className="pointer-events-none absolute left-1/2 top-1/2 h-[105%] w-[135%] -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(ellipse_at_center,rgba(96,130,255,0.35),rgba(249,115,22,0.08)_55%,transparent_75%)] blur-2xl" />
-            <div className="relative aspect-[3/4] w-[300px] overflow-hidden rounded-[24px] shadow-[0_30px_80px_rgba(0,0,0,.5)] ring-1 ring-white/10 sm:w-[360px] lg:w-[420px]">
+            <div className="relative aspect-[4/5] w-[320px] overflow-hidden rounded-[24px] shadow-[0_30px_80px_rgba(0,0,0,.5)] ring-1 ring-white/10 sm:w-[380px] lg:w-[440px]">
               <Image
                 src="/card-preview/hero-tap.webp"
                 alt="ถือบัตร NEX แล้วหน้า Digital ID เปิดบนมือถือทันที"
                 fill
-                sizes="(max-width: 640px) 300px, (max-width: 1024px) 360px, 420px"
+                sizes="(max-width: 640px) 320px, (max-width: 1024px) 380px, 440px"
                 className="object-cover"
                 quality={92}
                 priority
@@ -198,7 +243,7 @@ export default function CardPreviewClient() {
       </section>
 
       {/* 3. Three tools = the innovation */}
-      <section className="py-16">
+      <section id="products" className="scroll-mt-16 py-16">
         <div className="mx-auto max-w-6xl px-5">
           <div className="text-center">
             <h2 className="text-[clamp(22px,3.5vw,32px)] font-bold text-[#050579]">
@@ -261,7 +306,7 @@ export default function CardPreviewClient() {
       </section>
 
       {/* 4. Comparison vs generic NFC cards */}
-      <section className="bg-[#EEF0FF] py-16">
+      <section id="compare" className="scroll-mt-16 bg-[#EEF0FF] py-16">
         <div className="mx-auto max-w-4xl px-5">
           <h2 className="text-center text-[clamp(22px,3.5vw,32px)] font-bold text-[#050579]">
             ต่างจากบัตร NFC ทั่วไปอย่างไร
@@ -307,7 +352,7 @@ export default function CardPreviewClient() {
       </section>
 
       {/* 5. Individual vs Organization */}
-      <section className="py-16">
+      <section id="audience" className="scroll-mt-16 py-16">
         <div className="mx-auto max-w-6xl px-5">
           <h2 className="text-center text-[clamp(22px,3.5vw,32px)] font-bold text-[#050579]">
             ใช้ได้ทั้งบุคคลและองค์กร
@@ -421,36 +466,18 @@ export default function CardPreviewClient() {
         </div>
       </section>
 
-      {/* 8. Pricing (placeholder) */}
-      <section className="bg-[#EEF0FF] py-16">
-        <div className="mx-auto max-w-4xl px-5">
-          <h2 className="text-center text-[clamp(22px,3.5vw,32px)] font-bold text-[#050579]">
-            แพ็กเกจและราคา
-          </h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-2">
-            {[
-              { name: 'บุคคล', note: 'ค่าทำบัตร + ระบบปีแรก (ก้อนเดียว)' },
-              { name: 'องค์กร', note: 'ราคาต่อใบ + ค่าระบบต่อผู้ใช้ต่อปี' },
-            ].map((p) => (
-              <div key={p.name} className="rounded-2xl border border-[#D9E1F2] bg-white p-7 text-center">
-                <h3 className="text-lg font-bold text-[#050579]">{p.name}</h3>
-                <div className="my-4 rounded-lg border border-dashed border-[#CBD5E1] bg-[#F8FAFF] py-6 text-sm text-[#94A3B8]">
-                  ราคา (placeholder)
-                  <br />
-                  รอคำนวณต้นทุนจริง
-                </div>
-                <p className="text-xs text-[#64748B]">{p.note}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mx-auto mt-6 max-w-[520px] text-center text-sm font-medium text-[#050579]">
-            แม้ไม่ต่ออายุ บัตรจริงยังใช้งานได้ และหน้า Digital ID พื้นฐานยังเปิดได้ตามเงื่อนไขบริการ
+      {/* Reassurance strip (pricing section hidden until real numbers are set) */}
+      <section className="bg-[#EEF0FF] py-14">
+        <div className="mx-auto max-w-3xl px-5 text-center">
+          <p className="text-sm font-medium leading-relaxed text-[#050579] sm:text-base">
+            แม้ไม่ต่ออายุ บัตรจริงยังใช้เป็นนามบัตร/บัตรพนักงานได้
+            และหน้า Digital ID พื้นฐานยังเปิดได้ตามเงื่อนไขบริการ
           </p>
         </div>
       </section>
 
       {/* 9. FAQ + final CTA */}
-      <section className="py-16">
+      <section id="contact" className="scroll-mt-16 py-16">
         <div className="mx-auto max-w-3xl px-5">
           <h2 className="text-center text-[clamp(22px,3.5vw,32px)] font-bold text-[#050579]">
             คำถามที่พบบ่อย
@@ -502,11 +529,16 @@ export default function CardPreviewClient() {
         </div>
       </section>
 
-      <footer className="border-t border-[#E7EAF6] py-8 text-center text-xs text-[#94A3B8]">
-        © NEX Solution · หน้านี้เป็น Preview สำหรับพิจารณาภายใน
-        <div className="mt-2">
-          <Link href="/" className="underline hover:text-[#64748B]">
-            กลับหน้าหลัก
+      <footer className="border-t border-[#E7EAF6] py-8 text-center text-xs leading-6 text-[#94A3B8]">
+        © NEX Solution. All rights reserved.
+        <br />
+        บริษัท คราม อินเทลลิเจนท์ เอไอ จำกัด KHRAM INTELLIGENT AI Co., Ltd.
+        <div className="mt-3 flex justify-center gap-4">
+          <Link href="/solution" className="hover:text-[#64748B]">
+            NEX Solution
+          </Link>
+          <Link href="/login" className="hover:text-[#64748B]">
+            เข้าสู่ระบบ
           </Link>
         </div>
       </footer>

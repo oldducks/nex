@@ -1,23 +1,17 @@
 import { Metadata } from 'next';
-import StartClient from './start/StartClient';
+import CardPreviewClient from './card-preview/CardPreviewClient';
 
 export const metadata: Metadata = {
-  title: 'NEX Solution – มากกว่าตามบัตรดิจิทัล',
+  title: 'NEX Card – นามบัตรจริงที่แตะแล้ว ลูกค้าเห็นสินค้าคุณทันที',
   description:
-    'NEX Card, NEX Catalog, NEX Sale Page – 3 เครื่องมือที่ช่วยให้ธุรกิจของคุณขายได้จริง ตั้งต้นฟรีใน 5 นาที เริ่มต้นฟรี',
+    'บัตร NFC จริง เชื่อม NEX Digital ID, Catalog และ Sale Page — ตั้งแต่แนะนำตัว นำเสนอสินค้า ไปจนถึงรับข้อมูลลูกค้า ในบัตรใบเดียว',
   openGraph: {
-    title: 'NEX Solution – มากกว่าตามบัตรดิจิทัล',
-    description: 'ครบจบที่เดียว ตั้งต้นฟรีใน 5 นาที เริ่มต้นฟรี',
+    title: 'NEX Card – นามบัตรจริงที่แตะแล้ว ลูกค้าเห็นสินค้าคุณทันที',
+    description: 'บัตร NFC จริง เชื่อม Digital ID, Catalog และ Sale Page ในบัตรใบเดียว',
     url: 'https://nexsolution.cloud',
   },
 };
 
-export default async function HomePage({
-  searchParams,
-}: {
-  searchParams: Promise<{ ref?: string }>;
-}) {
-  const sp = await searchParams;
-  const ref = sp?.ref ?? 'direct';
-  return <StartClient initialRef={ref} />;
+export default function HomePage() {
+  return <CardPreviewClient />;
 }
