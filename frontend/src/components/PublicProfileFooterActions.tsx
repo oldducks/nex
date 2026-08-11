@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Copy, Facebook, Globe, MessageSquare, Share2, Twitter, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Copy, Facebook, Globe, MessageSquare, Share2, Twitter } from "lucide-react";
 import { LineIcon, SOCIAL_COLORS, SOCIAL_ICONS } from "./SocialIcons";
 
 type ContactLink = {
@@ -71,6 +72,8 @@ export function PublicShareModal({
 
   if (!isOpen) return null;
 
+  if (typeof document === "undefined") return null;
+
   const shareMessage = shareText?.trim() ? `${shareText.trim()}\n${url}` : url;
 
   const shareLinks = [
@@ -113,7 +116,7 @@ export function PublicShareModal({
     }
   };
 
-  return (
+  return createPortal(
     <div style={MODAL_OVERLAY_STYLE} onClick={onClose}>
       <div
         style={MODAL_SHEET_STYLE}
@@ -189,7 +192,8 @@ export function PublicShareModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -209,8 +213,9 @@ function ContactModal({
   useLockBodyScroll(isOpen);
 
   if (!isOpen) return null;
+  if (typeof document === "undefined") return null;
 
-  return (
+  return createPortal(
     <div style={MODAL_OVERLAY_STYLE} onClick={onClose}>
       <div
         style={MODAL_SHEET_STYLE}
@@ -280,7 +285,8 @@ function ContactModal({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
@@ -307,25 +313,25 @@ export function PublicProfileFooterActions({
 
   return (
     <>
-      <div className="mt-2 flex flex-col items-center gap-4">
+      <div className="mt-2 flex flex-row items-stretch gap-3">
         {normalizedLinks.length > 0 ? (
           <button
             type="button"
             onClick={() => setShowContactModal(true)}
-            className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-[rgba(5,5,121,0.08)] bg-white/90 px-6 text-sm font-black uppercase tracking-[0.05em] text-[#050579] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] transition hover:bg-white"
+            className="flex h-14 flex-1 min-w-0 items-center justify-center gap-2 rounded-full border border-[rgba(5,5,121,0.08)] bg-white/90 px-4 text-sm font-black uppercase tracking-[0.03em] text-[#050579] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] transition hover:bg-white"
           >
-            <MessageSquare size={20} />
-            <span>{contactTitle}</span>
+            <MessageSquare size={20} className="flex-shrink-0" />
+            <span className="truncate">{contactTitle}</span>
           </button>
         ) : null}
 
         <button
           type="button"
           onClick={() => setShowShareModal(true)}
-          className="flex h-14 w-full items-center justify-center gap-3 rounded-full border border-[rgba(0,0,0,0.05)] bg-white/90 px-6 text-sm font-black uppercase tracking-[0.05em] text-[#050579] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] transition hover:bg-white"
+          className="flex h-14 flex-1 min-w-0 items-center justify-center gap-2 rounded-full border border-[rgba(0,0,0,0.05)] bg-white/90 px-4 text-sm font-black uppercase tracking-[0.03em] text-[#050579] shadow-[0_10px_25px_-5px_rgba(0,0,0,0.1)] transition hover:bg-white"
         >
-          <Share2 size={20} />
-          <span>แชร์หน้านี้</span>
+          <Share2 size={20} className="flex-shrink-0" />
+          <span className="truncate">แชร์หน้านี้</span>
         </button>
       </div>
 

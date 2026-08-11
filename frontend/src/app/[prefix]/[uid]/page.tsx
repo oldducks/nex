@@ -209,7 +209,7 @@ export default async function ProfilePage({
             platform: 'phone',
         }))),
         ...((emails || []).filter((email: any) => email?.value?.trim()).map((email: any) => ({
-            name: email.label || 'อีเมล',
+            name: 'อีเมล',
             href: `mailto:${email.value.trim()}`,
             platform: 'email',
         }))),
@@ -437,10 +437,10 @@ export default async function ProfilePage({
                                         <User size={96} />
                                     </div>
                                 )}
-                                {/* Logo Badge Premium */}
+                                {/* Logo Badge Premium — frosted white chip so a transparent logo stays readable on any photo */}
                                 {logoUrl && (
-                                    <div className="absolute left-[83.333%] top-[16.667%] flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl bg-transparent p-1.5 sm:h-24 sm:w-24">
-                                        <img src={logoUrl} alt="Logo" className="w-full h-full object-contain scale-110" />
+                                    <div className="absolute left-[83.333%] top-[16.667%] flex h-20 w-20 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-2xl border border-white/70 bg-white/90 p-2 shadow-[0_12px_30px_-8px_rgba(6,17,31,0.55)] backdrop-blur-md sm:h-24 sm:w-24">
+                                        <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" />
                                     </div>
                                 )}
                             </div>
@@ -448,18 +448,20 @@ export default async function ProfilePage({
 
                         {/* Info */}
                         <div className={`flex w-full flex-col ${profilePosition === 'center' ? 'items-center text-center' : 'items-start text-left'}`}>
-                            {/* Positions (Job Titles) */}
+                            {/* Positions (Job Titles) — primary language prominent, other languages small & muted */}
                             {displayPositions.length > 0 && (
-                                <div className={`mb-4 flex w-full flex-col gap-2 ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
-                                    {displayPositions.map((pos: any, i: number) => (
-                                        <div 
-                                            key={i} 
-                                            className={`inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] ${i === 0 ? 'text-[#050579]' : 'text-[#F97316]'}`}
-                                            style={{ backgroundColor: lightMode ? 'rgba(255,255,255,0.72)' : 'rgba(8,22,39,0.74)', borderColor }}
-                                        >
-                                            <Briefcase size={14} />
+                                <div className={`mb-4 flex w-full flex-col gap-1.5 ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
+                                    <div
+                                        className="inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-[#050579]"
+                                        style={{ backgroundColor: lightMode ? 'rgba(255,255,255,0.72)' : 'rgba(8,22,39,0.74)', borderColor }}
+                                    >
+                                        <Briefcase size={14} />
+                                        {displayPositions[0].value}
+                                    </div>
+                                    {displayPositions.slice(1).map((pos: any, i: number) => (
+                                        <span key={i} className="text-xs font-medium uppercase tracking-[0.12em] text-foreground/45">
                                             {pos.value}
-                                        </div>
+                                        </span>
                                     ))}
                                 </div>
                             )}
@@ -481,23 +483,44 @@ export default async function ProfilePage({
                                 )}
                             </div>
 
-                            {/* Companies */}
+                            {/* Companies — primary language prominent, other languages small & muted */}
                             {displayCompanies.length > 0 && (
                                 <div className={`flex w-full flex-col gap-3 ${profilePosition === 'center' ? 'items-center' : 'items-start'}`}>
-                                    {displayCompanies.map((comp: any, i: number) => (
-                                        <div key={i} className="flex items-center gap-3 text-foreground/75">
-                                            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: lightMode ? 'rgba(5,5,121,0.05)' : 'rgba(191,219,254,0.08)', borderColor }}>
-                                                <Building2 size={22} className="text-[#050579]" />
-                                            </div>
-                                            <span className="text-xl font-semibold tracking-wide sm:text-2xl">
-                                                {comp.value}
-                                            </span>
+                                    <div className="flex items-center gap-3 text-foreground/75">
+                                        <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl border" style={{ backgroundColor: lightMode ? 'rgba(5,5,121,0.05)' : 'rgba(191,219,254,0.08)', borderColor }}>
+                                            <Building2 size={22} className="text-[#050579]" />
                                         </div>
-                                    ))}
+                                        <div className={`flex flex-col ${profilePosition === 'center' ? 'items-center text-center' : 'items-start'}`}>
+                                            <span className="text-xl font-semibold tracking-wide sm:text-2xl">
+                                                {displayCompanies[0].value}
+                                            </span>
+                                            {displayCompanies.slice(1).map((comp: any, i: number) => (
+                                                <span key={i} className="text-sm font-medium tracking-wide text-foreground/45">
+                                                    {comp.value}
+                                                </span>
+                                            ))}
+                                        </div>
+                                    </div>
                                 </div>
                             )}
                         </div>
                     </section>
+
+                    {/* Save contact — hero action, right under the identity block */}
+                    {feature_config?.can_save_vcf !== false && (
+                        <section className="mb-8">
+                            <VcfDownloadButton
+                                uid={uid}
+                                name={displayName}
+                                position={displayPosition}
+                                company={displayCompany}
+                                phones={phones}
+                                emails={emails}
+                                website={ensureHttps(websites?.[0]?.url || '')}
+                                profilePicUrl={profileImageUrl}
+                            />
+                        </section>
+                    )}
 
                     {/* About Me */}
                     {about_me && (
@@ -558,7 +581,7 @@ export default async function ProfilePage({
                                         <Phone size={24} className="text-green-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold uppercase text-foreground/50">{phone.label || 'Phone'}</div>
+                                        <div className="text-xs font-bold uppercase text-foreground/50">{phone.label || 'โทรศัพท์'}</div>
                                         <div className="font-medium text-foreground">{formatPhoneNumber(phone.value)}</div>
                                     </div>
                                 </a>
@@ -569,7 +592,7 @@ export default async function ProfilePage({
                                         <Mail size={24} className="text-red-500" />
                                     </div>
                                     <div>
-                                        <div className="text-xs font-bold uppercase text-foreground/50">{email.label || 'Email'}</div>
+                                        <div className="text-xs font-bold uppercase text-foreground/50">อีเมล</div>
                                         <div className="font-medium text-foreground">{email.value}</div>
                                     </div>
                                 </a>
@@ -587,8 +610,8 @@ export default async function ProfilePage({
                                             <Globe size={24} className="text-[#050579]" />
                                         </div>
                                         <div className="flex-1 min-w-0">
-                                            <div className="font-medium truncate text-foreground">{site.label || 'Website'}</div>
-                                            <div className="text-sm text-foreground/55 truncate">{site.url}</div>
+                                            <div className="font-medium truncate text-foreground">{site.label || 'เว็บไซต์'}</div>
+                                            <div className="text-sm text-foreground/55">แตะเพื่อเปิดลิงก์ →</div>
                                         </div>
                                     </a>
                                 ))}
@@ -599,7 +622,18 @@ export default async function ProfilePage({
                     {/* Social Links */}
                     <SocialLinksDisplay links={social_links_json} />
 
-                    {/* QR Code */}
+                    {/* Contact / share actions */}
+                    <section className="mb-8 flex flex-col gap-4">
+                        <PublicProfileFooterActions
+                            shareUrl={profileUrl}
+                            shareTitle={displayName}
+                            contactLinks={footerContactLinks}
+                            contactTitle="ช่องทางการติดต่อ"
+                            contactDescription="เลือกช่องทางที่สะดวกเพื่อเชื่อมต่อกับเจ้าของนามบัตรได้ทันที"
+                        />
+                    </section>
+
+                    {/* QR Code — always visible so it is ready to scan the moment you scroll here */}
                     {qr_enabled !== false && (
                         <section className="mb-8 rounded-[28px] border px-5 py-8 text-center shadow-[0_20px_50px_-36px_rgba(15,23,42,0.35)]" style={{ backgroundColor: lightMode ? 'rgba(246,248,255,0.9)' : 'rgba(8,22,39,0.92)', borderColor }}>
                             <div className="flex flex-col items-center gap-4">
@@ -623,39 +657,18 @@ export default async function ProfilePage({
                         </section>
                     )}
 
-                    {/* Quick Actions (Downloads & Saves) */}
-                    <section className="mb-2 flex flex-col gap-4">
-                        {/* Save to Home Screen Button */}
-                        <SaveToHomeButton 
+                    {/* Secondary — add to home + NEX referral, kept as quiet links */}
+                    <section className="mb-2 flex flex-col items-center gap-3 pt-2">
+                        <SaveToHomeButton
                             uid={uid}
                             profileName={displayName}
                             profilePicUrl={profileThumbUrl || profileImageUrl}
-                        />
-                        
-                        {feature_config?.can_save_vcf !== false && (
-                            <VcfDownloadButton
-                                uid={uid}
-                                name={displayName}
-                                position={displayPosition}
-                                company={displayCompany}
-                                phones={phones}
-                                emails={emails}
-                                website={ensureHttps(websites?.[0]?.url || '')}
-                                profilePicUrl={profileImageUrl}
-                            />
-                        )}
-
-                        <PublicProfileFooterActions
-                            shareUrl={profileUrl}
-                            shareTitle={displayName}
-                            contactLinks={footerContactLinks}
-                            contactTitle="ช่องทางการติดต่อ"
-                            contactDescription="เลือกช่องทางที่สะดวกเพื่อเชื่อมต่อกับเจ้าของนามบัตรได้ทันที"
+                            variant="link"
                         />
 
                         <a
                             href={referralRegisterUrl}
-                            className="pt-2 text-center text-sm font-semibold underline underline-offset-4 transition-opacity hover:opacity-80"
+                            className="text-center text-sm font-semibold underline underline-offset-4 transition-opacity hover:opacity-80"
                             style={{ color: lightMode ? '#050579' : '#93C5FD' }}
                         >
                             สนใจระบบแบบที่คุณเห็นอยู่นี้ คลิกที่นี่
