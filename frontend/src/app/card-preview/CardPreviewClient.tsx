@@ -17,12 +17,17 @@ import {
   ClipboardCheck,
   Truck,
   Link2,
+  Phone,
+  Mail,
 } from 'lucide-react';
 import { MarketingPageTracker } from '@/components/MarketingPageTracker';
 import { logMarketingAnalyticsEvent } from '@/lib/marketingAnalytics';
 
 // Same LINE account as the live sales page (#contact).
 const LINE_URL = 'https://lin.ee/UiiKvZf';
+const CONTACT_PHONE_DISPLAY = '062-646-6285';
+const CONTACT_PHONE_HREF = 'tel:0626466285';
+const CONTACT_EMAIL = 'khram.info@gmail.com';
 
 // Analytics: the marketing log only accepts PAGE_VIEW / VIDEO_* event types
 // (Postgres enum), so distinct interactions are separated by page_key instead
@@ -525,6 +530,22 @@ export default function CardPreviewClient() {
             >
               คุยกับเราผ่าน LINE →
             </a>
+            <div className="mx-auto mt-7 grid max-w-[520px] gap-3 sm:grid-cols-2">
+              <a
+                href={CONTACT_PHONE_HREF}
+                className="flex min-h-[52px] items-center justify-center gap-2 rounded-[10px] border border-white/15 bg-white/10 px-4 text-sm font-semibold text-white transition-all hover:bg-white/15"
+              >
+                <Phone size={16} aria-hidden="true" />
+                <span>{CONTACT_PHONE_DISPLAY}</span>
+              </a>
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="flex min-h-[52px] items-center justify-center gap-2 rounded-[10px] border border-white/15 bg-white/10 px-4 text-sm font-semibold text-white transition-all hover:bg-white/15"
+              >
+                <Mail size={16} aria-hidden="true" />
+                <span>{CONTACT_EMAIL}</span>
+              </a>
+            </div>
           </div>
         </div>
       </section>
